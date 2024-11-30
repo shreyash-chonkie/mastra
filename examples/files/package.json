@@ -1,0 +1,17 @@
+{
+  "name": "files",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "pnpx bun src/mastra/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@mastra/core": "workspace:^",
+    "@mastra/fs": "workspace:^"
+  }
+}

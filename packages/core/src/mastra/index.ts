@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { syncApi } from '../sync/types';
 import { StripUndefined } from './types';
 import { Run } from '../run/types';
+import { MastraFS } from '../fs';
 
 export class Mastra<
   TIntegrations extends Integration[],
@@ -16,6 +17,7 @@ export class Mastra<
   TSyncs extends Record<string, syncApi<any, any>>,
   TLogger extends BaseLogger = BaseLogger,
 > {
+  private storage?: Record<string, MastraFS>;
   private engine?: MastraEngine;
   private vectors?: Record<string, MastraVector>;
   private tools: AllTools<MastraTools, TIntegrations>;
@@ -37,6 +39,7 @@ export class Mastra<
     engine?: MastraEngine;
     vectors?: Record<string, MastraVector>;
     logger?: TLogger;
+    storage?: Record<string, MastraFS>;
   }) {
     /* 
     Logger
@@ -46,6 +49,10 @@ export class Mastra<
 
     if (config.logger) {
       logger = config.logger;
+    }
+
+    if (config.storage) {
+      this.storage = config.storage;
     }
 
     this.logger = logger;
@@ -141,6 +148,10 @@ export class Mastra<
       if (agentLogger) {
         agent.__setLogger(agentLogger);
       }
+
+      if (this.storage) {
+        agent.__setStorage(this.storage);
+      }
     });
 
     /* 
@@ -232,6 +243,13 @@ export class Mastra<
 
   public getLLM() {
     return this.llm;
+  }
+
+  public getStorage(name: string) {
+    if (!this.storage || !this.storage?.[name]) {
+      throw new Error(`Storage with name ${name} not found`);
+    }
+    return this.storage?.[name];
   }
 
   public getTool<T extends keyof MastraTools>(name: T) {

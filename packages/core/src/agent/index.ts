@@ -11,6 +11,7 @@ import { AllTools, ToolApi } from '../tools/types';
 import { LLM } from '../llm';
 import { ModelConfig, StructuredOutput } from '../llm/types';
 import { Run } from '../run/types';
+import { MastraFS } from '../fs';
 
 export class Agent<
   TTools,
@@ -21,6 +22,7 @@ export class Agent<
   >,
 > {
   public name: string;
+  public storage?: Record<string, MastraFS>;
   readonly llm: LLM<TTools, TIntegrations, TKeys>;
   readonly instructions: string;
   readonly model: ModelConfig;
@@ -65,6 +67,11 @@ export class Agent<
     this.#log(LogLevel.DEBUG, `Logger updated for agent ${this.name}`);
   }
 
+  __setStorage(storage: Record<string, MastraFS>) {
+    this.storage = storage;
+    this.#log(LogLevel.DEBUG, `Storage set for agent ${this.name}`);
+  }
+
   /**
    * Internal logging helper that formats and sends logs to the configured logger
    * @param level - Severity level of the log
@@ -84,6 +91,53 @@ export class Agent<
     const logMethod = level.toLowerCase() as keyof Logger<BaseLogMessage>;
 
     this.#logger[logMethod]?.(logMessage);
+  }
+
+  async promptPDF({
+    prompt,
+    fileId,
+    storage,
+    type,
+    runId,
+  }: {
+    storage: string
+    fileId: string,
+    prompt: string,
+    type: 'stream' | 'text'
+  } & Run) {
+
+    this.#log(
+      LogLevel.INFO,
+      `Starting file prompt generation for agent ${this.name}`,
+      runId
+    );
+
+    const result = await this.storage?.[storage]?.getFile(fileId);
+
+    console.log(result)
+
+    if (!result || !result.data) {
+      throw new Error(`File with id ${fileId} not found in storage ${storage}`);
+    }
+
+    const messages: UserContent[] = [[
+      {
+        type: "text",
+        text: prompt
+      },
+      {
+        type: "file",
+        data: result.data.toString('base64'),
+        mimeType: result.mimeType,
+      },
+    ]]
+
+    if (type === 'stream') {
+      return this.stream({ messages, runId });
+    } else {
+      return this.text({ messages, runId });
+    }
+
   }
 
   async text({
@@ -113,6 +167,8 @@ export class Agent<
     }));
 
     const messageObjects = [systemMessage, ...userMessages];
+
+    console.log(JSON.stringify(messageObjects, null, 2))
 
     return this.llm.text({
       model: this.model,
