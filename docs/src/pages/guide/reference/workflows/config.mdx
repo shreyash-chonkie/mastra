@@ -1,0 +1,210 @@
+# Config
+
+`config()` allows you to define how steps are connected and executed in your workflow. You can control the execution flow, specify conditions, and manage data between steps.
+
+## Config Options
+
+- `dependsOn`: An array of step IDs that must successfully complete before the current step can run.
+
+  ```ts copy
+  workflow.config("sendEmail", {
+    dependsOn: ["processOrder", "validateUser"],
+  });
+  ```
+
+- `variables`: Defines how to map data from previous steps into the current step's input.
+
+  ```ts copy
+  workflow.config("sendEmail", {
+    variables: {
+      userId: { stepId: "validateUser", path: "result.userId" },
+      orderData: { stepId: "processOrder", path: "result" },
+    },
+  });
+  ```
+
+- `condition`: A simple boolean expression to determine if the step should run.
+
+  ```ts copy
+  workflow.config("sendRefund", {
+    condition: {
+      ref: { stepId: "validateRefund", path: "result.isEligible" },
+      query: { $eq: true },
+    },
+  });
+  ```
+
+- `conditionFn`: A custom function that returns a boolean to determine if the step should run. Useful for complex conditions.
+  ```ts copy
+  workflow.config("sendNotification", {
+    conditionFn: async ({ steps }) => {
+      const orderValue = steps.processOrder.output.total;
+      const userType = steps.validateUser.output.type;
+      return orderValue > 1000 && userType === "premium";
+    },
+  });
+  ```
+
+## Examples
+
+### Basic Configuration
+
+```ts showLineNumbers copy filename="src/mastra/workflows/welcome-workflow.ts"
+import { Step, Workflow } from "@mastra/core";
+
+const registerUser = new Step({
+  id: "registerUser",
+  action: async ({ data }) => {
+    // Simulate user registration
+    return { userId: "123", email: "user@example.com" };
+  },
+});
+
+const sendWelcomeEmail = new Step({
+  id: "sendWelcomeEmail",
+  action: async ({ data }) => {
+    // Simulate sending welcome email
+    return { sent: true, timestamp: new Date() };
+  },
+});
+
+const workflow = new Workflow({
+  name: "welcome-workflow",
+  steps: [registerUser, sendWelcomeEmail],
+});
+
+workflow
+  .config("sendWelcomeEmail", {
+    dependsOn: ["registerUser"],
+  })
+  .commit();
+
+const result = await workflow.execute();
+console.log(result);
+```
+
+### With Variables, and Condition
+
+```ts showLineNumbers copy filename="src/mastra/workflows/order-workflow.ts"
+import { Step, Workflow } from "@mastra/core";
+
+// Step 1: Process order
+const processOrder = new Step({
+  id: "processOrder",
+  action: async ({ data }) => {
+    return {
+      orderId: "ord_123",
+      amount: 1500,
+      customerEmail: "customer@example.com",
+    };
+  },
+});
+
+// Step 2: Send receipt
+const sendReceipt = new Step({
+  id: "sendReceipt",
+  action: async ({ data }) => {
+    // data.email and data.amount are populated from variables
+    return { sent: true };
+  },
+});
+
+// Step 3: Send VIP thank you (only for orders over $1000)
+const sendVIPThanks = new Step({
+  id: "sendVIPThanks",
+  action: async ({ data }) => {
+    // data.email is populated from variables
+    return { sent: true };
+  },
+});
+
+const workflow = new Workflow({
+  name: "order-workflow",
+  steps: [processOrder, sendReceipt, sendVIPThanks],
+});
+
+workflow
+  .config("sendReceipt", {
+    dependsOn: ["processOrder"],
+    variables: {
+      email: { stepId: "processOrder", path: "customerEmail" },
+      amount: { stepId: "processOrder", path: "amount" },
+    },
+  })
+  .config("sendVIPThanks", {
+    dependsOn: ["processOrder"],
+    variables: {
+      email: { stepId: "processOrder", path: "customerEmail" },
+    },
+    condition: {
+      ref: { stepId: "processOrder", path: "amount" },
+      query: { $gt: 1000 },
+    },
+  })
+  .commit();
+
+const result = await workflow.execute();
+console.log(result);
+```
+
+## API Reference
+
+### Config Method
+
+The `config` method configures how a step behaves within the workflow. It returns the workflow instance for method chaining.
+
+```ts
+workflow.config(stepId, configOptions);
+```
+
+#### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: "stepId",
+      type: "string",
+      description: "Unique identifier of the step to configure",
+    },
+    {
+      name: "config",
+      type: "StepConfig",
+      description: "Configuration options for the step",
+      properties: [
+        {
+        type: "StepConfig",
+        parameters: [
+          {
+            name: "dependsOn",
+            type: "Array<string>",
+            description: "Array of step IDs that must complete successfully before this step can run",
+          },
+          {
+            name: "variables",
+            type: "Record<string, { stepId: string; path: string }>",
+            description: "Defines how to map data from previous steps into the current step's input",
+            isOptional: true,
+          },
+          {
+            name: "condition",
+            type: "StepCondition",
+            description: "Condition that determines if the step should execute",
+            isOptional: true,
+          },
+          {
+            name: "conditionFn",
+            type: "({ context }: { context: WorkflowContext }) => Promise<boolean>",
+            description: "Custom function that determines if the step should execute",
+            isOptional: true,
+          },
+        ]
+      }]
+    }
+
+]}
+/>
+
+#### Returns
+
+Returns the workflow instance for method chaining.
+
