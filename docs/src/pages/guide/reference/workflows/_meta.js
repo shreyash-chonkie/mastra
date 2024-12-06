@@ -1,7 +1,9 @@
 const meta = {
   workflow: "Workflow",
   step: "Step",
-  transition: "Transition",
+  config: "Config",
+  condition: "Condition",
+  execute: "Execute",
 };
 
 export default meta;
