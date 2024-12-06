@@ -1,123 +1,57 @@
-# Step Configuration
+# Step
 
 Steps are the building blocks of a workflow. Each step defines an action to execute and how to handle its data.
+By default, steps are executed simultaneously unless [configured](./config) otherwise.
 
 We are adding explicit OpenTelemetry tracing to each step, so that you can see the inputs and outputs of each step in your observability platform.
 
-## API Reference
-
-### Creating Steps
+### Step Class
 
 Steps are created using the `Step` class:
 
 ```ts showLineNumbers copy
+import { Step } from "@mastra/core";
+
 const step = new Step({
   id: "stepId",
-  payload: {
-    /* ... */
-  },
-  inputSchema: z.object({
-    /* ... */
-  }),
-  outputSchema: z.object({
-    /* ... */
-  }),
-  action: async ({ data, runId }) => {
-    /* ... */
-  },
 });
 ```
-
-### Step Configuration Options
-
-<PropertiesTable
-  content={[
-    {
-      name: "id",
-      type: "string",
-      description: "Unique identifier for the step",
-      required: true,
-    },
-    {
-      name: "inputSchema",
-      type: "z.ZodSchema",
-      description: "Zod schema to validate input data before execution",
-      required: false,
-    },
-    {
-      name: "outputSchema",
-      type: "z.ZodSchema",
-      description: "Zod schema to infer output data type",
-      required: false,
-    },
-    {
-      name: "payload",
-      type: "Partial<Record<string, any>>",
-      description: "Static data to be merged with variables",
-      required: false,
-    },
-    {
-      name: "action",
-      type: "(data: TInput) => Promise<TOutput>",
-      description: "Async function that executes the step logic",
-      required: false,
-    },
-  ]}
-/>
-
-### Adding Steps to Workflows
-
-When adding steps to a workflow, you can configure additional behavior using the `step()` method:
-
-### step()
-
-```ts showLineNumbers copy
-workflow.step("stepId", {
-  variables: {
-    // Map data from previous steps or trigger
-    userId: { stepId: "trigger", path: "user.id" },
-    orderData: { stepId: "processOrder", path: "result" },
-  },
-  transitions: {
-    // Define conditional transitions to other steps
-    nextStep: {
-      condition: {
-        ref: { stepId: "stepId", path: "status" },
-        query: { $eq: "success" },
-      },
-    },
-  },
-});
-```
-
-### Step Configuration in Workflow
-
-<PropertiesTable
-  content={[
-    {
-      name: "variables",
-      type: "Record<string, VariableReference>",
-      description:
-        "Maps data from previous steps or trigger data into the step input",
-      required: false,
-    },
-    {
-      name: "transitions",
-      type: "Record<string, TransitionConfig>",
-      description: "Defines conditional transitions to other steps",
-      required: false,
-    },
-  ]}
-/>
 
 ## Examples
 
 ### Basic Step
 
-```ts showLineNumbers copy
+```ts showLineNumbers filename="src/mastra/workflows/order-workflow.ts" lineNumbers={16} copy
+import { Workflow, Step } from "@mastra/core";
+
 const processOrder = new Step({
   id: "processOrder",
+});
+
+// Register step in workflow
+const workflow = new Workflow({
+  name: "order-workflow",
+  steps: [processOrder],
+});
+```
+
+### With Schema Validation, Payload and Action
+
+```ts showLineNumbers filename="src/mastra/workflows/order-workflow.ts" lineNumbers={3-19} copy
+const processOrder = new Step({
+  id: "processOrder",
+  inputSchema: z.object({
+    id: z.string(),
+  }),
+  payload: {
+    id: "123",
+  },
+  outputSchema: z.object({
+    status: z.enum(["processed", "failed"]),
+    orderId: z.string(),
+  }),
   action: async ({ data, runId }) => {
+    // Process order
     return {
       status: "processed",
       orderId: data.id,
@@ -125,82 +59,72 @@ const processOrder = new Step({
   },
 });
 
-// Configure step in workflow
-workflow.step("processOrder");
-```
-
-### With Schema Validation
-
-```ts showLineNumbers copy
-const validateUser = new Step({
-  id: "validateUser",
-  inputSchema: z.object({
-    userId: z.string(),
-    email: z.string().email(),
-  }),
-  outputSchema: z.object({
-    isValid: z.boolean(),
-  }),
-  action: async ({ data, runId }) => {
-    const { userId, email } = data;
-    return { isValid: true };
-  },
-});
-
-// Configure step in workflow
-workflow.step("validateUser");
-```
-
-### With Variables
-
-```ts showLineNumbers copy
-const sendEmail = new Step({
-  id: "sendEmail",
-  inputSchema: z.object({
-    userId: z.string(),
-    orderDetails: z.object({
-      orderId: z.string(),
-      status: z.string(),
-    }),
-  }),
-  action: async ({ data, runId }) => {
-    const { userId, orderDetails } = data;
-    return { sent: true };
-  },
-});
-
-// Configure step in workflow
-workflow.step("sendEmail", {
-  variables: {
-    userId: { stepId: "trigger", path: "user.id" },
-    orderDetails: { stepId: "processOrder", path: "result" },
-  },
+// Register step in workflow
+const workflow = new Workflow({
+  name: "order-workflow",
+  steps: [processOrder],
 });
 ```
 
-### With Static Payload
+## API Reference
 
-```ts showLineNumbers copy
-const createInvoice = new Step({
-  id: "createInvoice",
-  inputSchema: z.object({
-    orderId: z.string(),
-    currency: z.string(),
-    taxRate: z.number(),
-  }),
-  action: async ({ data, runId }) => {
-    const { orderId, currency, taxRate } = data;
-    return { invoiceId: "INV-123" };
-  },
-});
+### Step Properties
 
-workflow.step("createInvoice", {
-  variables: {
-    orderId: { stepId: "processOrder", path: "orderId" },
-  },
-  payload: {
-    currency: "USD",
-    taxRate: 0.2,
-  },
-});
-```
+<PropertiesTable
+  content={[
+    {
+      name: "id",
+      type: "string",
+      description: "Unique identifier for the step",
+    },
+    {
+      name: "inputSchema",
+      type: "ZodSchema",
+      description: "Zod schema to validate input data",
+      isOptional: true,
+    },
+    {
+      name: "outputSchema",
+      type: "ZodSchema",
+      description: "Zod schema to validate output data",
+      isOptional: true,
+    },
+    {
+      name: "action",
+      type: "({ data, runId }: { data: InputSchemaData; runId: string }) => Promise<OutputSchemaData>",
+      description: "Async function containing the step logic",
+      isOptional: true,
+    },
+    {
+      name: "payload",
+      type: "Partial<Record<string, any>>",
+      description: "Static data to merge with variables",
+      isOptional: true,
+    },
+    {
+      name: "retryConfig",
+      type: "RetryConfig",
+      description: "Configuration for retry behavior",
+      isOptional: true,
+      properties: [
+        {
+          type: "RetryConfig",
+          parameters: [
+            {
+              name: "attempts",
+              type: "number",
+              description: "Number of attempts to retry the step",
+              isOptional: true,
+            },
+            {
+              name: "delay",
+              type: "number",
+              description: "Delay between retries in milliseconds",
+              isOptional: true,
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
