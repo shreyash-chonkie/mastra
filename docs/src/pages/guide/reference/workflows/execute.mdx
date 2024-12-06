@@ -1,0 +1,97 @@
+# Execute
+
+The `execute` method runs the workflow with optional trigger data and returns the results of all steps.
+
+```ts
+const result = await workflow.execute(triggerData);
+```
+
+## Example
+
+```ts
+const workflow = new Workflow({
+  name: "order-workflow",
+  steps: [processOrder, sendEmail],
+  triggerSchema: z.object({
+    orderId: z.string(),
+    customerEmail: z.string().email(),
+  }),
+});
+
+const result = await workflow.execute({
+  orderId: "123",
+  customerEmail: "customer@example.com",
+});
+```
+
+## Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: "triggerData",
+      type: "ZodSchema",
+      description:
+        "Initial data to start the workflow with. Must match the trigger schema if one is defined.",
+      isOptional: true,
+    },
+  ]}
+/>
+
+## Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: "runId",
+      type: "string",
+      description: "Unique identifier for this workflow execution",
+    },
+    {
+      name: "triggerData",
+      type: "z.infer<TriggerDataSchema> | undefined",
+      description: "The initial trigger data that was passed to execute",
+    },
+    {
+      name: "results",
+      type: "Record<stepID, StepResult<any>>",
+      description:
+        'Results from all workflow steps.',
+      properties: [
+        {
+          type: 'StepResult',
+          parameters: [
+                {
+                    name: 'status',
+                    type: 'success | failed | skipped',
+                    description: 'The status of the step execution',
+                },
+                {
+                    name: 'payload',
+                    type: 'object',
+                    description: 'The payload of the step execution',
+                    isOptional: true
+                },
+                {
+                    name: 'error',
+                    type: 'string',
+                    description: 'Error message explaining why the step failed',
+                    isOptional: true
+                },
+                {
+                    name: 'missingDeps',
+                    type: 'Array<string>',
+                    description: 'The IDs of the steps that this step depends on but did not execute',
+                    isOptional: true
+                }
+            ],
+         }
+        ],
+    }
+
+]}
+/>
+
+## Error Handling
+
+The execute method will throw an error if the trigger schema validation fails.
