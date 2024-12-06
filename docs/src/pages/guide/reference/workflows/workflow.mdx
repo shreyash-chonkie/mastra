@@ -25,29 +25,55 @@ const workflow = new Workflow({ name: "my-workflow" });
       description: "Identifier for the workflow",
     },
     {
-      name: "logger",
-      type: "Logger<WorkflowLogMessage>",
-      isOptional: true,
-      description: "Optional logger instance for workflow execution details",
-    },
-    {
       name: "steps",
       type: "Step[]",
       description: "Array of steps to include in the workflow",
     },
     {
+      name: "logger",
+      type: "Logger<WorkflowLogMessage>",
+      isOptional: true,
+      description: "Logger instance for workflow execution details",
+    },
+    {
       name: "triggerSchema",
-      type: "z.Schema",
-      description: "Optional schema for validating workflow trigger data",
+      type: "ZodSchema",
+      isOptional: true,
+      description: "Schema for validating workflow trigger data",
+    },
+    {
+      name: "retryConfig",
+      type: "RetryConfig",
+      description: "Configuration for retry behavior",
+      isOptional: true,
+      properties: [
+        {
+          type: "RetryConfig",
+          parameters: [
+            {
+              name: "attempts",
+              type: "number",
+              description: "Number of attempts to retry the step",
+              isOptional: true,
+            },
+            {
+              name: "delay",
+              type: "number",
+              description: "Delay between retries in milliseconds",
+              isOptional: true,
+            },
+          ],
+        },
+      ],
     },
   ]}
 />
 
 ### Core Methods
 
-#### `step()`
+#### `config()`
 
-Adds a [Step](./step.mdx) to the workflow, including transitions to other steps. Returns the workflow instance for chaining. [Learn more about steps](./step.mdx).
+Allows you to [configure](./config.mdx) a workflow [step](./step.mdx).
 
 #### `commit()`
 
@@ -55,9 +81,9 @@ Validates and finalizes the workflow configuration. Must be called after adding 
 
 #### `execute()`
 
-Executes the workflow with optional trigger data. Typed based on the [trigger schema](./workflow.mdx#trigger-schemas).
+[Executes](./execute.mdx) the workflow with an optional trigger data. Typed based on the [trigger schema](./workflow.mdx#trigger-schemas).
 
-## Trigger Schemas
+### Trigger Schemas
 
 Trigger schemas validate the initial data passed to a workflow using Zod.
 
@@ -79,7 +105,7 @@ The schema:
 - Validates data passed to `execute()`
 - Provides TypeScript types for your workflow input
 
-## Variables & Data Flow
+### Variables & Data Flow
 
 Variables allow steps to access data from:
 
@@ -90,13 +116,13 @@ Variables payloads are typesafe with fields defined in the [Step](./step.mdx) `i
 
 ```ts showLineNumbers copy
 workflow
-  .step("createOrder", {
+  .config("createOrder", {
     // Access trigger data
     variables: {
       orderId: { stepId: "trigger", path: "orderId" },
     },
   })
-  .step("processPayment", {
+  .config("processPayment", {
     variables: {
       // Access previous step's data
       orderStatus: { stepId: "createOrder", path: "status" },
@@ -112,34 +138,7 @@ workflow
 - Paths use dot notation for nested data
 - Missing or invalid paths throw errors during execution
 
-### Example
-
-```ts showLineNumbers copy
-const workflow = new Workflow({
-  name: "process-data",
-  triggerSchema: z.object({
-    items: z.array(
-      z.object({
-        id: z.number(),
-        value: z.number(),
-      }),
-    ),
-  }),
-})
-  .step("filter", {
-    variables: {
-      items: { stepId: "trigger", path: "." },
-    },
-  })
-  .step("process", {
-    variables: {
-      items: { stepId: "filter", path: "filtered.user.name" },
-    },
-  })
-  .commit();
-```
-
-## Validation
+### Validation
 
 Workflow validation happens at two key times:
 
@@ -149,8 +148,8 @@ When you call `.commit()`, the workflow validates:
 
 ```ts showLineNumbers copy
 workflow
-  .step('step1', {...})
-  .step('step2', {...})
+  .config('step1', {...})
+  .config('step2', {...})
   .commit(); // Validates workflow structure
 ```
 
@@ -197,4 +196,6 @@ try {
 ## Related Documentation
 
 - [Step](./step.mdx)
-- [Transition](./transition.mdx)
+- [Config](./config.mdx)
+- [Condition](./condition.mdx)
+- [Execute](./execute.mdx)
