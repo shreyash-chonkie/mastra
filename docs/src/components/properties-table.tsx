@@ -34,7 +34,7 @@ export const PropertiesTable: React.FC<PropertiesTableProps> = ({
   }) => {
     if (properties && properties.length > 0) {
       return (
-        <div className="flex flex-col">
+        <div className="flex flex-col mt-2">
           {properties.map((prop, idx) => (
             <div
               key={idx}
@@ -73,7 +73,7 @@ export const PropertiesTable: React.FC<PropertiesTableProps> = ({
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col mt-2">
       {content.map((item, index) => {
         return (
           <div
