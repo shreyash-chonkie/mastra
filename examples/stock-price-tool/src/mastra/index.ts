@@ -3,7 +3,7 @@ import { Mastra } from '@mastra/core';
 import { stockAgent } from './agents';
 import * as tools from './tools';
 
-export const mastra = new Mastra({
+export const mastra = new Mastra<any, typeof tools, any>({
   tools,
   agents: [stockAgent],
 });
