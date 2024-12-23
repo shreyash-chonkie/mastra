@@ -43,7 +43,6 @@ export class VercelDeployer extends Deployer {
           dependencies: {
             express: '^4.21.1',
             '@mastra/core': '0.1.27-alpha.35',
-            'express-jsdoc-swagger': '^1.8.0',
             'serverless-http': '^3.2.0',
             zod: '3.24.0',
           },
@@ -51,6 +50,41 @@ export class VercelDeployer extends Deployer {
         null,
         2,
       ),
+    );
+
+    // Write .vercelignore file
+    writeFileSync(
+      join(this.dotMastraPath, '.vercelignore'),
+      `
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+*.test.*
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Misc
+.DS_Store
+*.pem
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Development configs
+tsconfig.json
+jest.config.js
+.eslintrc
+.prettierrc
+README.md
+`,
     );
   }
 
