@@ -196,8 +196,13 @@ README.md
       envVars.push(...vars);
     }
 
+    const buildArgs = ['build', '--cwd', join(process.cwd(), '.mastra'), '--yes', '--token', this.token];
+
+    console.log('Running command:', 'vercel', buildArgs.join(' '));
+    await execa('vercel', buildArgs);
+
     // Create the command array with base arguments
-    const commandArgs = [
+    const deployArgs = [
       '--scope',
       scope as string,
       '--cwd',
@@ -207,16 +212,18 @@ README.md
       this.token,
       '--yes',
       ...(projectName ? ['--name', projectName] : []),
+      '--prebuilt',
+      '--archive=tgz',
     ];
 
     // Add env vars to initial deployment
     for (const envVar of envVars) {
-      commandArgs.push('--env', envVar);
+      deployArgs.push('--env', envVar);
     }
 
     // Run the Vercel deploy command
-    console.log('Running command:', 'vercel', commandArgs.join(' '));
-    const p2 = execa('vercel', commandArgs);
+    console.log('Running command:', 'vercel', deployArgs.join(' '));
+    const p2 = execa('vercel', deployArgs);
 
     p2.stdout.pipe(process.stdout);
     p2.stderr.pipe(process.stderr);
