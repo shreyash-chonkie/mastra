@@ -51,7 +51,9 @@ export class VercelDeployer extends Deployer {
         2,
       ),
     );
+  }
 
+  writeFiles() {
     // Write .vercelignore file
     writeFileSync(
       join(this.dotMastraPath, '.vercelignore'),
@@ -86,9 +88,7 @@ jest.config.js
 README.md
 `,
     );
-  }
 
-  writeFiles() {
     writeFileSync(
       join(this.dotMastraPath, 'vercel.json'),
       JSON.stringify(
