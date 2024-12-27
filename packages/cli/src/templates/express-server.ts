@@ -3,18 +3,18 @@ import expressJSDocSwagger, { Options } from 'express-jsdoc-swagger';
 import _path, { join } from 'path';
 import serverless from 'serverless-http';
 import { stringify } from 'superjson';
-import { fileURLToPath as _fileURLToPath } from 'url';
+import { fileURLToPath as _fileURLToPath, pathToFileURL } from 'url';
 import zodToJsonSchema from 'zod-to-json-schema';
 
 const ___filename = _fileURLToPath(import.meta.url);
 const ___dirname = _path.dirname(___filename);
 
-const { mastra } = await import(join(process.cwd(), 'mastra.mjs'));
+const { mastra } = await import(pathToFileURL(join(process.cwd(), 'mastra.mjs')).href);
 
 const mastraToolsPaths = process.env.MASTRA_TOOLS_PATH;
 
 const toolImports = mastraToolsPaths
-  ? await Promise.all(mastraToolsPaths.split(',').map(toolPath => import(toolPath)))
+  ? await Promise.all(mastraToolsPaths.split(',').map(toolPath => import(pathToFileURL(toolPath).href)))
   : [];
 
 const tools = toolImports.reduce((acc, toolModule) => {
