@@ -1,9 +1,9 @@
 import { Mastra, createLogger } from '@mastra/core';
 
-import { AgentMastra } from './agents/index';
+import { AgentMastraAnthropic, AgentMastraOpenAI, AgentMastraGroq } from './agents/index';
 
 export const mastra = new Mastra({
-  agents: { AgentMastra },
+  agents: { AgentMastraAnthropic, AgentMastraOpenAI, AgentMastraGroq },
   logger: createLogger({
     type: 'CONSOLE',
     level: 'INFO',

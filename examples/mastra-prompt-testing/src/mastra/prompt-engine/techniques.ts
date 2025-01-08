@@ -10,7 +10,7 @@ export class ChainOfThought extends StepBasedPrompt {
     steps: string[] = [],
     options: Partial<InstructionOptions> = {
       style: 'analytical',
-      format: 'sequential reasoning',
+      outputFormat: 'sequential reasoning',
       constraints: ['Show each logical step', 'Explain reasoning between steps'],
     },
   ) {
@@ -32,7 +32,7 @@ export class Decomposition extends StepBasedPrompt {
     steps: string[] = [],
     options: Partial<InstructionOptions> = {
       style: 'systematic',
-      format: 'step-by-step breakdown',
+      outputFormat: 'step-by-step breakdown',
       constraints: ['Each step should be self-contained', 'Steps build on previous results'],
     },
   ) {
@@ -54,7 +54,7 @@ export class SelfAsk extends PromptTemplate {
     private subQuestions: string[],
     options: Partial<InstructionOptions> = {
       style: 'investigative',
-      format: 'question-answer sequence',
+      outputFormat: 'question-answer sequence',
       constraints: ['Answer each question before moving to next', 'Use answers to build final solution'],
     },
   ) {
@@ -80,7 +80,7 @@ export class TreeOfThought extends PromptTemplate {
     private branches: { [key: string]: string[] },
     options: Partial<InstructionOptions> = {
       style: 'exploratory',
-      format: 'branching analysis',
+      outputFormat: 'branching analysis',
       constraints: ['Consider multiple valid approaches', 'Evaluate each path', 'Choose optimal solution'],
     },
   ) {
@@ -106,7 +106,7 @@ export class SelfVerification extends StepBasedPrompt {
     verificationSteps: string[] = [],
     options: Partial<InstructionOptions> = {
       style: 'thorough',
-      format: 'verification checklist',
+      outputFormat: 'verification checklist',
       constraints: ['Verify each calculation', 'Check logical consistency', 'Validate final answer'],
     },
   ) {
@@ -127,8 +127,7 @@ export class ZeroShot extends PromptTemplate {
   constructor(
     instruction: string | Instruction,
     options: Partial<InstructionOptions> = {
-      format: 'direct response',
-      constraints: ['Show all work', 'Explain key steps'],
+      outputFormat: 'direct response',
     },
   ) {
     const primaryInstruction = typeof instruction === 'string' ? new Instruction(instruction, options) : instruction;
@@ -145,7 +144,7 @@ export class FewShot extends PromptTemplate {
     instruction: string | Instruction,
     private examples: Example[],
     options: Partial<InstructionOptions> = {
-      format: 'example-based solution',
+      outputFormat: 'example-based solution',
       constraints: ['Follow example pattern', 'Show similar level of detail'],
     },
   ) {
@@ -156,6 +155,30 @@ export class FewShot extends PromptTemplate {
 
   toString(): string {
     return `${super.toString()}\n\nNow solve the new problem using a similar approach:`;
+  }
+}
+
+/**
+ * Role-based prompting implementation.
+ * Enhances responses by assigning specific professional roles and expertise.
+ */
+export class RolePrompt extends PromptTemplate {
+  constructor(
+    instruction: string | Instruction,
+    private role: string,
+    options: Partial<InstructionOptions> = {
+      style: 'professional',
+      outputFormat: 'role-specific response',
+      constraints: ['Stay in character', 'Use domain-specific knowledge', 'Maintain professional tone'],
+    },
+  ) {
+    const primaryInstruction =
+      typeof instruction === 'string' ? new Instruction(instruction, { ...options, role }) : instruction;
+    super(primaryInstruction);
+  }
+
+  toString(): string {
+    return `${super.toString()}\n\nResponding as ${this.role}:`;
   }
 }
 
@@ -190,6 +213,10 @@ export function buildPrompt(type: string, config: PromptConfig): PromptTemplate 
     case 'self-verification':
       if (!config.verificationSteps?.length) throw new Error('Verification steps required for self-verification');
       return new SelfVerification(instruction, config.verificationSteps, config.options);
+
+    case 'role':
+      if (!config.role) throw new Error('Role required for role-based prompting');
+      return new RolePrompt(instruction, config.role, config.options);
 
     default:
       throw new Error(`Unknown prompt type: ${type}`);

@@ -14,7 +14,6 @@ export const zeroShot = buildPrompt('zero-shot', {
   instruction: mathProblem,
   options: {
     outputFormat: 'mathematical solution',
-    constraints: ['Show all calculations explicitly', 'Break down complex operations'],
   },
 });
 
@@ -27,10 +26,6 @@ export const fewShot = buildPrompt('few-shot', {
       '1. Original price per shirt = $25\n2. Price increase = $25 × 0.20 = $5\n3. New price per shirt = $25 + $5 = $30\n4. Cost for 3 shirts = $30 × 3 = $90\nAnswer: $90',
     ),
   ],
-  options: {
-    style: 'mathematical',
-    outputFormat: 'step-by-step calculation',
-  },
 });
 
 // Chain of thought emphasizing logical steps
@@ -43,6 +38,15 @@ export const chainOfThought = buildPrompt('chain-of-thought', {
     'Factor in 20% increase in quantity',
     'Compute final weekly cost',
   ],
+  options: {
+    style: 'analytical',
+    outputFormat: 'sequential reasoning',
+  },
+});
+
+// Auto-generate chain of thought
+export const autoChainOfThought = buildPrompt('chain-of-thought', {
+  instruction: mathProblem,
   options: {
     style: 'analytical',
     outputFormat: 'sequential reasoning',
@@ -122,6 +126,23 @@ export const selfVerification = buildPrompt('self-verification', {
     outputFormat: 'verification steps',
   },
 });
+
+// Role prompting with a math teacher persona
+export const rolePrompt = buildPrompt('role', {
+  instruction: mathProblem,
+  role: 'Mathematics Teacher',
+  options: {
+    style: 'pedagogical',
+    outputFormat: 'educational explanation',
+    constraints: [
+      'Explain concepts clearly',
+      'Use mathematical terminology appropriately',
+      'Provide step-by-step guidance',
+    ],
+  },
+});
+
+// TODO: Automatic prompt engineer
 
 // Expected answer with explanation
 export const expectedAnswer = '$90';

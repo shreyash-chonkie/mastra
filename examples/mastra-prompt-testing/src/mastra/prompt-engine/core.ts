@@ -10,7 +10,7 @@
 export interface InstructionOptions {
   role?: string; // Professional role/persona to guide response style
   style?: string; // Response style (analytical, creative, etc.)
-  callout?: string; // Callout for attention
+  callout?: boolean; // Callout for attention
   tone?: string; // Communication tone affecting response formality
   outputFormat?: string; // Output structure specification
   perspective?: string; // Point of view for response
@@ -49,7 +49,7 @@ export class Instruction {
   protected context: string | null;
   protected constraints: string[];
   protected examples: string[];
-  protected callout: string | null;
+  protected callout = false;
 
   constructor(text: string, options: Partial<InstructionOptions> = {}) {
     this.text = text;
@@ -61,7 +61,7 @@ export class Instruction {
     this.context = options.context || null;
     this.constraints = options.constraints || [];
     this.examples = options.examples || [];
-    this.callout = options.callout || null;
+    this.callout = options.callout || false;
   }
 
   toString(): string {
