@@ -10,8 +10,9 @@
 export interface InstructionOptions {
   role?: string; // Professional role/persona to guide response style
   style?: string; // Response style (analytical, creative, etc.)
+  callout?: string; // Callout for attention
   tone?: string; // Communication tone affecting response formality
-  format?: string; // Output structure specification
+  outputFormat?: string; // Output structure specification
   perspective?: string; // Point of view for response
   context?: string; // Contextual information
   constraints?: string[]; // Response limitations/requirements
@@ -43,34 +44,40 @@ export class Instruction {
   protected role: string | null;
   protected style: string | null;
   protected tone: string | null;
-  protected format: string | null;
+  protected outputFormat: string | null;
   protected perspective: string | null;
   protected context: string | null;
   protected constraints: string[];
   protected examples: string[];
+  protected callout: string | null;
 
   constructor(text: string, options: Partial<InstructionOptions> = {}) {
     this.text = text;
     this.role = options.role || null;
     this.style = options.style || null;
     this.tone = options.tone || null;
-    this.format = options.format || null;
+    this.outputFormat = options.outputFormat || null;
     this.perspective = options.perspective || null;
     this.context = options.context || null;
     this.constraints = options.constraints || [];
     this.examples = options.examples || [];
+    this.callout = options.callout || null;
   }
 
   toString(): string {
     const parts: string[] = [];
-    if (this.role) parts.push(`As a ${this.role}:`);
+    if (this.role) parts.push(`As a ${this.role}:`.toUpperCase());
     if (this.style || this.tone) {
       const styleStr = [this.style, this.tone].filter(Boolean).join(', ');
-      parts.push(`Write in a ${styleStr} manner:`);
+      parts.push(`Write in a ${styleStr} manner:`.toUpperCase());
     }
-    if (this.format) parts.push(`Format: ${this.format}`);
-    if (this.constraints.length) parts.push(`Constraints:\n${this.constraints.map(c => `- ${c}`).join('\n')}`);
-    parts.push(this.text);
+    if (this.outputFormat) parts.push(`OUTPUT FORMAT: ${this.outputFormat}`);
+    if (this.constraints.length) parts.push(`CONSTRAINTS:\n${this.constraints.map(c => `- ${c}`).join('\n')}`);
+    let transformedText = this.text;
+    if (this.callout) {
+      transformedText = this.text.toUpperCase();
+    }
+    parts.push(transformedText);
     return parts.join('\n');
   }
 }

@@ -13,7 +13,7 @@ and he also needs to buy 20% more food than before. How much will he spend on gr
 export const zeroShot = buildPrompt('zero-shot', {
   instruction: mathProblem,
   options: {
-    format: 'mathematical solution',
+    outputFormat: 'mathematical solution',
     constraints: ['Show all calculations explicitly', 'Break down complex operations'],
   },
 });
@@ -29,7 +29,7 @@ export const fewShot = buildPrompt('few-shot', {
   ],
   options: {
     style: 'mathematical',
-    format: 'step-by-step calculation',
+    outputFormat: 'step-by-step calculation',
   },
 });
 
@@ -45,7 +45,7 @@ export const chainOfThought = buildPrompt('chain-of-thought', {
   ],
   options: {
     style: 'analytical',
-    format: 'sequential reasoning',
+    outputFormat: 'sequential reasoning',
   },
 });
 
@@ -71,7 +71,7 @@ export const treeOfThought = buildPrompt('tree-of-thought', {
   },
   options: {
     style: 'exploratory',
-    format: 'multiple approaches',
+    outputFormat: 'multiple approaches',
   },
 });
 
@@ -87,7 +87,7 @@ export const selfAsk = buildPrompt('self-ask', {
   ],
   options: {
     style: 'investigative',
-    format: 'question-based reasoning',
+    outputFormat: 'question-based reasoning',
   },
 });
 
@@ -103,7 +103,7 @@ export const decomposition = buildPrompt('decomposition', {
   ],
   options: {
     style: 'systematic',
-    format: 'component breakdown',
+    outputFormat: 'component breakdown',
   },
 });
 
@@ -119,7 +119,7 @@ export const selfVerification = buildPrompt('self-verification', {
   ],
   options: {
     style: 'thorough',
-    format: 'verification steps',
+    outputFormat: 'verification steps',
   },
 });
 
