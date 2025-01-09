@@ -142,7 +142,5 @@ export const rolePrompt = buildPrompt('role', {
   },
 });
 
-// TODO: Automatic prompt engineer
-
 // Expected answer with explanation
 export const expectedAnswer = '$90';

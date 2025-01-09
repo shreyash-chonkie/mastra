@@ -138,3 +138,20 @@ Answer Y/N with brief analysis of technique effectiveness.`,
   choiceScores: { Y: 1, N: 0 },
   useCoT: true,
 });
+
+// Role prompting effectiveness
+export const rolePromptEffectiveness = LLMClassifierFromTemplate({
+  name: 'Role Prompting',
+  promptTemplate: `Evaluate if the solution effectively maintains the assigned professional role.
+
+Solution: {{output}}
+
+Check if the solution:
+1. Maintains consistent role perspective
+2. Uses role-appropriate expertise and terminology
+3. Delivers value through role-specific insights
+
+Answer Y/N focusing on role adherence and effectiveness.`,
+  choiceScores: { Y: 1, N: 0 },
+  useCoT: true,
+});

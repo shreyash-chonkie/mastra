@@ -16,7 +16,6 @@ export interface InstructionOptions {
   perspective?: string; // Point of view for response
   context?: string; // Contextual information
   constraints?: string[]; // Response limitations/requirements
-  examples?: string[]; // Illustrative examples
 }
 
 /**
@@ -60,7 +59,6 @@ export class Instruction {
     this.perspective = options.perspective || null;
     this.context = options.context || null;
     this.constraints = options.constraints || [];
-    this.examples = options.examples || [];
     this.callout = options.callout || false;
   }
 

@@ -10,6 +10,8 @@ import {
   expectedAnswer,
   benchmark,
   mathProblem,
+  autoChainOfThought,
+  rolePrompt,
 } from '../examples';
 
 import {
@@ -19,6 +21,7 @@ import {
   chainOfThoughtEffectiveness,
   treeOfThoughtEffectiveness,
   selfVerificationEffectiveness,
+  rolePromptEffectiveness,
   overallTechniqueEffectiveness,
 } from './scorers';
 
@@ -57,6 +60,14 @@ Eval('Groq', {
       },
     },
     {
+      input: autoChainOfThought.toString(),
+      expected: expectedAnswer,
+      tags: ['auto-chain-of-thought'],
+      metadata: {
+        technique: 'auto-chain-of-thought',
+      },
+    },
+    {
       input: selfVerification.toString(),
       expected: expectedAnswer,
       tags: ['self-verification'],
@@ -72,6 +83,14 @@ Eval('Groq', {
         technique: 'tree-of-thought',
       },
     },
+    {
+      input: rolePrompt.toString(),
+      expected: expectedAnswer,
+      tags: ['role-prompt'],
+      metadata: {
+        technique: 'role-prompt',
+      },
+    },
   ],
   task: async input => {
     const agent = mastra.getAgent('AgentMastraGroq');
@@ -85,6 +104,7 @@ Eval('Groq', {
     chainOfThoughtEffectiveness,
     treeOfThoughtEffectiveness,
     selfVerificationEffectiveness,
+    rolePromptEffectiveness,
     overallTechniqueEffectiveness,
   ],
   metadata: {
