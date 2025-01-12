@@ -5,12 +5,10 @@ import { gsm8kSampleDataSet } from '../data-set';
 
 import {
   correctMathAnswer,
-  zeroShotEffectiveness,
-  fewShotEffectiveness,
-  chainOfThoughtEffectiveness,
-  treeOfThoughtEffectiveness,
-  selfVerificationEffectiveness,
   overallTechniqueEffectiveness,
+  answerRelevancy,
+  contextualPrecision,
+  hallucinationDetection,
 } from './scorers';
 
 Eval('Prompt-technique-test', {
@@ -25,11 +23,9 @@ Eval('Prompt-technique-test', {
   },
   scores: [
     correctMathAnswer,
-    zeroShotEffectiveness,
-    fewShotEffectiveness,
-    chainOfThoughtEffectiveness,
-    treeOfThoughtEffectiveness,
-    selfVerificationEffectiveness,
     overallTechniqueEffectiveness,
+    answerRelevancy,
+    contextualPrecision,
+    hallucinationDetection,
   ],
 });

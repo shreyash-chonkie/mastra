@@ -139,3 +139,6 @@ export abstract class StepBasedPrompt extends PromptTemplate {
     return this.steps.map((step, i) => `${i + 1}. ${step}`).join('\n');
   }
 }
+
+// Where does system/user prompt separation happen? toUserSystemPrompt method
+// variables

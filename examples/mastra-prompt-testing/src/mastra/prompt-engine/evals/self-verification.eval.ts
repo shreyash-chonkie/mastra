@@ -2,16 +2,13 @@ import { Eval } from 'braintrust';
 
 import { mastra } from '../..';
 import { gsm8kSampleDataSet } from '../data-set';
-import { SelfVerification } from '../techniques';
 
 import {
   correctMathAnswer,
-  zeroShotEffectiveness,
-  fewShotEffectiveness,
-  chainOfThoughtEffectiveness,
-  treeOfThoughtEffectiveness,
-  selfVerificationEffectiveness,
   overallTechniqueEffectiveness,
+  answerRelevancy,
+  contextualPrecision,
+  hallucinationDetection,
 } from './scorers';
 
 Eval('Prompt-technique-test', {
@@ -20,18 +17,15 @@ Eval('Prompt-technique-test', {
     technique: 'self-verification',
   },
   task: async (input: string) => {
-    const selfVerification = new SelfVerification(input);
     const agent = mastra.getAgent('AgentMastraGroq');
-    const response = await agent.generate(selfVerification.toString());
+    const response = await agent.generate(input);
     return `${response.text}`;
   },
   scores: [
     correctMathAnswer,
-    zeroShotEffectiveness,
-    fewShotEffectiveness,
-    chainOfThoughtEffectiveness,
-    treeOfThoughtEffectiveness,
-    selfVerificationEffectiveness,
     overallTechniqueEffectiveness,
+    answerRelevancy,
+    contextualPrecision,
+    hallucinationDetection,
   ],
 });
