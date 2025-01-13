@@ -1,32 +1,53 @@
+import nlp from 'compromise';
+
+import { ScoringResult } from '../types';
+
 export class CompletenessScorer {
-  async score(response: string, prompt: string): Promise<ScoringResult> {
-    // Extract question markers from prompt
-    const questionWords = prompt.match(/\b(who|what|when|where|why|how|which|whose)\b/gi) || [];
-    const questionMarks = (prompt.match(/\?/g) || []).length;
+  async score(original: string, simplified: string): Promise<ScoringResult> {
+    const originalDoc = nlp(original);
+    const simplifiedDoc = nlp(simplified);
 
-    // Check if response addresses question patterns
-    const addressedQuestions = questionWords.filter(qWord => new RegExp(`\\b${qWord}\\b`, 'i').test(response));
-
-    // Check response structure
-    const hasConclusion = /in conclusion|to summarize|therefore|thus|finally|overall|in summary/i.test(response);
-    const hasIntroduction = (response?.split('.')?.[0]?.length || 0) > 20;
-
-    // Calculate completeness score
-    const questionScore = questionMarks ? addressedQuestions.length / questionWords.length : 1;
-    const structureScore = (Number(hasConclusion) + Number(hasIntroduction)) / 2;
-
-    const score = questionScore * 0.7 + structureScore * 0.3;
+    // Extract and log elements
+    const originalElements = this.extractElements(originalDoc);
+    const simplifiedElements = this.extractElements(simplifiedDoc);
+    // Maybe we need a more sophisticated matching approach
+    const coverage = this.calculateCoverage(originalElements, simplifiedElements);
 
     return {
-      score,
-      details: `Completeness score: ${(score * 100).toFixed(1)}%`,
-      confidence: 0.75,
+      score: coverage,
+      details: `Completeness score: ${(coverage * 100).toFixed(1)}%`,
+      confidence: 0.8,
       metrics: {
-        questionCoverage: questionScore,
-        structureCompleteness: structureScore,
-        hasConclusion,
-        hasIntroduction,
+        originalElements,
+        simplifiedElements,
+        missingElements: originalElements.filter(e => !simplifiedElements.includes(e)),
+        elementCounts: {
+          original: originalElements.length,
+          simplified: simplifiedElements.length,
+        },
       },
     };
+  }
+
+  private extractElements(doc: any) {
+    // Get more specific elements
+    const nouns = doc.nouns().out('array');
+    const verbs = doc.verbs().out('infinity'); // get base form of verbs
+    const topics = doc.topics().out('array');
+    const terms = doc.terms().out('array');
+
+    return [...new Set([...nouns, ...verbs, ...topics, ...terms])];
+  }
+
+  private calculateCoverage(original: string[], simplified: string[]): number {
+    // More flexible matching - check for substrings and word stems
+    const covered = original.filter(element =>
+      simplified.some(s => {
+        const elem = element.toLowerCase();
+        const simp = s.toLowerCase();
+        return simp.includes(elem) || elem.includes(simp);
+      }),
+    );
+    return covered.length / original.length;
   }
 }

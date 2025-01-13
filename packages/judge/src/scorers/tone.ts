@@ -1,5 +1,7 @@
 import Sentiment from 'sentiment';
 
+import { ScoringResult } from '../types';
+
 export class ToneConsistencyScorer {
   private sentiment = new Sentiment();
 

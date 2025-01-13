@@ -1,6 +1,6 @@
 import { JudgingResult } from '../types';
 
-export function expect(result: JudgingResult) {
+export function mExpect(result: JudgingResult) {
   return {
     toHaveMinimumScore(threshold: number) {
       const passed = result.score >= threshold;
@@ -29,10 +29,10 @@ export function expect(result: JudgingResult) {
 
     toHaveConfidenceAbove(threshold: number) {
       const passed = result.confidence >= threshold;
-      return {
-        passed,
-        feedback: passed ? [] : [`Expected minimum confidence of ${threshold}, got ${result.confidence.toFixed(2)}`],
-      };
+      if (!passed) {
+        throw new Error(`Expected minimum confidence of ${threshold}, got ${result.confidence.toFixed(2)}`);
+      }
+      return passed;
     },
   };
 }

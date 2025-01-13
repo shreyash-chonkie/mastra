@@ -3,7 +3,7 @@ export interface ScoringResult {
   weight?: number;
   details: string; // Human-readable explanation
   confidence: number; // 0-1 confidence level
-  metrics?: Record<string, number | boolean>; // Additional numerical metrics
+  metrics?: Record<string, number | boolean | Record<string, any>>; // Additional numerical metrics
 }
 
 export interface ScorerOptions {

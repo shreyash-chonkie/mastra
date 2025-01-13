@@ -1,5 +1,7 @@
 import { SequenceMatcher } from 'difflib';
 
+import { ScoringResult } from '../types';
+
 export class DifferenceScorer {
   async score(text1: string, text2: string): Promise<ScoringResult> {
     const matcher = new SequenceMatcher(null, text1, text2);

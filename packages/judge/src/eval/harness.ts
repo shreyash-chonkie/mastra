@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core';
 
 import { Judge } from '../judge';
+import { JudgingResult } from '../types';
 
 export interface TestContext {
   prompt: string;
@@ -12,6 +13,7 @@ export interface TestContext {
 export interface TestResult {
   prompt: string;
   reference: string;
+  response: string;
   passed: boolean;
   scores: Record<string, number>;
   feedback: string[];
@@ -76,7 +78,7 @@ export class TestHarness {
 
   it(
     { prompt, reference }: { prompt: string; reference: string },
-    fn: ({ response }: { response: string }) => Promise<any>,
+    fn: ({ response }: { response: string; judgement: JudgingResult }) => Promise<any>,
   ) {
     if (!this.currentSuite) {
       throw new Error('Test must be inside a describe block');
@@ -86,21 +88,25 @@ export class TestHarness {
 
     this.currentSuite.tests.push(async () => {
       const startTime = Date.now();
+
+      let response;
+      let judgement;
       try {
         console.log(`Running prompt: ${prompt}`, suite?.agent?.name);
         console.log(`\n$`);
-        const response = await suite?.agent?.generate(suite?.name);
-        console.log('Agent Response:', response?.text);
-        console.log(`\n$`);
-        const judgement = await suite.judge?.judge(response?.text || '', {
+        response = await suite?.agent?.generate(prompt);
+        judgement = await suite.judge?.judge(response?.text || '', {
           prompt,
           reference,
         });
-        console.log(`Judgement`, judgement);
-        const result = await fn({ response: response?.text || '' });
+        const result = await fn({ response: response?.text || '', judgement: judgement! });
         const duration = Date.now() - startTime;
         return {
           ...result,
+          response: response?.text,
+          scores: judgement?.details?.individualScores,
+          feedback: judgement?.feedback || [],
+          passed: true,
           prompt,
           reference,
           duration,
@@ -113,9 +119,10 @@ export class TestHarness {
         return {
           prompt,
           reference,
+          response: response?.text,
           passed: false,
-          scores: {},
-          feedback: [`Test failed with error: ${errMsg}`],
+          scores: judgement?.details?.individualScores,
+          feedback: [...(judgement?.feedback || []), `Test failed with error: ${errMsg}`],
           duration: Date.now() - startTime,
         };
       }
@@ -125,12 +132,17 @@ export class TestHarness {
   async run() {
     console.log('\nRunning Suites 🤖\n');
     const startTime = Date.now();
-    const results = await Promise.all(this.suites.map(s => s()));
+
+    const res = [];
+    for (const suite of this.suites) {
+      res.push(await suite());
+    }
     const duration = Date.now() - startTime;
 
-    this.printResults(results, duration);
+    this.printResults(res, duration);
     this.suites = [];
-    return results;
+    this.currentSuite = null;
+    return res;
   }
 
   private printResults(results: SuiteResult[], totalDuration: number) {
@@ -140,9 +152,11 @@ export class TestHarness {
     results.forEach(suite => {
       console.log(`\n${suite.passed ? '✅' : '❌'} ${suite.name}`);
       suite.tests.forEach(test => {
-        console.log(`  ${test.passed ? '✓' : '✗'} ${test.name} (${test.duration}ms)`);
+        console.log(`  ${test.passed ? '✓' : '✗'} ${test.prompt} (${test.duration}ms)`);
         if (!test.passed) {
+          console.log(test.response);
           test?.feedback?.forEach(f => console.log(`    • ${f}`));
+          console.log(test.scores);
         }
       });
     });

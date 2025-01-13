@@ -1,5 +1,7 @@
 import stringSimilarity from 'string-similarity';
 
+import { ScorerOptions, ScoringResult } from '../types';
+
 export class ContentSimilarityScorer {
   private options: ScorerOptions;
 
