@@ -241,4 +241,27 @@ mDescribe('DocSimplifier Evals', register => {
       mExpect(judgement).toHaveConfidenceAbove(0.7);
     },
   );
+
+  mIt(
+    {
+      reference: `
+      READING LEVEL: Elementary
+
+      SIMPLIFIED TEXT:
+      Democracy is a way people work together to make decisions for their country. In a democracy, every person gets a vote to help choose leaders. These leaders then make important choices for everyone. The rules of democracy make sure that leaders must listen to what the people want. Everyone has special rights that the leaders must protect.
+
+      KEY TERMS PRESERVED:
+      - Democracy: "way people work together to make decisions"
+      - Electorate: "every person who gets a vote"
+      - Representatives: "leaders chosen by people"
+      - Constitutional rights: "special rights that leaders must protect"
+      - System of government: "way to make decisions for their country"
+    `,
+      prompt: `Democracy is a system of government where power derives from the electorate, typically exercised through elected representatives in a framework of constitutional rights.`,
+    },
+    async ({ response, judgement }) => {
+      console.log(response, judgement.feedback);
+      mExpect(judgement).toHaveConfidenceAbove(0.7);
+    },
+  );
 });
