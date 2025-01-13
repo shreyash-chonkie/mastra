@@ -160,12 +160,15 @@ const agent = new Agent({
   },
 });
 
-const prompt = `
-Rewrite for elementary level:
-'Photosynthesis is the process by which plants convert solar energy into chemical energy, using chlorophyll to transform carbon dioxide and water into glucose and oxygen.'
-`;
+mDescribe('DocSimplifier Evals', register => {
+  register({
+    agent,
+    judge,
+  });
 
-const reference = `
+  mIt(
+    {
+      reference: `
 READING LEVEL: Elementary
 
 SIMPLIFIED TEXT:
@@ -177,18 +180,11 @@ KEY TERMS PRESERVED:
 - Carbon dioxide: "air they take in"
 - Glucose: "sugar for energy"
 - Oxygen: "clean air released"
-`;
-
-mDescribe('DocSimplifier Evals', register => {
-  register({
-    agent,
-    judge,
-  });
-
-  mIt(
-    {
-      reference,
-      prompt,
+`,
+      prompt: `
+Rewrite for elementary level:
+'Photosynthesis is the process by which plants convert solar energy into chemical energy, using chlorophyll to transform carbon dioxide and water into glucose and oxygen.'
+`,
     },
     async ({ response, judgement }) => {
       console.log(response, judgement.feedback);
