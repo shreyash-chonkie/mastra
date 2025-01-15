@@ -8,6 +8,7 @@ import { issueLabelerCommand } from './commands/issue-labeler.js';
 import { message } from './commands/message.js';
 import { publishPackages } from './commands/publish-packages.js';
 import { telephone } from './commands/telephone-game.js';
+import { workflowGen } from './commands/workflow-generator.js';
 
 dotenv.config();
 
@@ -32,5 +33,7 @@ program.addCommand(configCommand);
 program.command('publish').description('Publish packages to the registry').action(publishPackages);
 
 program.command('telephone-game').description('Play a classic game of telephone').action(telephone);
+
+program.command('workflow-gen').description('Generate workflows').action(workflowGen);
 
 program.parse(process.argv);

@@ -1,4 +1,6 @@
 import { Agent } from '@mastra/core';
+import { readFileSync } from 'fs';
+import path from 'path';
 
 import { config } from '../../config/index.js';
 import { browserTool, googleSearch } from '../tools/browser.js';
@@ -109,4 +111,43 @@ export const dane = new Agent({
     crawl,
     imageTool,
   },
+});
+
+const workflowText = readFileSync(path.join(process.cwd(), '../../packages/core/src/workflows/workflow.ts'), 'utf-8');
+const stepText = readFileSync(path.join(process.cwd(), '../../packages/core/src/workflows/step.ts'), 'utf-8');
+
+export const daneWrittenWorkflowPlanner = new Agent({
+  name: 'WrittenWorkflowPlanner',
+  instructions: `
+    You are a highly skilled Mastra Workflow planner.
+
+    Your role is to assess the request posed by the user and formulate a plan to execute the request. 
+    The user is trying to create programmatic workflows through your planning. Keep things concise.
+
+    Return a step-by-step plan to execute the request in language that the user can understand. 
+    
+    The user will confirm the plan, you do not need to ask them follow up questions.
+    Do not attempt to estimate the duration of the workflow.
+    `,
+  model: getBaseModelConfig(),
+});
+
+export const daneWorkflowPlanner = new Agent({
+  name: 'WorkflowPlanner',
+  instructions: `
+    You are a highly skilled Mastra Workflow planner.
+
+    When given a plan, convert this into code with Mastra Workflows.
+    Ref code: 
+    Step Class ${stepText}
+    Workflow Class ${workflowText}
+
+    Code Style:
+    Prefer storing steps in const variables.
+    Steps are made with the Step class.
+
+    For steps that can be called with an llm, use mastra.llm to call the step.
+    mastra?.llm?.generate
+    `,
+  model: getBaseModelConfig(),
 });
