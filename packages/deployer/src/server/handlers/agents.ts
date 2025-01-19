@@ -2,14 +2,17 @@ import { Context } from 'hono';
 import { stringify } from 'superjson';
 import zodToJsonSchema from 'zod-to-json-schema';
 
-import { ContentfulStatusCode } from 'hono/utils/http-status';
+import { HTTPException } from 'hono/http-exception';
 
-import { ApiError } from '../types';
+import { handleError } from './error';
+import { validateBody } from './utils';
 
+// Agent handlers
 export async function getAgentsHandler(c: Context) {
   try {
     const mastra = c.get('mastra');
     const agents = mastra.getAgents();
+
     const serializedAgents = Object.entries(agents).reduce<any>((acc, [_id, _agent]) => {
       const agent = _agent as any;
       const serializedAgentTools = Object.entries(agent?.tools || {}).reduce<any>((acc, [key, tool]) => {
@@ -27,22 +30,23 @@ export async function getAgentsHandler(c: Context) {
       };
       return acc;
     }, {});
+
     return c.json(serializedAgents);
   } catch (error) {
-    const apiError = error as ApiError;
-    console.error('Error getting agents', apiError);
-    return c.json(
-      { error: apiError.message || 'Error getting agents' },
-      (apiError.status || 500) as ContentfulStatusCode,
-    );
+    return handleError(error, 'Error getting agents');
   }
 }
 
-export async function getAgentHandler(c: Context) {
+export async function getAgentByIdHandler(c: Context) {
   try {
     const mastra = c.get('mastra');
-    const agentId = decodeURIComponent(c.req.param('agentId'));
+    const agentId = c.req.param('agentId');
     const agent = mastra.getAgent(agentId);
+
+    if (!agent) {
+      throw new HTTPException(404, { message: 'Agent not found' });
+    }
+
     const serializedAgentTools = Object.entries(agent?.tools || {}).reduce<any>((acc, [key, tool]) => {
       const _tool = tool as any;
       acc[key] = {
@@ -52,16 +56,111 @@ export async function getAgentHandler(c: Context) {
       };
       return acc;
     }, {});
+
     return c.json({
       ...agent,
       tools: serializedAgentTools,
     });
   } catch (error) {
-    const apiError = error as ApiError;
-    console.error('Error getting agent', apiError);
-    return c.json(
-      { error: apiError.message || 'Error getting agent' },
-      (apiError.status || 500) as ContentfulStatusCode,
-    );
+    return handleError(error, 'Error getting agent');
+  }
+}
+
+export async function generateHandler(c: Context) {
+  try {
+    const mastra = c.get('mastra');
+    const agentId = c.req.param('agentId');
+    const agent = mastra.getAgent(agentId);
+
+    if (!agent) {
+      throw new HTTPException(404, { message: 'Agent not found' });
+    }
+
+    const { messages, threadId, resourceid } = await c.req.json();
+    validateBody({ messages });
+
+    if (!Array.isArray(messages)) {
+      throw new HTTPException(400, { message: 'Messages should be an array' });
+    }
+
+    const result = await agent.generate(messages, { threadId, resourceid });
+    return c.json(result);
+  } catch (error) {
+    return handleError(error, 'Error generating from agent');
+  }
+}
+
+export async function streamGenerateHandler(c: Context) {
+  try {
+    const mastra = c.get('mastra');
+    const agentId = c.req.param('agentId');
+    const agent = mastra.getAgent(agentId);
+
+    if (!agent) {
+      throw new HTTPException(404, { message: 'Agent not found' });
+    }
+
+    const { messages, threadId, resourceid } = await c.req.json();
+    validateBody({ messages });
+
+    if (!Array.isArray(messages)) {
+      throw new HTTPException(400, { message: 'Messages should be an array' });
+    }
+
+    const streamResult = await agent.stream(messages, { threadId, resourceid });
+    return new Response(streamResult.toDataStream(), {
+      headers: {
+        'Content-Type': 'text/x-unknown',
+        'content-encoding': 'identity',
+        'transfer-encoding': 'chunked',
+      },
+    });
+  } catch (error) {
+    return handleError(error, 'Error streaming from agent');
+  }
+}
+
+export async function textObjectHandler(c: Context) {
+  try {
+    const mastra = c.get('mastra');
+    const agentId = c.req.param('agentId');
+    const agent = mastra.getAgent(agentId);
+    const { messages, schema, threadId, resourceid } = await c.req.json();
+
+    validateBody({
+      messages,
+      schema,
+    });
+
+    const result = await agent.generate(messages, { output: schema, threadId, resourceid });
+    return c.json(result);
+  } catch (error) {
+    return handleError(error, 'Error getting structured output from agent');
+  }
+}
+
+export async function streamObjectHandler(c: Context) {
+  try {
+    const mastra = c.get('mastra');
+    const agentId = c.req.param('agentId');
+    const agent = mastra.getAgent(agentId);
+    const { messages, schema, threadId, resourceid } = await c.req.json();
+
+    validateBody({
+      messages,
+      schema,
+    });
+
+    const streamResult = await agent.stream(messages, { output: schema, threadId, resourceid });
+
+    return new Response(streamResult.toTextStream(), {
+      headers: {
+        'Content-Type': 'text/x-unknown',
+        'content-encoding': 'identity',
+        'transfer-encoding': 'chunked',
+      },
+    });
+  } catch (error) {
+    return handleError(error, 'Error streaming structured output from agent');
   }
 }
