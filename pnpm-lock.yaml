@@ -2441,12 +2441,21 @@ importers:
       fs-extra:
         specifier: ^11.2.0
         version: 11.2.0
+      hono:
+        specifier: ^4.6.17
+        version: 4.6.17
+      superjson:
+        specifier: ^2.2.2
+        version: 2.2.2
       type-fest:
         specifier: ^4.30.0
         version: 4.31.0
       zod:
         specifier: ^3.24.1
         version: 3.24.1
+      zod-to-json-schema:
+        specifier: ^3.24.1
+        version: 3.24.1(zod@3.24.1)
     devDependencies:
       '@babel/preset-env':
         specifier: ^7.26.0
@@ -11091,6 +11100,10 @@ packages:
 
   hono@4.6.14:
     resolution: {integrity: sha512-j4VkyUp2xazGJ8eCCLN1Vm/bxdvm/j5ZuU9AIjLu9vapn2M44p9L3Ktr9Vnb2RN2QtcR/wVjZVMlT5k7GJQgPw==}
+    engines: {node: '>=16.9.0'}
+
+  hono@4.6.17:
+    resolution: {integrity: sha512-Kbh4M0so2RzLiIg6iP33DoTU68TdvP2O/kb1Hhhdwa37fazuf402ig8ZRfjkz2dqXwiWl2dAgh0f++TuKAdOtQ==}
     engines: {node: '>=16.9.0'}
 
   hosted-git-info@2.8.9:
@@ -27547,6 +27560,8 @@ snapshots:
   highlightjs-vue@1.0.0: {}
 
   hono@4.6.14: {}
+
+  hono@4.6.17: {}
 
   hosted-git-info@2.8.9: {}
 
