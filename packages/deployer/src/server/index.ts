@@ -4,7 +4,37 @@ import { pathToFileURL } from 'url';
 
 import { cors } from 'hono/cors';
 
-import { getAgentHandler, getAgentsHandler } from './handlers/agents';
+import {
+  generateHandler,
+  getAgentByIdHandler,
+  getAgentsHandler,
+  streamGenerateHandler,
+  streamObjectHandler,
+  textObjectHandler,
+} from './handlers/agents.js';
+import { getLogsByRunIdHandler, getLogsHandler } from './handlers/logs';
+import {
+  createThreadHandler,
+  deleteThreadHandler,
+  getContextWindowHandler,
+  getMemoryStatusHandler,
+  getMessagesHandler,
+  getThreadByIdHandler,
+  getThreadsHandler,
+  saveMessagesHandler,
+  updateThreadHandler,
+} from './handlers/memory';
+import { rootHandler } from './handlers/root.js';
+import { executeSyncHandler } from './handlers/syncs.js';
+import {
+  executeAgentToolHandler,
+  executeToolHandler,
+  getToolByIdHandler,
+  getToolResultHandler,
+  getToolsHandler,
+  validateToolCallArgsHandler,
+} from './handlers/tools';
+import { executeWorkflowHandler, getWorkflowByIdHandler, getWorkflowsHandler } from './handlers/workflows';
 
 type Bindings = {};
 
@@ -32,12 +62,6 @@ const tools = toolImports.reduce((acc, toolModule) => {
   return acc;
 }, {});
 
-// Types
-interface ValidationResult {
-  ok: boolean;
-  errorResponse?: Record<string, string>;
-}
-
 // Middleware
 app.use('*', cors());
 
@@ -49,47 +73,46 @@ app.use('*', async (c, next) => {
   await next();
 });
 
-// Validation helper
-const validateBody = async (body: Record<string, unknown>): Promise<ValidationResult> => {
-  const errorResponse = Object.entries(body).reduce<Record<string, string>>((acc, [key, value]) => {
-    if (!value) {
-      acc[key] = `${key} is required`;
-    }
-    return acc;
-  }, {});
+app.get('/', rootHandler);
 
-  if (Object.keys(errorResponse).length > 0) {
-    return { ok: false, errorResponse };
-  }
-
-  return { ok: true };
-};
-
-// Root route
-app.get('/', c => {
-  return c.text('Welcome to your Mastra API!');
-});
-
-// Agents routes
+// Agent routes
 app.get('/api/agents', getAgentsHandler);
-app.get('/api/agents/:agentId', getAgentHandler);
+app.get('/api/agents/:agentId', getAgentByIdHandler);
+app.post('/api/agents/:agentId/generate', generateHandler);
+app.post('/api/agents/:agentId/stream', streamGenerateHandler);
+app.post('/api/agents/:agentId/text-object', textObjectHandler);
+app.post('/api/agents/:agentId/stream-object', streamObjectHandler);
+app.post('/api/agents/:agentId/tools/:toolId/execute', executeAgentToolHandler);
 
-// 404 handler
-app.notFound(c => {
-  return c.text('Not Found', 404);
-});
+// Memory routes
+app.get('/api/memory/status', getMemoryStatusHandler);
+app.get('/api/memory/threads', getThreadsHandler);
+app.get('/api/memory/threads/:threadId', getThreadByIdHandler);
+app.get('/api/memory/threads/:threadId/messages', getMessagesHandler);
+app.get('/api/memory/threads/:threadId/context-window', getContextWindowHandler);
+app.post('/api/memory/threads', createThreadHandler);
+app.patch('/api/memory/threads/:threadId', updateThreadHandler);
+app.delete('/api/memory/threads/:threadId', deleteThreadHandler);
+app.post('/api/memory/save-messages', saveMessagesHandler);
+app.post('/api/memory/threads/:threadId/tool-result', getToolResultHandler);
+app.post('/api/memory/validate-tool-call-args', validateToolCallArgsHandler);
 
-// Error handler
-app.onError((err, c) => {
-  console.error(`${err}`);
-  return c.json(
-    {
-      error: 'Internal Server Error',
-      message: err.message,
-    },
-    500,
-  );
-});
+// Workflow routes
+app.get('/api/workflows', getWorkflowsHandler);
+app.get('/api/workflows/:workflowId', getWorkflowByIdHandler);
+app.post('/workflows/:workflowId/execute', executeWorkflowHandler);
+
+// Sync routes
+app.post('/api/syncs/:syncId/execute', executeSyncHandler);
+
+// Log routes
+app.get('/api/logs', getLogsHandler);
+app.get('/api/logs/:runId', getLogsByRunIdHandler);
+
+// Tool routes
+app.get('/api/tools', getToolsHandler);
+app.get('/api/tools/:toolId', getToolByIdHandler);
+app.post('/api/tools/:toolId/execute', executeToolHandler(tools));
 
 export default {
   fetch: app.fetch,
