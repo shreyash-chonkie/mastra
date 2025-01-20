@@ -10,8 +10,5 @@ export const mastra = new Mastra({
   workflows: { whitePaperWorkflow },
   vectors: { pgVector },
   agents: { kindergartenAgent, whitePaperAgent },
-  // logger: createLogger({
-  //   type: 'CONSOLE',
-  //   level: 'INFO',
-  // }),
+  logger: false,
 });
