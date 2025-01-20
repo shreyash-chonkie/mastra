@@ -4,27 +4,102 @@ import path from 'path';
 import { readPdfText } from 'pdf-text-reader';
 import { z } from 'zod';
 
+import { getChannelMessagesTool, listChannelsTool, scrapeWebsiteTool } from '../tools';
 import { generateAndPlayAudio } from '../tts';
 import { insertDocument } from '../vectors';
 
-const extractText = new Step({
-  id: 'extract-text',
-  description: 'Extracts text from a PDF file',
+const getSlackMessages = new Step({
+  id: 'get-slack-messages',
+  description: 'Gets messages from Slack channel',
   inputSchema: z.object({
-    filename: z.string().describe('The PDF file to process'),
+    token: z.string().describe('Slack API token'),
+    channelName: z.string().describe('Channel name to fetch from'),
+    limit: z.number().optional().default(10),
   }),
-  execute: async ({ context: { filename }, mastra }) => {
+  outputSchema: z.object({
+    messages: z.array(z.any()),
+  }),
+  execute: async ({ context: { token, channelName, limit } }) => {
     console.log('---------------------------');
-    console.log('Extracting text from PDF file:', filename);
-    const pdfPath = path.join(process.cwd(), 'documents', filename);
-    const text = await readPdfText({ url: pdfPath });
+    console.log('Getting messages from Slack channel', { channelName });
+    if (!token) {
+      throw new Error('Please set SLACK_TOKEN environment variable');
+    }
+    const channels = await listChannelsTool.execute({
+      context: { token },
+      suspend: async () => {},
+    });
 
-    const vectorStore = mastra?.vectors?.pgVector as MastraVector;
-    await insertDocument(text, vectorStore);
+    const targetChannel = channels.channels.find(channel => channel.name === channelName);
+    if (!targetChannel) {
+      throw new Error(`Channel ${channelName} not found`);
+    }
+
+    const messages = await getChannelMessagesTool.execute({
+      context: {
+        token,
+        channelId: targetChannel.id,
+        limit,
+      },
+      suspend: async () => {},
+    });
+
+    const filteredMessages = messages.messages.filter(message => !!message.originalUrl);
+
+    return { messages: filteredMessages };
   },
 });
 
-const analyzePdfContent = new Step({
+const scrapeContent = new Step({
+  id: 'scrape-content',
+  description: 'Scrapes content from URLs in messages',
+  inputSchema: z.object({
+    messages: z.array(z.any()),
+  }),
+  outputSchema: z.object({
+    content: z.object({
+      content: z.string(),
+      title: z.string(),
+      url: z.string(),
+    }),
+  }),
+  execute: async ({ context: { messages } }) => {
+    const message = messages[1]; // Or implement message selection logic
+    const urlMatch = message.text.match(/<(https?:\/\/[^>]+)>/) || message.originalUrl?.match(/<(https?:\/\/[^>]+)>/);
+
+    if (!urlMatch) {
+      throw new Error('No URL found in message');
+    }
+
+    const content = await scrapeWebsiteTool.execute({
+      context: { url: urlMatch[1] },
+      suspend: async () => {},
+    });
+
+    return { content };
+  },
+});
+
+const embedContent = new Step({
+  id: 'embed-content',
+  description: 'Creates and stores embeddings from scraped content',
+  inputSchema: z.object({
+    content: z.object({
+      content: z.string(),
+      title: z.string(),
+      url: z.string(),
+    }),
+  }),
+  execute: async ({ context: { content }, mastra }) => {
+    console.log('---------------------------');
+    console.log('Embedding content');
+
+    const vectorStore = mastra?.vectors?.pgVector as MastraVector;
+    await insertDocument(content, vectorStore);
+  },
+});
+
+const analyzeContent = new Step({
   id: 'analyze-content',
   description: 'Analyzes the PDF content and creates summary',
   outputSchema: z.object({
@@ -32,6 +107,7 @@ const analyzePdfContent = new Step({
   }),
   execute: async ({ mastra }) => {
     console.log('---------------------------');
+    console.log('Analyzing content');
     const agent = mastra?.agents?.whitePaperAgent;
 
     const analysisPrompt = `Use the graphRagTool to query the vector store and create an engaging podcast episode about this research paper.
@@ -65,8 +141,8 @@ const analyzePdfContent = new Step({
   },
 });
 
-const addPdfAudio = new Step({
-  id: 'add-pdf-audio',
+const addPodcastAudio = new Step({
+  id: 'add-podcast-audio',
   description: 'Creates multi-voice podcast audio',
   inputSchema: z.object({
     podcastScript: z.string().describe('The podcast script'),
@@ -92,8 +168,6 @@ const addPdfAudio = new Step({
         apiKey: process.env.ELEVENLABS_API_KEY!,
       },
     });
-
-    console.log(process.env.ELEVENLABS_API_KEY);
 
     const voices = await tts.voices();
 
@@ -121,22 +195,33 @@ const addPdfAudio = new Step({
 const whitePaperWorkflow = new Workflow({
   name: 'whitePaperWorkflow',
   triggerSchema: z.object({
-    filename: z.string().describe('The PDF file to summarize'),
+    token: z.string().describe('Slack API token'),
+    channelName: z.string().describe('Slack channel name'),
+    limit: z.number().optional().default(10),
   }),
 })
-  .step(extractText, {
+  .step(getSlackMessages, {
     variables: {
-      filename: {
-        step: 'trigger',
-        path: 'filename',
-      },
+      token: { step: 'trigger', path: 'token' },
+      channelName: { step: 'trigger', path: 'channelName' },
+      limit: { step: 'trigger', path: 'limit' },
     },
   })
-  .then(analyzePdfContent)
-  .then(addPdfAudio, {
+  .then(scrapeContent, {
+    variables: {
+      messages: { step: getSlackMessages, path: 'messages' },
+    },
+  })
+  .then(embedContent, {
+    variables: {
+      content: { step: scrapeContent, path: 'content' },
+    },
+  })
+  .then(analyzeContent)
+  .then(addPodcastAudio, {
     variables: {
       podcastScript: {
-        step: analyzePdfContent,
+        step: analyzeContent,
         path: 'podcastScript',
       },
     },

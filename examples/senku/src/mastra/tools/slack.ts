@@ -56,25 +56,31 @@ export const getChannelMessagesTool = createTool({
 });
 
 async function listChannels(token: string): Promise<{ channels: SlackChannel[] }> {
-  const response = await fetch('https://slack.com/api/conversations.list', {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  try {
+    const response = await fetch('https://slack.com/api/conversations.list', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!data.ok) {
-    throw new Error(`Slack API error: ${data.error}`);
+    if (!data.ok) {
+      throw new Error(`Slack API error: ${data.error}`);
+    }
+
+    return {
+      channels: data.channels.map((channel: any) => ({
+        id: channel.id,
+        name: channel.name,
+      })),
+    };
+  } catch (error) {
+    console.log(error);
+    console.error('Error getting channels from Slack', { token });
+    throw error;
   }
-
-  return {
-    channels: data.channels.map((channel: any) => ({
-      id: channel.id,
-      name: channel.name,
-    })),
-  };
 }
 
 async function getChannelMessages(
@@ -82,27 +88,33 @@ async function getChannelMessages(
   channelId: string,
   limit: number = 100,
 ): Promise<{ messages: SlackMessage[] }> {
-  const response = await fetch(`https://slack.com/api/conversations.history?channel=${channelId}&limit=${limit}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  try {
+    const response = await fetch(`https://slack.com/api/conversations.history?channel=${channelId}&limit=${limit}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-  const data = await response.json();
+    const data = await response.json();
 
-  if (!data.ok) {
-    throw new Error(`Slack API error: ${data.error}`);
+    if (!data.ok) {
+      throw new Error(`Slack API error: ${data.error}`);
+    }
+
+    const onlyMessages = data.messages.filter((msg: any) => msg.type === 'message');
+
+    return {
+      messages: onlyMessages.map((msg: any) => ({
+        ts: msg.ts,
+        text: msg.text,
+        user: msg.user,
+        originalUrl: msg?.attachments?.[0]?.original_url,
+      })),
+    };
+  } catch (error) {
+    console.log(error);
+    console.error('Error getting messages from Slack channel', { channelId, limit });
+    throw error;
   }
-
-  const onlyMessages = data.messages.filter((msg: any) => msg.type === 'message');
-
-  return {
-    messages: onlyMessages.map((msg: any) => ({
-      ts: msg.ts,
-      text: msg.text,
-      user: msg.user,
-      originalUrl: msg?.attachments?.[0]?.original_url,
-    })),
-  };
 }

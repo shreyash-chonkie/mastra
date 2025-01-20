@@ -15,8 +15,6 @@ export async function generateAndPlayAudio(tts: ElevenLabsTTS, text: string, voi
 
       const outputPath = path.join(process.cwd(), 'audio/output.mp3');
 
-      console.log({ outputPath, text, voiceId });
-
       writeFileSync(outputPath, audioResult);
 
       // Play the audio file and wait for completion
