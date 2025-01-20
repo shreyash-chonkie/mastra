@@ -11,12 +11,14 @@ const buildWorkflow = new Workflow({
   name: 'Build',
   triggerSchema: z.object({
     buildName: z.string(),
-    directory: z.string(),
-    entryFile: z.string().optional(),
+    entry: z.string(),
     outfile: z.string().optional(),
     useBanner: z.boolean().optional(),
+    devMode: z.boolean().optional(),
   }),
 });
+
+buildWorkflow.__setLogger(null as any);
 
 const ensureDir = new Step({
   id: 'Ensure Directory',
@@ -29,23 +31,57 @@ const ensureDir = new Step({
 const bundleStep = new Step({
   id: 'Bundle',
   execute: async ({ context }) => {
+    const devMode = context.machineContext?.triggerData.devMode;
     const buildName = context.machineContext?.triggerData.buildName;
     const useBanner = context.machineContext?.triggerData.useBanner;
-    const directory = context.machineContext?.triggerData.directory;
-    const entry = context.machineContext?.triggerData.entryFile;
+
+    const entry = context.machineContext?.triggerData.entry;
+
     const outfile = context.machineContext?.triggerData.outfile;
-    const entryPath = join(directory, `${entry || 'index'}.ts`);
 
     const fileService = new FileService();
-    const entryPoint = fileService.getFirstExistingFile([entryPath]);
+    const entryPoint = fileService.getFirstExistingFile([entry]);
     const outfilePath = outfile || join(process.cwd(), '.mastra', 'mastra.mjs');
+
+    console.log('Entry point:', entryPoint, outfilePath);
+
+    const plugins: any[] = [];
+
+    let missingMastraDependency = false;
+
+    const externalIfMissingPlugin = {
+      name: 'external-if-missing',
+      setup(build: any) {
+        build.onResolve(
+          { filter: /^.*$/ },
+          // @ts-ignore
+          (args: any) => {
+            if (!args.importer.endsWith('.mastra/index.mjs')) return;
+            try {
+              const resolvedPath = import.meta.resolve(args.path);
+              if (!resolvedPath || resolvedPath.includes('_npx/')) {
+                missingMastraDependency = true;
+                return { path: args.path, external: true };
+              }
+            } catch (e) {
+              missingMastraDependency = true;
+              return { path: args.path, external: true };
+            }
+          },
+        );
+      },
+    };
+
+    if (devMode) {
+      plugins.push(externalIfMissingPlugin);
+    }
 
     const esbuildConfig: BuildOptions = {
       entryPoints: [entryPoint],
       bundle: true,
       platform: 'node',
       format: 'esm',
-      outfile,
+      outfile: outfilePath,
       target: 'node20',
       sourcemap: true,
       minify: true,
@@ -107,7 +143,9 @@ const bundleStep = new Step({
         '@mastra/firecrawl',
         '@mastra/github',
         '@mastra/stabilityai',
+        // '@mastra/deployer',
       ],
+      plugins,
     };
 
     if (useBanner) {
@@ -126,6 +164,13 @@ const bundleStep = new Step({
 
     const result = await esbuild.build(esbuildConfig);
 
+    if (devMode && missingMastraDependency) {
+      console.error(
+        `Missing Mastra dependency. Please install the mastra package in your project or globally using npm i -g mastra`,
+      );
+      process.exit(1);
+    }
+
     // Log build results
     console.log(`${buildName} Build completed successfully`);
 
@@ -136,7 +181,7 @@ const bundleStep = new Step({
 const analyzeStep = new Step({
   id: 'Analyze',
   execute: async ({ context }) => {
-    if (context.machineContext?.stepResults.Bundle.status !== 'success') {
+    if (context?.machineContext?.stepResults?.Bundle?.status !== 'success') {
       throw new Error('Bundle step failed');
     }
     return await esbuild.analyzeMetafile(context.machineContext?.stepResults.Bundle.payload.metafile);
@@ -146,30 +191,30 @@ const analyzeStep = new Step({
 buildWorkflow.step(ensureDir).then(bundleStep).then(analyzeStep).commit();
 
 export async function bundle(
-  dirPath: string,
+  entry: string,
   {
     useBanner = true,
     buildName = 'Build',
-    entryFile,
     outfile,
-  }: { outfile?: string; entryFile?: string; buildName?: string; useBanner?: boolean } = {},
+    devMode,
+  }: { devMode?: boolean; outfile?: string; entryFile?: string; buildName?: string; useBanner?: boolean } = {},
 ) {
   const { start } = buildWorkflow.createRun();
 
   try {
-    const result = await start({
+    await start({
       triggerData: {
         buildName,
-        directory: dirPath,
+        entry,
         useBanner,
-        entryFile,
         outfile,
+        devMode,
       },
     });
 
-    console.log(JSON.stringify(result, null, 2));
+    // console.log(JSON.stringify(result, null, 2));
 
-    return result;
+    // return result;
   } catch (error) {
     console.error('Failed to build:', error);
     process.exit(1);

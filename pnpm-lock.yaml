@@ -1958,12 +1958,18 @@ importers:
       '@dagrejs/dagre':
         specifier: ^1.1.4
         version: 1.1.4
+      '@hono/node-server':
+        specifier: ^1.13.7
+        version: 1.13.7(hono@4.6.17)
       '@hookform/resolvers':
         specifier: ^3.9.0
         version: 3.9.1(react-hook-form@7.54.2(react@18.3.1))
       '@mastra/core':
         specifier: workspace:*
         version: link:../core
+      '@mastra/deployer':
+        specifier: workspace:*
+        version: link:../deployer
       '@radix-ui/react-alert-dialog':
         specifier: ^1.1.2
         version: 1.1.4(@types/react-dom@18.3.5(@types/react@18.3.18))(@types/react@18.3.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2423,6 +2429,9 @@ importers:
 
   packages/deployer:
     dependencies:
+      '@hono/node-server':
+        specifier: ^1.13.7
+        version: 1.13.7(hono@4.6.17)
       '@mastra/core':
         specifier: workspace:*
         version: link:../core
@@ -18692,6 +18701,10 @@ snapshots:
   '@hono/node-server@1.13.7(hono@4.6.14)':
     dependencies:
       hono: 4.6.14
+
+  '@hono/node-server@1.13.7(hono@4.6.17)':
+    dependencies:
+      hono: 4.6.17
 
   '@hookform/resolvers@3.9.1(react-hook-form@7.54.2(react@18.3.1))':
     dependencies:

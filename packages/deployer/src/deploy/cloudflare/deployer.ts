@@ -2,7 +2,6 @@ import { execa } from 'execa';
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
-import { SERVER } from '../../server/file.js';
 import { Deployer } from '../base.js';
 
 import { getWorkerConfig } from './config.js';
@@ -83,7 +82,7 @@ export class CloudflareDeployer extends Deployer {
       }),
     );
 
-    writeFileSync(join(this.dotMastraPath, 'index.mjs'), SERVER);
+    // writeFileSync(join(this.dotMastraPath, 'index.mjs'), SERVER);
   }
 
   async deployCommand({ scope }: { scope: string }): Promise<void> {
