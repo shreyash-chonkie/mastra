@@ -1,11 +1,14 @@
 import { MastraVector, Step, Workflow } from '@mastra/core';
 import { ElevenLabsTTS } from '@mastra/tts';
+import { writeFileSync } from 'fs';
+import pLimit from 'p-limit';
 import path from 'path';
-import { readPdfText } from 'pdf-text-reader';
 import { z } from 'zod';
 
+import { mkdir, readdir, rm } from 'fs/promises';
+
 import { getChannelMessagesTool, listChannelsTool, scrapeWebsiteTool } from '../tools';
-import { generateAndPlayAudio } from '../tts';
+import { concatAudio, generateAudio, playAudio } from '../tts';
 import { insertDocument } from '../vectors';
 
 const getSlackMessages = new Step({
@@ -172,19 +175,51 @@ const addPodcastAudio = new Step({
     const voices = await tts.voices();
 
     try {
-      for (const { speaker, text } of segments) {
-        const voiceName = speaker === 'DANE' ? 'Daniel' : 'Bill';
-        console.log('Using voice:', voiceName);
-        const voiceId = voices?.find(voice => voice.name === voiceName)?.voice_id;
+      await rm('audio', { recursive: true, force: true });
+      await mkdir('audio', { recursive: true });
+      const limit = pLimit(3); // Limit to 3 concurrent requests
 
-        if (!voiceId) {
-          console.error(`Voice not found for ${voiceName}`);
-          continue;
-        }
+      const audioPromises = segments.map(({ speaker, text }, index) =>
+        limit(async () => {
+          const voiceName = speaker === 'DANE' ? 'Daniel' : 'Bill';
+          const voiceId = voices?.find(voice => voice.name === voiceName)?.voice_id;
 
-        await generateAndPlayAudio(tts, text, voiceId);
-        console.log('Segment complete');
-      }
+          if (!voiceId) {
+            console.error(`Voice not found for ${voiceName}`);
+            return;
+          }
+
+          const paddedIndex = String(index).padStart(3, '0');
+          console.log('Generating audio for segment', paddedIndex);
+          await generateAudio(tts, text, voiceId, paddedIndex);
+        }),
+      );
+
+      await Promise.all(audioPromises);
+    } catch (error) {
+      console.error('Error in audio generation:', error);
+      throw error;
+    }
+
+    try {
+      const files = (await readdir('audio'))
+        .filter(f => f.startsWith('voice-'))
+        .sort((a, b) => {
+          const numA = parseInt(a.match(/\d+/)?.[0] || '0');
+          const numB = parseInt(b.match(/\d+/)?.[0] || '0');
+          return numA - numB;
+        })
+        .map(f => path.join(process.cwd(), 'audio', f));
+      const fileList = files
+        .map((file, index) => {
+          let fileString = `file '${file}'`;
+
+          return fileString;
+        })
+        .join('\n');
+      writeFileSync('audio/filelist.txt', fileList);
+      await concatAudio('audio/filelist.txt', 'audio/podcast.mp3');
+      await playAudio('audio/podcast.mp3');
     } catch (error) {
       console.error('Error in audio playback:', error);
       throw error;
