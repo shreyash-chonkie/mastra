@@ -10,7 +10,7 @@
     "test-files"
   ],
   "bin": {
-    "dane": "./dist/index.js"
+    "dane": "dist/index.js"
   },
   "scripts": {
     "build": "npx tsc",
@@ -20,7 +20,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Hey there! I'm Dane, and I'm excited to be your AI assistant and coding companion. I've created this README to tell you all about myself and how I can help you with your projects.",
   "devDependencies": {
     "@types/node": "^22.10.2",
     "@types/pdf-parse": "^1.1.4",
@@ -52,5 +52,9 @@
     "sqlite3": "^5.1.7",
     "typescript": "^5.5.4",
     "zod": "^3.24.0"
-  }
+  },
+  "directories": {
+    "test": "test"
+  },
+  "types": "./dist/index.d.ts"
 }
