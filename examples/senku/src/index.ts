@@ -1,8 +1,7 @@
 import { embed, type EmbedManyResult } from '@mastra/core';
 import { MDocument } from '@mastra/rag';
 
-import { scrapeWebsiteTool } from './mastra/tools/scraper';
-import { getChannelMessagesTool, listChannelsTool } from './mastra/tools/slack';
+import { scrapeWebsiteTool, getChannelMessagesTool, listChannelsTool } from './mastra/tools';
 
 async function main() {
   const token = process.env.SLACK_TOKEN;

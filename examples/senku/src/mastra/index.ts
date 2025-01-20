@@ -1,11 +1,17 @@
 import { Mastra, createLogger } from '@mastra/core';
+import { PgVector } from '@mastra/rag';
 
-import { kindergartenAgent } from './agents';
+import { kindergartenAgent, whitePaperAgent } from './agents';
+import { whitePaperWorkflow } from './workflows';
+
+const pgVector = new PgVector(process.env.POSTGRES_CONNECTION_STRING!);
 
 export const mastra = new Mastra({
-  agents: { kindergartenAgent },
-  logger: createLogger({
-    type: 'CONSOLE',
-    level: 'INFO',
-  }),
+  workflows: { whitePaperWorkflow },
+  vectors: { pgVector },
+  agents: { kindergartenAgent, whitePaperAgent },
+  // logger: createLogger({
+  //   type: 'CONSOLE',
+  //   level: 'INFO',
+  // }),
 });

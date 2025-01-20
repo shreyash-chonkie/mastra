@@ -3,13 +3,23 @@
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/node": "^22.10.7",
+    "mastra": "^0.1.57-alpha.95",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
   "dependencies": {
     "@mastra/core": "^0.1.27-alpha.64",
-    "@mastra/engine": "^0.0.5-alpha.58"
+    "@mastra/engine": "^0.0.5-alpha.58",
+    "@mastra/rag": "^0.0.2-alpha.49",
+    "@mastra/tts": "^0.0.1-alpha.9",
+    "@types/play-sound": "^1.1.2",
+    "pdf-text-reader": "^5.1.0",
+    "play-sound": "^1.1.6",
+    "zod": "^3.24.1"
   }
 }

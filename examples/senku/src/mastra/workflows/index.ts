@@ -1,174 +1,147 @@
-//We could use a workflow for this
-import { Step, Workflow } from '@mastra/core';
+import { MastraVector, Step, Workflow } from '@mastra/core';
+import { ElevenLabsTTS } from '@mastra/tts';
+import path from 'path';
+import { readPdfText } from 'pdf-text-reader';
 import { z } from 'zod';
 
-const fetchWeather = new Step({
-  id: 'fetch-weather',
-  description: 'Fetches weather forecast for a given city',
+import { generateAndPlayAudio } from '../tts';
+import { insertDocument } from '../vectors';
+
+const extractText = new Step({
+  id: 'extract-text',
+  description: 'Extracts text from a PDF file',
   inputSchema: z.object({
-    city: z.string().describe('The city to get the weather for'),
+    filename: z.string().describe('The PDF file to process'),
   }),
-  execute: async ({ context }) => {
-    const triggerData = context.machineContext?.getStepPayload<{ city: string }>('trigger');
+  execute: async ({ context: { filename }, mastra }) => {
+    console.log('---------------------------');
+    console.log('Extracting text from PDF file:', filename);
+    const pdfPath = path.join(process.cwd(), 'documents', filename);
+    const text = await readPdfText({ url: pdfPath });
 
-    if (!triggerData) {
-      throw new Error('Trigger data not found');
-    }
-
-    const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(triggerData.city)}&count=1`;
-    const geocodingResponse = await fetch(geocodingUrl);
-    const geocodingData = await geocodingResponse.json();
-
-    if (!geocodingData.results?.[0]) {
-      throw new Error(`Location '${triggerData.city}' not found`);
-    }
-
-    const { latitude, longitude, name } = geocodingData.results[0];
-
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_mean,weathercode&timezone=auto`;
-    const response = await fetch(weatherUrl);
-    const data = await response.json();
-
-    const forecast = data.daily.time.map((date: string, index: number) => ({
-      date,
-      maxTemp: data.daily.temperature_2m_max[index],
-      minTemp: data.daily.temperature_2m_min[index],
-      precipitationChance: data.daily.precipitation_probability_mean[index],
-      condition: getWeatherCondition(data.daily.weathercode[index]),
-      location: name,
-    }));
-
-    return forecast;
+    const vectorStore = mastra?.vectors?.pgVector as MastraVector;
+    await insertDocument(text, vectorStore);
   },
 });
 
-const forecastSchema = z.array(
-  z.object({
-    date: z.string(),
-    maxTemp: z.number(),
-    minTemp: z.number(),
-    precipitationChance: z.number(),
-    condition: z.string(),
-    location: z.string(),
+const analyzePdfContent = new Step({
+  id: 'analyze-content',
+  description: 'Analyzes the PDF content and creates summary',
+  outputSchema: z.object({
+    podcastScript: z.string(),
   }),
-);
+  execute: async ({ mastra }) => {
+    console.log('---------------------------');
+    const agent = mastra?.agents?.whitePaperAgent;
 
-const planActivities = new Step({
-  id: 'plan-activities',
-  description: 'Suggests activities based on weather conditions',
-  inputSchema: forecastSchema,
-  execute: async ({ context, mastra }) => {
-    const forecast = context.machineContext?.getStepPayload<z.infer<typeof forecastSchema>>('fetch-weather');
+    const analysisPrompt = `Use the graphRagTool to query the vector store and create an engaging podcast episode about this research paper.
 
-    if (!forecast) {
-      throw new Error('Forecast data not found');
-    }
+    Create a podcast script that includes:
+    - An engaging intro ("Welcome to WhiteSpace, the podcast that breaks down complex research papers...")
+    - A brief overview of the paper's topic and why it matters
+    - Key findings explained in a conversational tone
+    - Real-world implications and applications
+    - A compelling outro with key takeaways
+    - Have two podcast hosts (Dane and Shane) discuss the findings of the paper.
+    - Have witty banter between the two hosts.
 
-    const prompt = `Based on the following weather forecast for ${forecast[0].location}, suggest appropriate activities:
-      ${JSON.stringify(forecast, null, 2)}
-      `;
+    Notes: 
+    - The podcast script should be in the following format:
+    - HOST_A: Welcome to WhiteSpace! I'm your host Alex.
+    - HOST_B: And I'm Taylor. Today we're diving into an fascinating paper about...
+    - HOST_A: Let me break down the main findings...
 
-    if (!mastra?.llm) {
-      throw new Error('Mastra not found');
-    }
+    Keep the tone friendly and accessible, as if explaining to an interested non-expert. 
+    Use natural, conversational language throughout. When technical terms are necessary, explain them clearly.
+    Aim for a 3-5 minute podcast length.
+    Do not include any text not related to the podcast script.
+    `;
 
-    const llm = mastra.llm({
-      provider: 'OPEN_AI',
-      name: 'gpt-4o',
-    });
-
-    const response = await llm.stream([
-      {
-        role: 'system',
-        content: `You are a local activities and travel expert who excels at weather-based planning. Analyze the weather data and provide practical activity recommendations.
-
-        For each day in the forecast, structure your response exactly as follows:
-
-        📅 [Day, Month Date, Year]
-        ═══════════════════════════
-
-        🌡️ WEATHER SUMMARY
-        • Conditions: [brief description]
-        • Temperature: [X°C/Y°F to A°C/B°F]
-        • Precipitation: [X% chance]
-
-        🌅 MORNING ACTIVITIES
-        Outdoor:
-        • [Activity Name] - [Brief description including specific location/route]
-          Best timing: [specific time range]
-          Note: [relevant weather consideration]
-
-        🌞 AFTERNOON ACTIVITIES
-        Outdoor:
-        • [Activity Name] - [Brief description including specific location/route]
-          Best timing: [specific time range]
-          Note: [relevant weather consideration]
-
-        🏠 INDOOR ALTERNATIVES
-        • [Activity Name] - [Brief description including specific venue]
-          Ideal for: [weather condition that would trigger this alternative]
-
-        ⚠️ SPECIAL CONSIDERATIONS
-        • [Any relevant weather warnings, UV index, wind conditions, etc.]
-
-        Guidelines:
-        - Suggest 2-3 time-specific outdoor activities per day
-        - Include 1-2 indoor backup options
-        - For precipitation >50%, lead with indoor activities
-        - All activities must be specific to the location
-        - Include specific venues, trails, or locations
-        - Consider activity intensity based on temperature
-        - Keep descriptions concise but informative
-
-        Maintain this exact formatting for consistency, using the emoji and section headers as shown.`,
-      },
-      {
-        role: 'user',
-        content: prompt,
-      },
-    ]);
-
-    for await (const chunk of response.textStream) {
-      process.stdout.write(chunk);
-    }
+    const result = await agent?.generate(analysisPrompt);
 
     return {
-      activities: response.text,
+      podcastScript: result?.text ?? '',
     };
   },
 });
 
-function getWeatherCondition(code: number): string {
-  const conditions: Record<number, string> = {
-    0: 'Clear sky',
-    1: 'Mainly clear',
-    2: 'Partly cloudy',
-    3: 'Overcast',
-    45: 'Foggy',
-    48: 'Depositing rime fog',
-    51: 'Light drizzle',
-    53: 'Moderate drizzle',
-    55: 'Dense drizzle',
-    61: 'Slight rain',
-    63: 'Moderate rain',
-    65: 'Heavy rain',
-    71: 'Slight snow fall',
-    73: 'Moderate snow fall',
-    75: 'Heavy snow fall',
-    95: 'Thunderstorm',
-  };
-  return conditions[code] || 'Unknown';
-}
+const addPdfAudio = new Step({
+  id: 'add-pdf-audio',
+  description: 'Creates multi-voice podcast audio',
+  inputSchema: z.object({
+    podcastScript: z.string().describe('The podcast script'),
+  }),
+  execute: async ({ context: { podcastScript }, mastra }) => {
+    console.log('---------------------------');
+    console.log(podcastScript);
 
-const weatherWorkflow = new Workflow({
-  name: 'weather-workflow',
+    const segments = podcastScript
+      .split('\n')
+      .filter(line => line.trim())
+      .map(line => {
+        const [speaker, ...textParts] = line.split(':');
+        return {
+          speaker: speaker.trim(),
+          text: textParts.join(':').trim(),
+        };
+      });
+
+    const tts = new ElevenLabsTTS({
+      model: {
+        name: 'eleven_multilingual_v2',
+        apiKey: process.env.ELEVENLABS_API_KEY!,
+      },
+    });
+
+    console.log(process.env.ELEVENLABS_API_KEY);
+
+    const voices = await tts.voices();
+
+    try {
+      for (const { speaker, text } of segments) {
+        const voiceName = speaker === 'DANE' ? 'Daniel' : 'Bill';
+        console.log('Using voice:', voiceName);
+        const voiceId = voices?.find(voice => voice.name === voiceName)?.voice_id;
+
+        if (!voiceId) {
+          console.error(`Voice not found for ${voiceName}`);
+          continue;
+        }
+
+        await generateAndPlayAudio(tts, text, voiceId);
+        console.log('Segment complete');
+      }
+    } catch (error) {
+      console.error('Error in audio playback:', error);
+      throw error;
+    }
+  },
+});
+
+const whitePaperWorkflow = new Workflow({
+  name: 'whitePaperWorkflow',
   triggerSchema: z.object({
-    city: z.string().describe('The city to get the weather for'),
+    filename: z.string().describe('The PDF file to summarize'),
   }),
 })
-  .step(fetchWeather)
-  .then(planActivities);
+  .step(extractText, {
+    variables: {
+      filename: {
+        step: 'trigger',
+        path: 'filename',
+      },
+    },
+  })
+  .then(analyzePdfContent)
+  .then(addPdfAudio, {
+    variables: {
+      podcastScript: {
+        step: analyzePdfContent,
+        path: 'podcastScript',
+      },
+    },
+  });
 
-weatherWorkflow.commit();
+whitePaperWorkflow.commit();
 
-export { weatherWorkflow };
+export { whitePaperWorkflow };
