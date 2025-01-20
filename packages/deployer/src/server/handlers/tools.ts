@@ -4,8 +4,6 @@ import zodToJsonSchema from 'zod-to-json-schema';
 
 import { HTTPException } from 'hono/http-exception';
 
-import { ApiError } from '../types';
-
 import { handleError } from './error';
 import { validateBody } from './utils';
 

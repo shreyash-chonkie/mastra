@@ -1,3 +1,4 @@
+import { bundle, FileService } from '@mastra/deployer';
 import { ChildProcess } from 'child_process';
 import { watch } from 'chokidar';
 import { config } from 'dotenv';
@@ -10,10 +11,7 @@ import { fileURLToPath } from 'url';
 import fsExtra from 'fs-extra/esm';
 import fs from 'fs/promises';
 
-import { FileService } from '../services/service.file.js';
-import { bundle, bundleServer } from '../utils/bundle.js';
-
-import { EXPRESS_SERVER } from './deploy/server.js';
+import { SERVER } from './deploy/server.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -210,8 +208,9 @@ export async function dev({
     Bundle mastra
   */
   const dirPath = dir || path.join(process.cwd(), 'src/mastra');
+  const mastraDir = dir || path.join(process.cwd(), 'src/mastra');
   const envPaths = [path.join(process.cwd(), '.env'), path.join(process.cwd(), '.env.development')];
-  await bundleMastra(dirPath);
+  await bundle(dirPath, { buildName: 'Mastra' });
 
   /*
     Bundle tools
@@ -221,19 +220,23 @@ export async function dev({
   /*
     Bundle server
   */
-  writeFileSync(join(dotMastraPath, 'index.mjs'), EXPRESS_SERVER);
-  await bundleServer(join(dotMastraPath, 'index.mjs'));
+  writeFileSync(join(dotMastraPath, 'index.mjs'), SERVER);
+
+  await bundle(join(__dirname, '../templates/server.js'), {
+    outfile: join(dotMastraPath, 'server.mjs'),
+    buildName: 'Server',
+  });
 
   await startServer(dotMastraPath, port, MASTRA_TOOLS_PATH);
 
-  const watcher = watch([dirPath, ...envPaths], {
+  const watcher = watch([mastraDir, ...envPaths], {
     persistent: true,
     ignoreInitial: true,
   });
 
   watcher.on('change', async () => {
     console.log(`Changes detected, rebundling and restarting server...`);
-    await rebundleAndRestart(dirPath, dotMastraPath, port, envFile, toolsDirs);
+    await rebundleAndRestart(mastraDir, dotMastraPath, port, envFile, toolsDirs);
   });
 
   process.on('SIGINT', () => {
