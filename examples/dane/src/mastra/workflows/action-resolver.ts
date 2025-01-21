@@ -83,6 +83,8 @@ const getFailedActions = new Step({
         html_url: run.html_url,
       }));
 
+    console.log('failedRuns=', failedRuns);
+
     return { failedRuns, count: failedRuns.length };
   },
 });
@@ -170,8 +172,6 @@ const getSolutions = new Step({
           },
         );
 
-        console.log(`${action.name} res=`, JSON.stringify(res, null, 2));
-
         return {
           actionName: action.name,
           solution: res?.object?.solution as string,
@@ -225,7 +225,7 @@ githubActionResolver
         step: {
           id: 'getFailedActions',
         },
-        path: 'payload.count',
+        path: 'count',
       },
       query: { $gt: 0 },
     },
@@ -239,7 +239,7 @@ githubActionResolver
         step: {
           id: 'getFailedActions',
         },
-        path: 'payload.count',
+        path: 'count',
       },
       query: { $eq: 0 },
     },
