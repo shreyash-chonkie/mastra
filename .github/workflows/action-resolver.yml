@@ -50,7 +50,7 @@ jobs:
         run: pnpm install
 
       - name: Analyze Actions
-        run: pnpm dane action-resolver
+        run: cd examples/dane && pnpm start action-resolver
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: ${{ github.repository_owner }}
