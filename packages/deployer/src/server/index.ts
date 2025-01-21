@@ -41,6 +41,7 @@ type Bindings = {};
 type Variables = {
   mastra: Mastra;
   clients: Set<{ controller: ReadableStreamDefaultController }>;
+  tools: Record<string, any>;
 };
 
 export async function createHonoServer(mastra: Mastra) {
@@ -70,6 +71,7 @@ export async function createHonoServer(mastra: Mastra) {
   // Add Mastra to context
   app.use('*', async (c, next) => {
     c.set('mastra', mastra);
+    c.set('tools', tools);
     await next();
   });
 
