@@ -1,0 +1,42 @@
+name: DANE_Failed_Action_Resolver
+on:
+  workflow_run:
+    workflows: ['*']
+    types:
+      - completed
+    branches:
+      - main
+      - master
+
+jobs:
+  analyze_failed_action:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9.7.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dane cli
+        run: pnpm install -g @mastra/dane@alpha
+
+      - name: Analyze Failed Action
+        run: dane action-resolver
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.repository }}
+          PULL_NUMBER: ${{ github.event.workflow_run.pull_requests.number }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
