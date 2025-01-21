@@ -1,4 +1,4 @@
-name: DANE_Failed_Action_Resolver
+name: DANE_Failed_Actions_Resolver
 on:
   workflow_run:
     workflows: ['*']
@@ -29,11 +29,21 @@ jobs:
       - name: Install dane cli
         run: pnpm install -g @mastra/dane@alpha
 
-      - name: Analyze Failed Action
+      - name: Get PR number
+        id: get-pr
+        run: |
+          PR_NUMBER=$(gh api /repos/${{ github.repository }}/pulls \
+            --jq ".[] | select(.head.sha == '${{ github.event.workflow_run.head_sha }}') | .number")
+          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Analyze Actions
+        if: steps.get-pr.outputs.PR_NUMBER != ''
         run: dane action-resolver
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.repository }}
-          PULL_NUMBER: ${{ github.event.workflow_run.pull_requests.number }}
+          PULL_NUMBER: ${{ steps.get-pr.outputs.PR_NUMBER }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
