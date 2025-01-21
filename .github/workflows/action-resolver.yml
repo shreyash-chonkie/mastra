@@ -22,7 +22,7 @@ jobs:
           wait-interval: 20
           check-regexp: '^(?!.*DANE_Failed_Actions_Resolver).*$'
           running-workflow-name: 'wait-for-workflows'
-          allowed-conclusions: success,failure,skipped
+          allowed-conclusions: success,failure,skipped,neutral
 
   analyze_failed_action:
     needs: [wait-for-workflows]
