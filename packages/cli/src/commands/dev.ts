@@ -19,12 +19,12 @@ const __dirname = path.dirname(__filename);
 let currentServerProcess: ChildProcess | undefined;
 let isRestarting = false;
 
-const bundleMastra = async (dirPath: string) => {
-  await bundle(dirPath, { buildName: 'Mastra' });
+const bundleMastra = async (mastraPath: string) => {
+  await bundle(mastraPath, { buildName: 'Mastra', devMode: true });
 };
 
-const bundleTools = async (dirPath: string, dotMastraPath: string, toolsDirs?: string) => {
-  const defaultToolsPath = path.join(dirPath, 'tools');
+const bundleTools = async (mastraPath: string, dotMastraPath: string, toolsDirs?: string) => {
+  const defaultToolsPath = path.join(mastraPath, 'tools');
   const toolsPaths = [...(toolsDirs?.split(',').map(tool => path.join(process.cwd(), tool)) || []), defaultToolsPath];
 
   const toolPathsWithFileNames = (
@@ -39,7 +39,7 @@ const bundleTools = async (dirPath: string, dotMastraPath: string, toolsDirs?: s
             return {
               path: toolPath,
               name,
-              fileName,
+              fileName: `${fileName}${path.parse(file).ext}`,
             };
           });
         } catch (err) {
@@ -54,7 +54,7 @@ const bundleTools = async (dirPath: string, dotMastraPath: string, toolsDirs?: s
   ).flat();
 
   for (const { path, name, fileName } of toolPathsWithFileNames) {
-    await bundle(path, {
+    await bundle(join(path, fileName), {
       outfile: join(dotMastraPath, 'tools', `${name}.mjs`),
       entryFile: fileName,
       buildName: `${name}`,
@@ -120,7 +120,7 @@ const startServer = async (dotMastraPath: string, port: number, MASTRA_TOOLS_PAT
 };
 
 async function rebundleAndRestart(
-  dirPath: string,
+  mastraPath: string,
   dotMastraPath: string,
   port: number,
   envFile: string,
@@ -144,18 +144,22 @@ async function rebundleAndRestart(
     /*
       Bundle mastra
     */
-    await bundleMastra(dirPath);
+    await bundleMastra(mastraPath);
 
     /*
       Bundle tools
     */
-    const MASTRA_TOOLS_PATH = await bundleTools(dirPath, dotMastraPath, toolsDirs);
+    const MASTRA_TOOLS_PATH = await bundleTools(mastraPath, dotMastraPath, toolsDirs);
 
     /*
       Bundle server
     */
-    writeFileSync(join(dotMastraPath, 'index.mjs'), EXPRESS_SERVER);
-    await bundleServer(join(dotMastraPath, 'index.mjs'));
+    writeFileSync(join(dotMastraPath, 'index.mjs'), SERVER);
+    await bundle(join(dotMastraPath, 'index.mjs'), {
+      outfile: join(dotMastraPath, 'server.mjs'),
+      buildName: 'Server',
+      devMode: true,
+    });
 
     /*
       Start server
@@ -207,15 +211,15 @@ export async function dev({
   /*
     Bundle mastra
   */
-  const dirPath = dir || path.join(process.cwd(), 'src/mastra');
   const mastraDir = dir || path.join(process.cwd(), 'src/mastra');
   const envPaths = [path.join(process.cwd(), '.env'), path.join(process.cwd(), '.env.development')];
-  await bundle(dirPath, { buildName: 'Mastra' });
+  const mastraPath = join(mastraDir, 'index.ts');
+  await bundleMastra(mastraPath);
 
   /*
     Bundle tools
   */
-  const MASTRA_TOOLS_PATH = await bundleTools(dirPath, dotMastraPath, toolsDirs);
+  const MASTRA_TOOLS_PATH = await bundleTools(mastraDir, dotMastraPath, toolsDirs);
 
   /*
     Bundle server
