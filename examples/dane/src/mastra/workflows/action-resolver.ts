@@ -113,29 +113,35 @@ const getActionLogs = new Step({
     actionResults: actionResultsSchema,
   }),
   execute: async ({ context }) => {
-    console.log('get action logs====');
-    const parentStep = context?.machineContext?.stepResults?.getFailedActions;
-    if (!parentStep || parentStep.status !== 'success') {
-      return { actionResults: [] };
+    try {
+      console.log('get action logs====');
+      const parentStep = context?.machineContext?.stepResults?.getFailedActions;
+      if (!parentStep || parentStep.status !== 'success') {
+        return { actionResults: [] };
+      }
+
+      const actionResults = await Promise.all(
+        (parentStep.payload.failedRuns as z.infer<typeof failedRunsSchema>).map(async run => {
+          console.log('run===', run);
+          const response = await fetch(run.logs_url);
+          console.log('response===', response);
+          const logs = await response.text();
+          console.log(`${run.name} logs=`, logs);
+          return {
+            name: run.name,
+            logs,
+            html_url: run.html_url,
+          };
+        }),
+      );
+
+      console.log('actionResults=', actionResults);
+
+      return { actionResults };
+    } catch (error) {
+      console.error('Error getting action logs', error);
+      throw new Error('Failed to get action logs');
     }
-
-    const actionResults = await Promise.all(
-      (parentStep.payload.failedRuns as z.infer<typeof failedRunsSchema>).map(async run => {
-        console.log('run===', run);
-        const response = await fetch(run.logs_url);
-        const logs = await response.text();
-        console.log(`${run.name} logs=`, logs);
-        return {
-          name: run.name,
-          logs,
-          html_url: run.html_url,
-        };
-      }),
-    );
-
-    console.log('actionResults=', actionResults);
-
-    return { actionResults };
   },
 });
 
