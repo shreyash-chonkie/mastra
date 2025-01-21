@@ -4,9 +4,6 @@ on:
     workflows: ['*']
     types:
       - completed
-    branches:
-      - main
-      - master
 
 jobs:
   analyze_failed_action:
