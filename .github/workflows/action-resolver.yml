@@ -52,7 +52,7 @@ jobs:
       - name: Analyze Actions
         run: cd packages/core && pnpm build && cd ../engine && pnpm build && cd ../rag && pnpm build && cd ../memory && pnpm build && cd ../mcp && pnpm build && cd ../../integrations/github && pnpm build && cd ../firecrawl && pnpm build && cd ../stabilityai && pnpm build && cd ../../examples/dane && pnpm start action-resolver
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.repository }}
           PULL_NUMBER: ${{ github.event.pull_request.number || inputs.pull_number }}
