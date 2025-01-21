@@ -126,7 +126,8 @@ const getActionLogs = new Step({
           const response = await fetch(run.logs_url, {
             headers: {
               Authorization: `Bearer ${getApiKey('GITHUB_PERSONAL_ACCESS_TOKEN', 'GITHUB_PERSONAL_ACCESS_TOKEN')}`,
-              Accept: 'application/vnd.github.v3+json',
+              Accept: 'application/vnd.github+json',
+              'X-GitHub-Api-Version': '2022-11-28',
             },
           });
           console.log('response===', response);
