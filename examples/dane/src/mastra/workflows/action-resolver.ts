@@ -113,6 +113,7 @@ const getActionLogs = new Step({
     actionResults: actionResultsSchema,
   }),
   execute: async ({ context }) => {
+    console.log('get action logs====');
     const parentStep = context?.machineContext?.stepResults?.getFailedActions;
     if (!parentStep || parentStep.status !== 'success') {
       return { actionResults: [] };
@@ -120,6 +121,7 @@ const getActionLogs = new Step({
 
     const actionResults = await Promise.all(
       (parentStep.payload.failedRuns as z.infer<typeof failedRunsSchema>).map(async run => {
+        console.log('run===', run);
         const response = await fetch(run.logs_url);
         const logs = await response.text();
         console.log(`${run.name} logs=`, logs);
