@@ -50,7 +50,7 @@ jobs:
         run: pnpm install
 
       - name: Analyze Actions
-        run: cd examples/dane && pnpm start action-resolver
+        run: npm build:packages && cd integrations/github && pnpm build && cd ../firecrawl && pnpm build && cd ../stabilityai && pnpm build && cd ../../examples/dane && pnpm start action-resolver
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: ${{ github.repository_owner }}
