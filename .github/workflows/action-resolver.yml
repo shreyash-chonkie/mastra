@@ -21,6 +21,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 20
           check-regexp: '^(?!.*DANE_Failed_Actions_Resolver).*$'
+          running-workflow-name: 'wait-for-workflows'
           allowed-conclusions: success,failure,skipped
 
   analyze_failed_action:
