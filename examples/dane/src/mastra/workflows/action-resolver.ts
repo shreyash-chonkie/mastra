@@ -1,7 +1,7 @@
 import { Step, Workflow } from '@mastra/core';
 import { z } from 'zod';
 
-import { github } from '../integrations/index.js';
+import { getApiKey, github } from '../integrations/index.js';
 
 const failedRunsSchema = z.array(
   z.object({
@@ -123,7 +123,12 @@ const getActionLogs = new Step({
       const actionResults = await Promise.all(
         (parentStep.payload.failedRuns as z.infer<typeof failedRunsSchema>).map(async run => {
           console.log('run===', run);
-          const response = await fetch(run.logs_url);
+          const response = await fetch(run.logs_url, {
+            headers: {
+              Authorization: `Bearer ${getApiKey('GITHUB_PERSONAL_ACCESS_TOKEN', 'GITHUB_PERSONAL_ACCESS_TOKEN')}`,
+              Accept: 'application/vnd.github.v3+json',
+            },
+          });
           console.log('response===', response);
           const logs = await response.text();
           console.log(`${run.name} logs=`, logs);
@@ -136,7 +141,6 @@ const getActionLogs = new Step({
       );
 
       console.log('actionResults=', actionResults);
-
       return { actionResults };
     } catch (error) {
       console.error('Error getting action logs', error);
