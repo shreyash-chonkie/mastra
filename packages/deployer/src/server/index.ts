@@ -6,7 +6,6 @@ import { join } from 'path';
 import { pathToFileURL } from 'url';
 
 import { readFile } from 'fs/promises';
-import { handle as cloudflareHandle } from 'hono/cloudflare-pages';
 import { cors } from 'hono/cors';
 import { handle as netlifyHandle } from 'hono/netlify';
 import { handle as vercelHandle } from 'hono/vercel';
@@ -117,6 +116,12 @@ export async function createHonoServer(mastra: Mastra) {
   app.get('/api/tools/:toolId', getToolByIdHandler);
   app.post('/api/tools/:toolId/execute', executeToolHandler(tools));
 
+  return app;
+}
+
+export async function createNodeServer(mastra: Mastra) {
+  const app = await createHonoServer(mastra);
+
   // SSE endpoint for refresh notifications
   app.get('/refresh-events', handleClientsRefresh);
 
@@ -162,11 +167,6 @@ export async function createHonoServer(mastra: Mastra) {
     return c.newResponse(indexHtml, 200, { 'Content-Type': 'text/html' });
   });
 
-  return app;
-}
-
-export async function createNodeServer(mastra: Mastra) {
-  const app = await createHonoServer(mastra);
   return serve(
     {
       fetch: app.fetch,
@@ -193,5 +193,5 @@ export async function createNetlifyServer(mastra: Mastra) {
 
 export async function createCloudflareServer(mastra: Mastra) {
   const app = await createHonoServer(mastra);
-  return cloudflareHandle(app);
+  return app;
 }
