@@ -1,0 +1,18 @@
+export const getVercelConfig = () => {
+  return {
+    version: 2,
+    builds: [
+      {
+        src: 'index.mjs',
+        use: '@vercel/node',
+        config: { includeFiles: ['**'] },
+      },
+    ],
+    routes: [
+      {
+        src: '/(.*)',
+        dest: 'index.mjs',
+      },
+    ],
+  };
+};

@@ -2,9 +2,10 @@ import { execa } from 'execa';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
-import { DepsService } from '../../../services/service.deps.js';
-import { Deployer } from '../deployer.js';
-import { NETLIFY } from '../server.js';
+import { Deps } from '../../build/deps.js';
+import { Deployer } from '../base.js';
+
+import { getNetlifyConfig } from './config.js';
 
 export class NetlifyDeployer extends Deployer {
   name = 'Netlify';
@@ -17,7 +18,7 @@ export class NetlifyDeployer extends Deployer {
 
   async installCli() {
     console.log('Installing Netlify CLI...');
-    const depsService = new DepsService();
+    const depsService = new Deps();
     await depsService.installPackages(['netlify-cli -g']);
   }
 
@@ -51,24 +52,10 @@ export class NetlifyDeployer extends Deployer {
     );
   }
 
-  writeFiles(): void {
+  writeFiles({ SERVER }: { SERVER: string }): void {
     // TODO ENV KEYS
-    writeFileSync(
-      join(this.dotMastraPath, 'netlify.toml'),
-      `
-        [functions]
-        external_node_modules = ["express", "serverless-http"]
-        node_bundler = "esbuild"
-        directory = "/"
-        [[redirects]]
-        force = true
-        from = "/*"
-        status = 200
-        to = "/.netlify/functions/api/:splat"
-        `,
-    );
-
-    writeFileSync(join(this.dotMastraPath, 'api.mjs'), NETLIFY);
+    writeFileSync(join(this.dotMastraPath, 'netlify.toml'), getNetlifyConfig());
+    writeFileSync(join(this.dotMastraPath, 'api.mjs'), SERVER);
   }
 
   async deployCommand({ scope, siteId }: { siteId: string; scope: string }): Promise<void> {

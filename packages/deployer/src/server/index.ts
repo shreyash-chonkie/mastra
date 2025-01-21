@@ -6,8 +6,10 @@ import { join } from 'path';
 import { pathToFileURL } from 'url';
 
 import { readFile } from 'fs/promises';
+import { handle as cloudflareHandle } from 'hono/cloudflare-pages';
 import { cors } from 'hono/cors';
-import { handle } from 'hono/vercel';
+import { handle as netlifyHandle } from 'hono/netlify';
+import { handle as vercelHandle } from 'hono/vercel';
 
 import { generateHandler, getAgentByIdHandler, getAgentsHandler, streamGenerateHandler } from './handlers/agents.js';
 import { handleClientsRefresh } from './handlers/client.js';
@@ -181,5 +183,15 @@ export async function createNodeServer(mastra: Mastra) {
 
 export async function createVercelServer(mastra: Mastra) {
   const app = await createHonoServer(mastra);
-  return { MGET: handle(app), MPOST: handle(app) };
+  return { MGET: vercelHandle(app), MPOST: vercelHandle(app) };
+}
+
+export async function createNetlifyServer(mastra: Mastra) {
+  const app = await createHonoServer(mastra);
+  return netlifyHandle(app);
+}
+
+export async function createCloudflareServer(mastra: Mastra) {
+  const app = await createHonoServer(mastra);
+  return cloudflareHandle(app);
 }

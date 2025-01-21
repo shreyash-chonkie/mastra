@@ -65,7 +65,7 @@ export class CloudflareDeployer extends Deployer {
     );
   }
 
-  writeFiles(): void {
+  writeFiles({ SERVER }: { SERVER: string }): void {
     const cfWorkerName = process.env.CF_WORKER_NAME ?? 'mastra';
     const cfRoute = process.env.CF_ROUTE_NAME;
     const cfZone = process.env.CF_ZONE_NAME;
@@ -82,7 +82,7 @@ export class CloudflareDeployer extends Deployer {
       }),
     );
 
-    // writeFileSync(join(this.dotMastraPath, 'index.mjs'), SERVER);
+    writeFileSync(join(this.dotMastraPath, 'index.mjs'), SERVER);
   }
 
   async deployCommand({ scope }: { scope: string }): Promise<void> {

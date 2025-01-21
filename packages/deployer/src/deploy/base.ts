@@ -76,7 +76,7 @@ export abstract class Deployer {
     console.log('Writing package.json...');
   }
 
-  writeFiles() {
+  writeFiles(_: { SERVER: string }) {
     console.log('Writing files...');
   }
 
@@ -89,17 +89,19 @@ export abstract class Deployer {
     siteId,
     dir,
     projectName,
+    SERVER,
   }: {
     dir?: string;
     scope: string;
     siteId?: string;
     projectName?: string;
+    SERVER: string;
   }) {
     console.log('Deploying...', scope);
     const dirPath = dir || path.join(process.cwd(), 'src/mastra');
     await this.installCli();
     this.writePkgJson();
-    this.writeFiles();
+    this.writeFiles({ SERVER });
     await this.install();
     await this.build({ dir: dirPath });
     await this.deployCommand({ scope, siteId, projectName });

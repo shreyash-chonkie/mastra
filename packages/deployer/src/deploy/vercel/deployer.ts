@@ -2,9 +2,10 @@ import { execa } from 'execa';
 import { writeFileSync, readFileSync } from 'fs';
 import { join } from 'path';
 
-import { DepsService } from '../../../services/service.deps.js';
-import { Deployer } from '../deployer.js';
-import { VERCEL } from '../server.js';
+import { Deps } from '../../build';
+import { Deployer } from '../base';
+
+import { getVercelConfig } from './config';
 
 interface EnvVar {
   key: string;
@@ -20,9 +21,10 @@ interface VercelError {
 
 export class VercelDeployer extends Deployer {
   name = 'Vercel';
+
   async installCli() {
     console.log('Installing Vercel CLI...');
-    const depsService = new DepsService();
+    const depsService = new Deps();
     await depsService.installPackages(['vercel -g']);
   }
 
@@ -56,32 +58,9 @@ export class VercelDeployer extends Deployer {
     );
   }
 
-  writeFiles() {
-    writeFileSync(
-      join(this.dotMastraPath, 'vercel.json'),
-      JSON.stringify(
-        {
-          version: 2,
-          builds: [
-            {
-              src: 'index.mjs',
-              use: '@vercel/node',
-              config: { includeFiles: ['**'] },
-            },
-          ],
-          routes: [
-            {
-              src: '/(.*)',
-              dest: 'index.mjs',
-            },
-          ],
-        },
-        null,
-        2,
-      ),
-    );
-
-    writeFileSync(join(this.dotMastraPath, 'index.mjs'), VERCEL);
+  writeFiles({ SERVER }: { SERVER: string }): void {
+    writeFileSync(join(this.dotMastraPath, 'vercel.json'), JSON.stringify(getVercelConfig(), null, 2));
+    writeFileSync(join(this.dotMastraPath, 'index.mjs'), SERVER);
   }
 
   private getProjectId(): string {

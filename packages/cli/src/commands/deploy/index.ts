@@ -1,12 +1,13 @@
 import * as prompts from '@clack/prompts';
+import { CloudflareDeployer } from '@mastra/deployer';
+import { NetlifyDeployer } from '@mastra/deployer';
+import { VercelDeployer } from '@mastra/deployer';
 import color from 'picocolors';
 
 import { logger } from '../../utils/logger.js';
 
-import { CloudflareDeployer } from './cloudflare/index.js';
-import { NetlifyDeployer } from './netlify/index.js';
+import { NETLIFY_SERVER, VERCEL_SERVER, WORKER_SERVER } from './server.js';
 import { getCreds, writeCreds } from './utils.js';
-import { VercelDeployer } from './vercel/index.js';
 
 async function fetchVercelTeams(authToken: string) {
   if (!authToken) {
@@ -85,7 +86,7 @@ export async function vercelDeploy({ dir, projectName }: { dir?: string; project
 
   const deployer = new VercelDeployer({ token });
 
-  await deployer.deploy({ scope, dir, projectName });
+  await deployer.deploy({ scope, dir, projectName, SERVER: VERCEL_SERVER });
 
   logger.log('Deployment complete!');
   process.exit(0);
@@ -156,7 +157,7 @@ export async function cloudflareDeploy({ dir }: { dir?: string }) {
 
   const deployer = new CloudflareDeployer({ token });
 
-  await deployer.deploy({ scope, dir });
+  await deployer.deploy({ scope, dir, SERVER: WORKER_SERVER });
 
   logger.log('Deployment complete!');
   process.exit(0);
@@ -291,7 +292,7 @@ export async function netlifyDeploy({ dir }: { dir?: string }) {
 
   const deployer = new NetlifyDeployer({ token });
 
-  await deployer.deploy({ scope, siteId, dir });
+  await deployer.deploy({ scope, siteId, dir, SERVER: NETLIFY_SERVER });
 
   logger.log('Deployment complete!');
   process.exit(0);
