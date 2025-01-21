@@ -86,6 +86,24 @@ const getFailedActions = new Step({
   },
 });
 
+const noFailedActions = new Step({
+  id: 'noFailedActions',
+  execute: async ({ context }) => {
+    const client = await github.getApiClient();
+
+    await client.issuesCreateComment({
+      path: {
+        owner: context?.machineContext?.triggerData?.owner,
+        repo: context?.machineContext?.triggerData?.repo,
+        issue_number: context?.machineContext?.triggerData?.pull_number,
+      },
+      body: {
+        body: `# Action Failure Analysis 🔍\n\n${'No failed actions found!'}`,
+      },
+    });
+  },
+});
+
 const getActionLogs = new Step({
   id: 'getActionLogs',
   outputSchema: z.object({
@@ -213,4 +231,16 @@ githubActionResolver
   })
   .then(getSolutions)
   .then(postSolutions)
+  .after(getFailedActions)
+  .step(noFailedActions, {
+    when: {
+      ref: {
+        step: {
+          id: 'getFailedActions',
+        },
+        path: 'payload.failedRuns',
+      },
+      query: { $eq: 0 },
+    },
+  })
   .commit();

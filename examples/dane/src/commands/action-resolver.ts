@@ -16,10 +16,27 @@ export async function actionResolverCommand() {
     },
   });
 
+  let failedActionsCount = 0;
+
   if (result.results?.getFailedActions?.status === 'failed') {
     console.error(chalk.red('Error getting failed actions'));
     console.error({ error: result.results?.getFailedActions?.error });
     return;
+  }
+
+  if (result.results?.getFailedActions?.status === 'success') {
+    failedActionsCount = result.results?.getFailedActions?.payload?.failedRuns?.length ?? 0;
+    if (failedActionsCount === 0) {
+      console.log(chalk.green('No failed actions found!'));
+
+      if (result.results?.noFailedActions?.status === 'failed') {
+        console.error(chalk.red('Error posting no failed actions'));
+        console.error({ error: result.results?.noFailedActions?.error });
+        return;
+      }
+
+      process.exit(0);
+    }
   }
 
   if (result.results?.getActionLogs?.status === 'failed') {
@@ -40,22 +57,13 @@ export async function actionResolverCommand() {
     return;
   }
 
-  const failedActionsCount =
-    result.results?.getFailedActions?.status === 'success'
-      ? (result.results?.getFailedActions?.payload?.failedRuns?.length ?? 0)
-      : 0;
-
-  if (failedActionsCount === 0) {
-    console.log(chalk.green('No failed actions found!'));
-  } else {
-    console.log(
-      chalk.green(
-        `Successfully analyzed ${failedActionsCount} failed action${
-          failedActionsCount === 1 ? '' : 's'
-        } and posted solutions to PR #${result.triggerData?.pull_number}`,
-      ),
-    );
-  }
+  console.log(
+    chalk.green(
+      `Successfully analyzed ${failedActionsCount} failed action${
+        failedActionsCount === 1 ? '' : 's'
+      } and posted solutions to PR #${result.triggerData?.pull_number}`,
+    ),
+  );
 
   process.exit(0);
 }
