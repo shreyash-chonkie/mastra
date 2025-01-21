@@ -20,7 +20,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 20
-          running-workflow-name: DANE_Failed_Actions_Resolver
+          check-regexp: '^(?!.*DANE_Failed_Actions_Resolver).*$'
           allowed-conclusions: success,failure,skipped
 
   analyze_failed_action:
