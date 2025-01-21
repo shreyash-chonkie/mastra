@@ -1,10 +1,6 @@
 name: DANE_Failed_Actions_Resolver
 on:
-  workflow_run:
-    workflows:
-      - 'Socket Security: Project Report'
-    types:
-      - completed
+  workflow_dispatch:
 
 jobs:
   analyze_failed_action:
