@@ -41,6 +41,7 @@ const getFailedActions = new Step({
   id: 'getFailedActions',
   outputSchema: z.object({
     failedRuns: failedRunsSchema,
+    count: z.number(),
   }),
   execute: async ({ context }) => {
     const client = await github.getApiClient();
@@ -82,7 +83,7 @@ const getFailedActions = new Step({
         html_url: run.html_url,
       }));
 
-    return { failedRuns };
+    return { failedRuns, count: failedRuns.length };
   },
 });
 
@@ -224,7 +225,7 @@ githubActionResolver
         step: {
           id: 'getFailedActions',
         },
-        path: 'payload.failedRuns',
+        path: 'payload.count',
       },
       query: { $gt: 0 },
     },
@@ -238,7 +239,7 @@ githubActionResolver
         step: {
           id: 'getFailedActions',
         },
-        path: 'payload.failedRuns',
+        path: 'payload.count',
       },
       query: { $eq: 0 },
     },

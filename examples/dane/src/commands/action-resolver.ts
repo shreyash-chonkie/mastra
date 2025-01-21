@@ -25,7 +25,7 @@ export async function actionResolverCommand() {
   }
 
   if (result.results?.getFailedActions?.status === 'success') {
-    failedActionsCount = result.results?.getFailedActions?.payload?.failedRuns?.length ?? 0;
+    failedActionsCount = result.results?.getFailedActions?.payload?.count ?? 0;
     if (failedActionsCount === 0) {
       console.log(chalk.green('No failed actions found!'));
 
