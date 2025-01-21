@@ -18,6 +18,8 @@ export async function actionResolverCommand() {
 
   let failedActionsCount = 0;
 
+  console.log('result=', JSON.stringify(result, null, 2));
+
   if (result.results?.getFailedActions?.status === 'failed') {
     console.error(chalk.red('Error getting failed actions'));
     console.error({ error: result.results?.getFailedActions?.error });

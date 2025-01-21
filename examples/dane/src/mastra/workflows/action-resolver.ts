@@ -122,6 +122,7 @@ const getActionLogs = new Step({
       (parentStep.payload.failedRuns as z.infer<typeof failedRunsSchema>).map(async run => {
         const response = await fetch(run.logs_url);
         const logs = await response.text();
+        console.log(`${run.name} logs=`, logs);
         return {
           name: run.name,
           logs,
@@ -129,6 +130,8 @@ const getActionLogs = new Step({
         };
       }),
     );
+
+    console.log('actionResults=', actionResults);
 
     return { actionResults };
   },
@@ -171,6 +174,8 @@ const getSolutions = new Step({
           },
         );
 
+        console.log(`${action.name} res=`, res);
+
         return {
           actionName: action.name,
           solution: res?.object?.solution as string,
@@ -178,6 +183,8 @@ const getSolutions = new Step({
         };
       }),
     );
+
+    console.log('solutions=', solutions);
 
     return { solutions };
   },
