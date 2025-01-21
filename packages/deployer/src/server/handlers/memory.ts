@@ -192,12 +192,12 @@ export async function getMessagesHandler(c: Context) {
     const threadId = c.req.param('threadId');
 
     if (!memory) {
-      throw new HTTPException(400, { message: 'Memory is not initialized' });
+      return c.json({ error: 'Memory is not initialized' }, 400);
     }
 
     const thread = await memory.getThreadById({ threadId });
     if (!thread) {
-      throw new HTTPException(404, { message: 'Thread not found' });
+      return c.json({ error: 'Thread not found' }, 404);
     }
 
     const result = await memory.getMessages({ threadId });
