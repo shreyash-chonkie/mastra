@@ -76,14 +76,14 @@ export async function generateHandler(c: Context) {
       throw new HTTPException(404, { message: 'Agent not found' });
     }
 
-    const { messages, threadId, resourceid } = await c.req.json();
+    const { messages, threadId, resourceid, output } = await c.req.json();
     validateBody({ messages });
 
     if (!Array.isArray(messages)) {
       throw new HTTPException(400, { message: 'Messages should be an array' });
     }
 
-    const result = await agent.generate(messages, { threadId, resourceid });
+    const result = await agent.generate(messages, { threadId, resourceid, output });
     return c.json(result);
   } catch (error) {
     return handleError(error, 'Error generating from agent');
@@ -100,14 +100,14 @@ export async function streamGenerateHandler(c: Context) {
       throw new HTTPException(404, { message: 'Agent not found' });
     }
 
-    const { messages, threadId, resourceid } = await c.req.json();
+    const { messages, threadId, resourceid, output } = await c.req.json();
     validateBody({ messages });
 
     if (!Array.isArray(messages)) {
       throw new HTTPException(400, { message: 'Messages should be an array' });
     }
 
-    const streamResult = await agent.stream(messages, { threadId, resourceid });
+    const streamResult = await agent.stream(messages, { threadId, resourceid, output });
     return new Response(streamResult.toDataStream(), {
       headers: {
         'Content-Type': 'text/x-unknown',
@@ -117,50 +117,5 @@ export async function streamGenerateHandler(c: Context) {
     });
   } catch (error) {
     return handleError(error, 'Error streaming from agent');
-  }
-}
-
-export async function textObjectHandler(c: Context) {
-  try {
-    const mastra = c.get('mastra');
-    const agentId = c.req.param('agentId');
-    const agent = mastra.getAgent(agentId);
-    const { messages, schema, threadId, resourceid } = await c.req.json();
-
-    validateBody({
-      messages,
-      schema,
-    });
-
-    const result = await agent.generate(messages, { output: schema, threadId, resourceid });
-    return c.json(result);
-  } catch (error) {
-    return handleError(error, 'Error getting structured output from agent');
-  }
-}
-
-export async function streamObjectHandler(c: Context) {
-  try {
-    const mastra = c.get('mastra');
-    const agentId = c.req.param('agentId');
-    const agent = mastra.getAgent(agentId);
-    const { messages, schema, threadId, resourceid } = await c.req.json();
-
-    validateBody({
-      messages,
-      schema,
-    });
-
-    const streamResult = await agent.stream(messages, { output: schema, threadId, resourceid });
-
-    return new Response(streamResult.toTextStream(), {
-      headers: {
-        'Content-Type': 'text/x-unknown',
-        'content-encoding': 'identity',
-        'transfer-encoding': 'chunked',
-      },
-    });
-  } catch (error) {
-    return handleError(error, 'Error streaming structured output from agent');
   }
 }

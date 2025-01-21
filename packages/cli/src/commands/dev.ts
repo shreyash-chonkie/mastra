@@ -68,6 +68,15 @@ const bundleTools = async (mastraPath: string, dotMastraPath: string, toolsDirs?
   return MASTRA_TOOLS_PATH;
 };
 
+const bundleServer = async (dotMastraPath: string) => {
+  writeFileSync(join(dotMastraPath, 'index.mjs'), SERVER);
+
+  await bundle(join(__dirname, '../templates/server.js'), {
+    outfile: join(dotMastraPath, 'server.mjs'),
+    buildName: 'Server',
+  });
+};
+
 const startServer = async (dotMastraPath: string, port: number, MASTRA_TOOLS_PATH: string) => {
   try {
     // Restart server
@@ -154,12 +163,7 @@ async function rebundleAndRestart(
     /*
       Bundle server
     */
-    writeFileSync(join(dotMastraPath, 'index.mjs'), SERVER);
-    await bundle(join(dotMastraPath, 'index.mjs'), {
-      outfile: join(dotMastraPath, 'server.mjs'),
-      buildName: 'Server',
-      devMode: true,
-    });
+    await bundleServer(dotMastraPath);
 
     /*
       Start server
@@ -224,12 +228,7 @@ export async function dev({
   /*
     Bundle server
   */
-  writeFileSync(join(dotMastraPath, 'index.mjs'), SERVER);
-
-  await bundle(join(__dirname, '../templates/server.js'), {
-    outfile: join(dotMastraPath, 'server.mjs'),
-    buildName: 'Server',
-  });
+  await bundleServer(dotMastraPath);
 
   await startServer(dotMastraPath, port, MASTRA_TOOLS_PATH);
 

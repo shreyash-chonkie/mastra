@@ -2,19 +2,16 @@ import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { type Mastra } from '@mastra/core';
 import { Hono } from 'hono';
+import { join } from 'path';
 import { pathToFileURL } from 'url';
 
+import { readFile } from 'fs/promises';
 import { cors } from 'hono/cors';
 import { handle } from 'hono/vercel';
 
-import {
-  generateHandler,
-  getAgentByIdHandler,
-  getAgentsHandler,
-  streamGenerateHandler,
-  streamObjectHandler,
-  textObjectHandler,
-} from './handlers/agents.js';
+import { generateHandler, getAgentByIdHandler, getAgentsHandler, streamGenerateHandler } from './handlers/agents.js';
+import { handleClientsRefresh } from './handlers/client.js';
+import { handleTriggerClientsRefresh } from './handlers/client.js';
 import { getLogsByRunIdHandler, getLogsHandler } from './handlers/logs';
 import {
   createThreadHandler,
@@ -28,7 +25,6 @@ import {
   updateThreadHandler,
 } from './handlers/memory';
 import { rootHandler } from './handlers/root.js';
-// import { rootHandler } from './handlers/root.js';
 import { executeSyncHandler } from './handlers/syncs.js';
 import {
   executeAgentToolHandler,
@@ -44,6 +40,7 @@ type Bindings = {};
 
 type Variables = {
   mastra: Mastra;
+  clients: Set<{ controller: ReadableStreamDefaultController }>;
 };
 
 export async function createHonoServer(mastra: Mastra) {
@@ -76,6 +73,7 @@ export async function createHonoServer(mastra: Mastra) {
     await next();
   });
 
+  // API routes
   app.get('/api', rootHandler);
 
   // Agent routes
@@ -83,8 +81,6 @@ export async function createHonoServer(mastra: Mastra) {
   app.get('/api/agents/:agentId', getAgentByIdHandler);
   app.post('/api/agents/:agentId/generate', generateHandler);
   app.post('/api/agents/:agentId/stream', streamGenerateHandler);
-  app.post('/api/agents/:agentId/text-object', textObjectHandler);
-  app.post('/api/agents/:agentId/stream-object', streamObjectHandler);
   app.post('/api/agents/:agentId/tools/:toolId/execute', executeAgentToolHandler);
 
   // Memory routes
@@ -117,7 +113,13 @@ export async function createHonoServer(mastra: Mastra) {
   app.get('/api/tools/:toolId', getToolByIdHandler);
   app.post('/api/tools/:toolId/execute', executeToolHandler(tools));
 
-  // Playground routes
+  // SSE endpoint for refresh notifications
+  app.get('/refresh-events', handleClientsRefresh);
+
+  // Trigger refresh for all clients
+  app.post('/__refresh', handleTriggerClientsRefresh);
+
+  // Playground routes - these should come after API routes
   // Serve assets with specific MIME types
   app.use('/assets/*', async (c, next) => {
     const path = c.req.path;
@@ -137,33 +139,42 @@ export async function createHonoServer(mastra: Mastra) {
     }),
   );
 
-  // Serve other static files from playground directory
+  // Serve static files from playground directory
   app.use(
-    '/*',
+    '*',
     serveStatic({
       root: './playground',
     }),
   );
 
-  // Catch-all route to serve index.html
-  app.get(
-    '*',
-    serveStatic({
-      root: './playground/index.html',
-    }),
-  );
+  // Catch-all route to serve index.html for any non-API routes
+  app.get('*', async (c, next) => {
+    // Skip if it's an API route
+    if (c.req.path.startsWith('/api/')) {
+      return await next();
+    }
+    // For all other routes, serve index.html
+    const indexHtml = await readFile(join(process.cwd(), './playground/index.html'), 'utf-8');
+    return c.newResponse(indexHtml, 200, { 'Content-Type': 'text/html' });
+  });
 
   return app;
 }
 
 export async function createNodeServer(mastra: Mastra) {
   const app = await createHonoServer(mastra);
-  return serve(app, info => {
-    console.log(info);
-    console.log(`🦄Server running on port ${process.env.PORT || 4111}/api`);
-    console.log(`📚 Open API documentation available at http://localhost:${process.env.PORT || 4111}/openapi.json`);
-    console.log(`👨‍💻 Playground available at http://localhost:${process.env.PORT || 4111}/`);
-  });
+  return serve(
+    {
+      fetch: app.fetch,
+      port: Number(process.env.PORT) || 4111,
+    },
+    info => {
+      console.log(info);
+      console.log(`🦄Server running on port ${process.env.PORT || 4111}/api`);
+      console.log(`📚 Open API documentation available at http://localhost:${process.env.PORT || 4111}/openapi.json`);
+      console.log(`👨‍💻 Playground available at http://localhost:${process.env.PORT || 4111}/`);
+    },
+  );
 }
 
 export async function createVercelServer(mastra: Mastra) {
