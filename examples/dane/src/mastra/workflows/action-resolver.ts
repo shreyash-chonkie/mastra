@@ -198,4 +198,19 @@ const postSolutions = new Step({
   },
 });
 
-githubActionResolver.step(getFailedActions).then(getActionLogs).then(getSolutions).then(postSolutions).commit();
+githubActionResolver
+  .step(getFailedActions)
+  .then(getActionLogs, {
+    when: {
+      ref: {
+        step: {
+          id: 'getFailedActions',
+        },
+        path: 'payload.failedRuns',
+      },
+      query: { $gt: 0 },
+    },
+  })
+  .then(getSolutions)
+  .then(postSolutions)
+  .commit();

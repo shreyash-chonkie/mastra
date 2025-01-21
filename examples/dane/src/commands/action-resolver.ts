@@ -47,16 +47,17 @@ export async function actionResolverCommand() {
 
   if (failedActionsCount === 0) {
     console.log(chalk.green('No failed actions found!'));
-    return;
+  } else {
+    console.log(
+      chalk.green(
+        `Successfully analyzed ${failedActionsCount} failed action${
+          failedActionsCount === 1 ? '' : 's'
+        } and posted solutions to PR #${result.triggerData?.pull_number}`,
+      ),
+    );
   }
 
-  console.log(
-    chalk.green(
-      `Successfully analyzed ${failedActionsCount} failed action${
-        failedActionsCount === 1 ? '' : 's'
-      } and posted solutions to PR #${result.triggerData?.pull_number}`,
-    ),
-  );
+  process.exit(0);
 }
 
 /**
