@@ -10,23 +10,23 @@ on:
         type: string
 
 jobs:
-  wait-for-workflows:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Wait for other workflows
-        uses: lewagon/wait-on-check-action@v1.3.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 20
-          check-regexp: '^(?!.*DANE_Failed_Actions_Resolver).*$'
-          running-workflow-name: 'wait-for-workflows'
-          allowed-conclusions: success,failure,skipped
+  # wait-for-workflows:
+  #   if: github.event_name == 'pull_request'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Wait for other workflows
+  #       uses: lewagon/wait-on-check-action@v1.3.1
+  #       with:
+  #         ref: ${{ github.event.pull_request.head.sha }}
+  #         repo-token: ${{ secrets.GITHUB_TOKEN }}
+  #         wait-interval: 20
+  #         check-regexp: '^(?!.*DANE_Failed_Actions_Resolver).*$'
+  #         running-workflow-name: 'wait-for-workflows'
+  #         allowed-conclusions: success,failure,skipped
 
   analyze_failed_action:
-    needs: [wait-for-workflows]
-    if: always() && (github.event_name != 'pull_request' || needs.wait-for-workflows.result == 'success')
+    # needs: [wait-for-workflows]
+    # if: always() && (github.event_name != 'pull_request' || needs.wait-for-workflows.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
