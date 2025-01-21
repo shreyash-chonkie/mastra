@@ -1,4 +1,5 @@
 import { bundle, FileService } from '@mastra/deployer';
+import { ChildProcess } from 'child_process';
 import { watch } from 'chokidar';
 import { config } from 'dotenv';
 import { execa } from 'execa';
@@ -15,136 +16,15 @@ import { SERVER } from './deploy/server.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let currentServerProcess: any;
+let currentServerProcess: ChildProcess | undefined;
+let isRestarting = false;
 
-async function rebundleAndRestart(dirPath: string, dotMastraPath: string, port: number, toolsDirs?: string) {
-  if (currentServerProcess) {
-    console.log('Stopping current server...');
-    currentServerProcess.kill();
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
-
-  /*
-    Bundle mastra
-  */
-
-  await bundle(dirPath, { buildName: 'Mastra' });
-
-  /*
-    Bundle tools
-  */
-  const defaultToolsPath = path.join(dirPath, 'tools');
-  const toolsPaths = [...(toolsDirs?.split(',').map(tool => path.join(process.cwd(), tool)) || []), defaultToolsPath];
-
-  const toolPathsWithFileNames = (
-    await Promise.all(
-      toolsPaths.map(async toolPath => {
-        try {
-          const files = await fs.readdir(toolPath);
-          return files.map(file => {
-            const fullPath = path.join(toolPath, file);
-            const fileName = path.parse(file).name;
-            const name = fileName === 'index' ? path.basename(path.dirname(fullPath)) : fileName;
-            return {
-              path: toolPath,
-              name,
-              fileName,
-            };
-          });
-        } catch (err) {
-          if (toolPath === defaultToolsPath) {
-            return [];
-          }
-          console.warn(`Error reading tools directory ${toolPath}:`, err);
-          return [];
-        }
-      }),
-    )
-  ).flat();
-
-  for (const { path, name, fileName } of toolPathsWithFileNames) {
-    await bundle(path, {
-      outfile: join(dotMastraPath, 'tools', `${name}.mjs`),
-      entryFile: fileName,
-      buildName: `${name}`,
-    });
-  }
-
-  const MASTRA_TOOLS_PATH = toolPathsWithFileNames?.length
-    ? toolPathsWithFileNames.map(tool => path.join(dotMastraPath, 'tools', `${tool.name}.mjs`)).join(',')
-    : undefined;
-
-  try {
-    console.log('Restarting server...');
-    currentServerProcess = execa('node', ['server.mjs'], {
-      cwd: dotMastraPath,
-      env: {
-        PORT: port.toString() || '4111',
-        MASTRA_TOOLS_PATH,
-      },
-      stdio: 'inherit',
-      reject: false,
-    });
-
-    if (currentServerProcess.failed) {
-      console.error('Server failed to restart with error:', currentServerProcess.stderr);
-      return;
-    }
-  } catch (err) {
-    const execaError = err as { stderr?: string; stdout?: string };
-    if (execaError.stderr) console.error('Server error output:', execaError.stderr);
-    if (execaError.stdout) console.error('Server output:', execaError.stdout);
-  }
-}
-
-export async function dev({
-  port,
-  env,
-  dir,
-  toolsDirs,
-}: {
-  dir?: string;
-  port: number;
-  env: Record<string, any>;
-  toolsDirs?: string;
-}) {
-  const dotMastraPath = join(process.cwd(), '.mastra');
-  const playgroundServePath = join(dotMastraPath, 'playground');
-  const key = env[0]?.name;
-  const value = env[0]?.value;
-
-  /*
-    Copy playground dist files
-  */
-  await fsExtra.copy(join(path.dirname(path.dirname(__dirname)), 'src/playground/dist'), playgroundServePath, {
-    overwrite: true,
-  });
-
-  /*
-    Load env
-  */
-
-  try {
-    const fileService = new FileService();
-    const envFile = fileService.getFirstExistingFile(['.env.development', '.env']);
-    config({ path: envFile });
-  } catch (err) {
-    //create .env file
-    await fsExtra.ensureFile('.env');
-    await fs.writeFile(path.join(process.cwd(), '.env'), `${key}=${value}`);
-  }
-
-  /*
-    Bundle mastra
-  */
-  const mastraDir = dir || path.join(process.cwd(), 'src/mastra');
-  const mastraPath = join(mastraDir, 'index.ts');
+const bundleMastra = async (mastraPath: string) => {
   await bundle(mastraPath, { buildName: 'Mastra', devMode: true });
+};
 
-  /*
-    Bundle tools
-  */
-  const defaultToolsPath = path.join(mastraDir, 'tools');
+const bundleTools = async (mastraPath: string, dotMastraPath: string, toolsDirs?: string) => {
+  const defaultToolsPath = path.join(mastraPath, 'tools');
   const toolsPaths = [...(toolsDirs?.split(',').map(tool => path.join(process.cwd(), tool)) || []), defaultToolsPath];
 
   const toolPathsWithFileNames = (
@@ -152,7 +32,6 @@ export async function dev({
       toolsPaths.map(async toolPath => {
         try {
           const files = await fs.readdir(toolPath);
-
           return files.map(file => {
             const fullPath = path.join(toolPath, file);
             const fileName = path.parse(file).name;
@@ -174,32 +53,33 @@ export async function dev({
     )
   ).flat();
 
-  console.log(toolPathsWithFileNames);
-
   for (const { path, name, fileName } of toolPathsWithFileNames) {
     await bundle(join(path, fileName), {
       outfile: join(dotMastraPath, 'tools', `${name}.mjs`),
+      entryFile: fileName,
       buildName: `${name}`,
     });
   }
-
-  /*
-    Bundle server
-  */
-  writeFileSync(join(dotMastraPath, 'index.mjs'), SERVER);
-
-  console.log(join(__dirname, '../templates/server.js'));
-
-  await bundle(join(__dirname, '../templates/server.js'), {
-    outfile: join(dotMastraPath, 'server.mjs'),
-    buildName: 'Server',
-  });
 
   const MASTRA_TOOLS_PATH = toolPathsWithFileNames?.length
     ? toolPathsWithFileNames.map(tool => path.join(dotMastraPath, 'tools', `${tool.name}.mjs`)).join(',')
     : undefined;
 
+  return MASTRA_TOOLS_PATH;
+};
+
+const bundleServer = async (dotMastraPath: string) => {
+  writeFileSync(join(dotMastraPath, 'index.mjs'), SERVER);
+
+  await bundle(join(__dirname, '../templates/server.js'), {
+    outfile: join(dotMastraPath, 'server.mjs'),
+    buildName: 'Server',
+  });
+};
+
+const startServer = async (dotMastraPath: string, port: number, MASTRA_TOOLS_PATH: string) => {
   try {
+    // Restart server
     console.log('Starting server...');
     currentServerProcess = execa('node', ['server.mjs'], {
       cwd: dotMastraPath,
@@ -211,32 +91,163 @@ export async function dev({
       reject: false,
     });
 
-    if (currentServerProcess.failed) {
-      console.error('Server failed to start with error:', currentServerProcess.stderr);
-      process.exit(1);
+    // Wait for server to be ready
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Send refresh signal
+    try {
+      await fetch(`http://localhost:${port}/__refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (err) {
+      // Retry after another second
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      try {
+        await fetch(`http://localhost:${port}/__refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      } catch (retryErr) {
+        // Ignore retry errors
+      }
     }
 
-    const watcher = watch(mastraDir, {
-      persistent: true,
-    });
-
-    watcher.on('change', async () => {
-      console.log(`Changes detected`);
-      await rebundleAndRestart(mastraDir, dotMastraPath, port, toolsDirs);
-    });
-
-    process.on('SIGINT', () => {
-      console.log('Stopping server...');
-      if (currentServerProcess) {
-        currentServerProcess.kill();
-      }
-      watcher.close();
-      process.exit(0);
-    });
+    if (currentServerProcess.exitCode !== null) {
+      console.error('Server failed to start with error:', currentServerProcess.stderr);
+      return;
+    }
   } catch (err) {
     const execaError = err as { stderr?: string; stdout?: string };
     if (execaError.stderr) console.error('Server error output:', execaError.stderr);
     if (execaError.stdout) console.error('Server output:', execaError.stdout);
-    process.exit(1);
   }
+};
+
+async function rebundleAndRestart(
+  mastraPath: string,
+  dotMastraPath: string,
+  port: number,
+  envFile: string,
+  toolsDirs?: string,
+) {
+  if (isRestarting) {
+    return;
+  }
+
+  isRestarting = true;
+  try {
+    // If current server process is running, stop it
+    if (currentServerProcess) {
+      console.log('Stopping current server...');
+      currentServerProcess.kill();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    config({ path: envFile });
+
+    /*
+      Bundle mastra
+    */
+    await bundleMastra(mastraPath);
+
+    /*
+      Bundle tools
+    */
+    const MASTRA_TOOLS_PATH = await bundleTools(mastraPath, dotMastraPath, toolsDirs);
+
+    /*
+      Bundle server
+    */
+    await bundleServer(dotMastraPath);
+
+    /*
+      Start server
+    */
+    await startServer(dotMastraPath, port, MASTRA_TOOLS_PATH);
+  } finally {
+    isRestarting = false;
+  }
+}
+
+export async function dev({
+  port,
+  env,
+  dir,
+  toolsDirs,
+}: {
+  dir?: string;
+  port: number;
+  env: Record<string, any>;
+  toolsDirs?: string;
+}) {
+  const dotMastraPath = join(process.cwd(), '.mastra');
+  const playgroundServePath = join(dotMastraPath, 'playground');
+  const key = env[0]?.name;
+  const value = env[0]?.value;
+
+  let envFile = '';
+
+  /*
+    Copy playground dist files
+  */
+  await fsExtra.copy(join(path.dirname(path.dirname(__dirname)), 'src/playground/dist'), playgroundServePath, {
+    overwrite: true,
+  });
+
+  /*
+    Load env
+  */
+  try {
+    const fileService = new FileService();
+    envFile = fileService.getFirstExistingFile(['.env.development', '.env']);
+    config({ path: envFile });
+  } catch (err) {
+    //create .env file
+    await fsExtra.ensureFile('.env');
+    await fs.writeFile(path.join(process.cwd(), '.env'), `${key}=${value}`);
+  }
+
+  /*
+    Bundle mastra
+  */
+  const mastraDir = dir || path.join(process.cwd(), 'src/mastra');
+  const envPaths = [path.join(process.cwd(), '.env'), path.join(process.cwd(), '.env.development')];
+  const mastraPath = join(mastraDir, 'index.ts');
+  await bundleMastra(mastraPath);
+
+  /*
+    Bundle tools
+  */
+  const MASTRA_TOOLS_PATH = await bundleTools(mastraDir, dotMastraPath, toolsDirs);
+
+  /*
+    Bundle server
+  */
+  await bundleServer(dotMastraPath);
+
+  await startServer(dotMastraPath, port, MASTRA_TOOLS_PATH);
+
+  const watcher = watch([mastraDir, ...envPaths], {
+    persistent: true,
+    ignoreInitial: true,
+  });
+
+  watcher.on('change', async () => {
+    console.log(`Changes detected, rebundling and restarting server...`);
+    await rebundleAndRestart(mastraDir, dotMastraPath, port, envFile, toolsDirs);
+  });
+
+  process.on('SIGINT', () => {
+    console.log('Stopping server...');
+    if (currentServerProcess) {
+      currentServerProcess.kill();
+    }
+    watcher.close();
+    process.exit(0);
+  });
 }
