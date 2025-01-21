@@ -83,6 +83,8 @@ const getFailedActions = new Step({
         html_url: run.html_url,
       }));
 
+    console.log('failedRuns=', failedRuns);
+
     return { failedRuns, count: failedRuns.length };
   },
 });
@@ -201,16 +203,45 @@ const postSolutions = new Step({
       )
       .join('\n');
 
-    await client.issuesCreateComment({
+    // First, search for existing comment
+    const existingComments = await client.issuesListComments({
       path: {
         owner: context?.machineContext?.triggerData?.owner,
         repo: context?.machineContext?.triggerData?.repo,
         issue_number: context?.machineContext?.triggerData?.pull_number,
       },
-      body: {
-        body: `# Action Failure Analysis 🔍\n\n${solutionsComment}`,
-      },
     });
+
+    // Look for our specific analysis comment
+    const existingAnalysisComment = existingComments.data?.find(comment =>
+      comment.body?.startsWith('# Action Failure Analysis 🔍'),
+    );
+
+    if (existingAnalysisComment) {
+      // Update existing comment
+      await client.issuesUpdateComment({
+        path: {
+          owner: context?.machineContext?.triggerData?.owner,
+          repo: context?.machineContext?.triggerData?.repo,
+          comment_id: existingAnalysisComment.id,
+        },
+        body: {
+          body: `# Action Failure Analysis 🔍\n\n${solutionsComment}`,
+        },
+      });
+    } else {
+      // Create new comment
+      await client.issuesCreateComment({
+        path: {
+          owner: context?.machineContext?.triggerData?.owner,
+          repo: context?.machineContext?.triggerData?.repo,
+          issue_number: context?.machineContext?.triggerData?.pull_number,
+        },
+        body: {
+          body: `# Action Failure Analysis 🔍\n\n${solutionsComment}`,
+        },
+      });
+    }
   },
 });
 
