@@ -134,20 +134,20 @@ const getActionLogs = new Step({
             },
           });
           console.log('logsResponse===', logsResponse);
-          const token = getApiKey('GITHUB_PERSONAL_ACCESS_TOKEN', 'GITHUB_PERSONAL_ACCESS_TOKEN');
-          const response = await fetch(run.logs_url, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: 'application/vnd.github+json',
-              'X-GitHub-Api-Version': '2022-11-28',
-            },
-          });
-          console.log('response===', response);
-          const logs = await response.text();
-          console.log(`${run.name} logs=`, logs);
+          // const token = getApiKey('GITHUB_PERSONAL_ACCESS_TOKEN', 'GITHUB_PERSONAL_ACCESS_TOKEN');
+          // const response = await fetch(run.logs_url, {
+          //   headers: {
+          //     Authorization: `Bearer ${token}`,
+          //     Accept: 'application/vnd.github+json',
+          //     'X-GitHub-Api-Version': '2022-11-28',
+          //   },
+          // });
+          // console.log('response===', response);
+          // const logs = await response.text();
+          // console.log(`${run.name} logs=`, logs);
           return {
             name: run.name,
-            logs,
+            logs: '',
             html_url: run.html_url,
           };
         }),
@@ -291,7 +291,7 @@ githubActionResolver
     },
   })
   .then(getSolutions)
-  .then(postSolutions)
+  // .then(postSolutions)
   .after(getFailedActions)
   .step(noFailedActions, {
     when: {
