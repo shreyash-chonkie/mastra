@@ -55,5 +55,5 @@ jobs:
           GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.repository }}
-          PULL_NUMBER: 1424
+          PULL_NUMBER: ${{ github.event.pull_request.number || inputs.pull_number }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
