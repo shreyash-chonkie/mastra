@@ -9,6 +9,7 @@ const failedRunsSchema = z.array(
     conclusion: z.string(),
     logs_url: z.string(),
     html_url: z.string(),
+    id: z.number(),
   }),
 );
 
@@ -81,6 +82,7 @@ const getFailedActions = new Step({
         conclusion: run.conclusion!,
         logs_url: run.logs_url,
         html_url: run.html_url,
+        id: run.id,
       }));
 
     console.log('failedRuns=', failedRuns);
@@ -120,11 +122,19 @@ const getActionLogs = new Step({
         return { actionResults: [] };
       }
 
+      const client = await github.getApiClient();
+
       const actionResults = await Promise.all(
         (parentStep.payload.failedRuns as z.infer<typeof failedRunsSchema>).map(async run => {
-          console.log('run===', run);
+          const logsResponse = await client.actionsDownloadWorkflowRunLogs({
+            path: {
+              owner: context?.machineContext?.triggerData?.owner,
+              repo: context?.machineContext?.triggerData?.repo,
+              run_id: run.id,
+            },
+          });
+          console.log('logsResponse===', logsResponse);
           const token = getApiKey('GITHUB_PERSONAL_ACCESS_TOKEN', 'GITHUB_PERSONAL_ACCESS_TOKEN');
-          console.log('token===', token);
           const response = await fetch(run.logs_url, {
             headers: {
               Authorization: `Bearer ${token}`,
