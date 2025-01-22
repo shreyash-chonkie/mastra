@@ -123,9 +123,11 @@ const getActionLogs = new Step({
       const actionResults = await Promise.all(
         (parentStep.payload.failedRuns as z.infer<typeof failedRunsSchema>).map(async run => {
           console.log('run===', run);
+          const token = getApiKey('GITHUB_PERSONAL_ACCESS_TOKEN', 'GITHUB_PERSONAL_ACCESS_TOKEN');
+          console.log('token===', token);
           const response = await fetch(run.logs_url, {
             headers: {
-              Authorization: `Bearer ${getApiKey('GITHUB_PERSONAL_ACCESS_TOKEN', 'GITHUB_PERSONAL_ACCESS_TOKEN')}`,
+              Authorization: `Bearer ${token}`,
               Accept: 'application/vnd.github+json',
               'X-GitHub-Api-Version': '2022-11-28',
             },
