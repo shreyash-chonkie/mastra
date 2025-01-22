@@ -7,9 +7,10 @@ async function main() {
   try {
     await workflow.execute({
       triggerData: {
-        token: process.env.SLACK_TOKEN!,
-        channelName: 'kindergarten',
-        limit: 10,
+        // token: process.env.SLACK_TOKEN!,
+        // channelName: 'kindergarten',
+        // limit: 10,
+        filename: 'whitepaper.pdf',
       },
     });
   } catch (error) {

@@ -3,6 +3,7 @@ import { ElevenLabsTTS } from '@mastra/tts';
 import { writeFileSync } from 'fs';
 import pLimit from 'p-limit';
 import path from 'path';
+import { readPdfText } from 'pdf-text-reader';
 import { z } from 'zod';
 
 import { mkdir, readdir, rm } from 'fs/promises';
@@ -10,6 +11,30 @@ import { mkdir, readdir, rm } from 'fs/promises';
 import { getChannelMessagesTool, listChannelsTool, scrapeWebsiteTool } from '../tools';
 import { concatAudio, generateAudio, playAudio } from '../tts';
 import { insertDocument } from '../vectors';
+
+const extractText = new Step({
+  id: 'extract-text',
+  description: 'Extracts text from a PDF file',
+  inputSchema: z.object({
+    filename: z.string().describe('The PDF file to process'),
+  }),
+  execute: async ({ context: { filename }, mastra }) => {
+    console.log('---------------------------');
+    console.log('Extracting text from PDF file:', filename);
+    const pdfPath = path.join(process.cwd(), 'documents', filename);
+    const text = await readPdfText({ url: pdfPath });
+
+    const vectorStore = mastra?.vectors?.pgVector as MastraVector;
+    await insertDocument(
+      {
+        content: text,
+        title: filename,
+        url: pdfPath,
+      },
+      vectorStore,
+    );
+  },
+});
 
 const getSlackMessages = new Step({
   id: 'get-slack-messages',
@@ -132,7 +157,9 @@ const analyzeContent = new Step({
 
     Keep the tone friendly and accessible, as if explaining to an interested non-expert. 
     Use natural, conversational language throughout. When technical terms are necessary, explain them clearly.
-    Aim for a 3-5 minute podcast length.
+    Add citations from the paper to support what the hosts are saying.
+    Include as many key findings as possible.
+    Aim for a 10 minute podcast length.
     Do not include any text not related to the podcast script.
     `;
 
@@ -227,29 +254,53 @@ const addPodcastAudio = new Step({
   },
 });
 
+// const whitePaperWorkflow = new Workflow({
+//   name: 'whitePaperWorkflow',
+//   triggerSchema: z.object({
+//     token: z.string().describe('Slack API token'),
+//     channelName: z.string().describe('Slack channel name'),
+//     limit: z.number().optional().default(10),
+//   }),
+// })
+//   .step(getSlackMessages, {
+//     variables: {
+//       token: { step: 'trigger', path: 'token' },
+//       channelName: { step: 'trigger', path: 'channelName' },
+//       limit: { step: 'trigger', path: 'limit' },
+//     },
+//   })
+//   .then(scrapeContent, {
+//     variables: {
+//       messages: { step: getSlackMessages, path: 'messages' },
+//     },
+//   })
+//   .then(embedContent, {
+//     variables: {
+//       content: { step: scrapeContent, path: 'content' },
+//     },
+//   })
+//   .then(analyzeContent)
+//   .then(addPodcastAudio, {
+//     variables: {
+//       podcastScript: {
+//         step: analyzeContent,
+//         path: 'podcastScript',
+//       },
+//     },
+//   });
+
 const whitePaperWorkflow = new Workflow({
   name: 'whitePaperWorkflow',
   triggerSchema: z.object({
-    token: z.string().describe('Slack API token'),
-    channelName: z.string().describe('Slack channel name'),
-    limit: z.number().optional().default(10),
+    filename: z.string().describe('The PDF file to summarize'),
   }),
 })
-  .step(getSlackMessages, {
+  .step(extractText, {
     variables: {
-      token: { step: 'trigger', path: 'token' },
-      channelName: { step: 'trigger', path: 'channelName' },
-      limit: { step: 'trigger', path: 'limit' },
-    },
-  })
-  .then(scrapeContent, {
-    variables: {
-      messages: { step: getSlackMessages, path: 'messages' },
-    },
-  })
-  .then(embedContent, {
-    variables: {
-      content: { step: scrapeContent, path: 'content' },
+      filename: {
+        step: 'trigger',
+        path: 'filename',
+      },
     },
   })
   .then(analyzeContent)
