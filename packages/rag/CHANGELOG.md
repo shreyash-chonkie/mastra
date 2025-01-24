@@ -1,5 +1,40 @@
 # @mastra/rag
 
+## 0.0.2-alpha.54
+
+### Patch Changes
+
+- Updated dependencies [0be7181]
+- Updated dependencies [0be7181]
+  - @mastra/core@0.1.27-alpha.68
+
+## 0.0.2-alpha.53
+
+### Patch Changes
+
+- Updated dependencies [c8ff2f5]
+  - @mastra/core@0.1.27-alpha.67
+
+## 0.0.2-alpha.52
+
+### Patch Changes
+
+- Updated dependencies [14064f2]
+  - @mastra/core@0.1.27-alpha.66
+
+## 0.0.2-alpha.51
+
+### Patch Changes
+
+- Updated dependencies [e66643a]
+  - @mastra/core@0.1.27-alpha.65
+
+## 0.0.2-alpha.50
+
+### Patch Changes
+
+- 1616f70: Added transaction handling to pgvector
+
 ## 0.0.2-alpha.49
 
 ### Patch Changes

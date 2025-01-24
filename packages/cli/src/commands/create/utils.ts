@@ -46,13 +46,26 @@ export const createMastraProject = async () => {
   await depsService.addScriptsToPackageJson({
     dev: 'mastra dev',
   });
+
   s.stop('Project created');
 
   s.start('Installing npm dependencies');
   await exec(`npm i zod`);
   await exec(`npm i typescript tsx @types/node --save-dev`);
+  await exec(`echo '{
+  "compilerOptions": {
+    "target": "es2016",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", ".mastra"]
+ }' > tsconfig.json`);
   s.stop('NPM dependencies installed');
-
   s.start('Installing mastra');
   await exec(`npm i -D mastra`);
   s.stop('mastra installed');
@@ -65,6 +78,7 @@ export const createMastraProject = async () => {
   await exec(`echo output.txt >> .gitignore`);
   await exec(`echo node_modules >> .gitignore`);
   await exec(`echo dist >> .gitignore`);
+  await exec(`echo .mastra >> .gitignore`);
   s.stop('.gitignore added');
 
   p.outro('Project created successfully');

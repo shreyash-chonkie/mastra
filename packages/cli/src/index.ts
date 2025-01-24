@@ -3,8 +3,9 @@ import { Command } from 'commander';
 import color from 'picocolors';
 
 import { PosthogAnalytics } from './analytics/index.js';
+import { build } from './commands/build.js';
 import { create } from './commands/create/create.js';
-import { cloudflareDeploy, netlifyDeploy, vercelDeploy } from './commands/deploy/index.js';
+import { deploy } from './commands/deploy/index.js';
 import { dev } from './commands/dev.js';
 import { add } from './commands/engine/add.js';
 import { down } from './commands/engine/down.js';
@@ -20,7 +21,6 @@ import { logger } from './utils/logger.js';
 
 const depsService = new DepsService();
 const version = await depsService.getPackageVersion();
-const projectName = 'mastra-starter';
 
 const analytics = new PosthogAnalytics({
   apiKey: 'phc_SBLpZVAB6jmHOct9CABq3PF0Yn5FU3G2FgT4xUr2XrT',
@@ -213,47 +213,30 @@ engine
     });
   });
 
-const deploy = program.command('deploy').description('Deploy your Mastra project');
-
-deploy
-  .command('vercel')
-  .description('Deploy your Mastra project to Vercel')
-  .option('-d, --dir <dir>', 'Path to your mastra folder')
-  .option('-n, --name <name>', 'Name of the project')
+program
+  .command('build')
+  .description('Build your Mastra project')
+  .option('-d, --dir <path>', 'Path to directory')
   .action(async args => {
     await analytics.trackCommandExecution({
-      command: 'deploy vercel',
+      command: 'mastra build',
       args,
       execution: async () => {
-        await vercelDeploy({ dir: args?.dir, projectName: args?.name || projectName });
+        await build({ dir: args.dir });
       },
     });
   });
 
-deploy
-  .command('cloudflare')
-  .description('Deploy your Mastra project to Cloudflare')
-  .option('-d, --dir <dir>', 'Path to your mastra folder')
+program
+  .command('deploy')
+  .description('Deploy your Mastra project')
+  .option('-d, --dir <path>', 'Path to directory')
   .action(async args => {
     await analytics.trackCommandExecution({
-      command: 'deploy cloudflare',
+      command: 'mastra deploy',
       args,
       execution: async () => {
-        await cloudflareDeploy({ dir: args?.dir });
-      },
-    });
-  });
-
-deploy
-  .command('netlify')
-  .description('Deploy your Mastra project to Netlify')
-  .option('-d, --dir <dir>', 'Path to your mastra folder')
-  .action(async args => {
-    await analytics.trackCommandExecution({
-      command: 'deploy netlify',
-      args,
-      execution: async () => {
-        await netlifyDeploy({ dir: args?.dir });
+        await deploy({ dir: args.dir, token: args.token });
       },
     });
   });

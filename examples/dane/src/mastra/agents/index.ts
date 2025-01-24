@@ -1,6 +1,5 @@
 import { Agent } from '@mastra/core';
 
-import { config } from '../../config/index.js';
 import { browserTool, googleSearch } from '../tools/browser.js';
 import { listEvents } from '../tools/calendar.js';
 import { crawl } from '../tools/crawl.js';
@@ -10,12 +9,7 @@ import { imageTool } from '../tools/image.js';
 import { readPDF } from '../tools/pdf.js';
 import { activeDistTag, pnpmBuild, pnpmChangesetPublish, pnpmChangesetStatus } from '../tools/pnpm.js';
 
-const getBaseModelConfig = () => ({
-  provider: 'ANTHROPIC' as const,
-  toolChoice: 'auto' as const,
-  name: 'claude-3-5-sonnet-20241022',
-  apiKey: config.getAnthropicApiKey(),
-});
+import { getBaseModelConfig } from './model.js';
 
 export const daneCommitMessage = new Agent({
   name: 'DaneCommitMessage',
@@ -38,11 +32,27 @@ export const daneIssueLabeler = new Agent({
   model: getBaseModelConfig(),
 });
 
+const packages_llm_text = `
+  @mastra/core is located in the "packages/core" directory.
+  @mastra/deployer is located in the "packages/deployer" directory.
+  mastra is located in the "packages/cli" directory.
+  @mastra/engine is located in the "packages/engine" directory.
+  @mastra/evals is located in the "packages/evals" directory.
+  @mastra/rag is located in the "packages/rag" directory.
+  @mastra/tts is located in the "packages/tts" directory.
+  @mastra/memory is located in the "packages/memory" directory.
+  @mastra/mcp is located in the "packages/mcp" directory.
+  @mastra/deployer-{name} is located in the "deployers/{name}" directory.
+  dane or @mastra/dane is located in the "exampeles/dane" directory.
+`;
+
 export const danePackagePublisher = new Agent({
   name: 'DanePackagePublisher',
   instructions: `
     You are Dane, the ultimate node module publisher.
     You help engineers publish their pnpm changesets.
+
+    ${packages_llm_text}
     `,
   model: getBaseModelConfig(),
   tools: {
@@ -52,6 +62,21 @@ export const danePackagePublisher = new Agent({
     pnpmChangesetStatus,
     activeDistTag,
   },
+});
+
+export const daneLinkChecker = new Agent({
+  name: 'DaneLinkChecker',
+  instructions: `
+    You are Dane, the link checker for Mastra AI. You report on broken links whenever you see them.
+    Make sure to include the url in the message.
+
+    ## Style Guide
+    - Use active voice
+    - Keep descriptions concise but informative
+    - Avoid marketing language
+    - Link to relevant documentation
+    `,
+  model: getBaseModelConfig(),
 });
 
 export const daneChangeLog = new Agent({

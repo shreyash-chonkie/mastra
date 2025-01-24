@@ -7,9 +7,12 @@ const meta = {
   after: ".after()",
   then: ".then()",
   createRun: ".createRun()",
-  resume: ".resume()",
   start: ".start()",
+  execute: ".execute()",
+  suspend: ".suspend()",
+  resume: ".resume()",
   commit: ".commit()",
+  watch: ".watch()",
 };
 
 export default meta;

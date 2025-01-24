@@ -1,6 +1,11 @@
-# commit()
+---
+title: "Reference: Workflow.commit() | Running Workflows | Mastra Docs"
+description: Documentation for the `.commit()` method in workflows, which finalizes and validates workflow definitions.
+---
 
-The commit method finalizes a workflow definition, validating its structure and making it ready for execution. When calling `.commit()`, the workflow validates:
+# Workflow.commit()
+
+The `.commit()` method finalizes a workflow definition, validating its structure and making it ready for execution. When calling `.commit()`, the workflow validates:
 
 - No circular dependencies between steps
 - All paths must have an end point
@@ -75,8 +80,8 @@ try {
 
 ## Related
 
-- [Branching Paths example](../../examples/workflows/branching-paths.mdx)
+- [Branching Paths example](../../../examples/workflows/branching-paths.mdx)
 - [Workflow Class Reference](./workflow.mdx)
-- [Step Reference](./step.mdx)
+- [Step Reference](./step-class.mdx)
 - [Control Flow Guide](../../workflows/control-flow.mdx)
 ```

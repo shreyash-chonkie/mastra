@@ -1,5 +1,89 @@
 # mastra
 
+## 0.1.57-alpha.106
+
+### Patch Changes
+
+- Updated dependencies [291fe57]
+- Updated dependencies [1a41fbf]
+  - @mastra/deployer@0.0.1-alpha.6
+
+## 0.1.57-alpha.105
+
+### Patch Changes
+
+- Updated dependencies [0be7181]
+- Updated dependencies [0be7181]
+  - @mastra/core@0.1.27-alpha.68
+  - @mastra/deployer@0.0.1-alpha.5
+
+## 0.1.57-alpha.104
+
+### Patch Changes
+
+- 7babd5c: CLI build and other
+- Updated dependencies [7babd5c]
+  - @mastra/deployer@0.0.1-alpha.4
+
+## 0.1.57-alpha.103
+
+### Patch Changes
+
+- Updated dependencies [c8ff2f5]
+- Updated dependencies [a291824]
+  - @mastra/core@0.1.27-alpha.67
+  - @mastra/deployer@0.0.1-alpha.3
+
+## 0.1.57-alpha.102
+
+### Patch Changes
+
+- Updated dependencies [a9b5ddf]
+- Updated dependencies [72c280b]
+  - @mastra/deployer@0.0.1-alpha.2
+
+## 0.1.57-alpha.101
+
+### Patch Changes
+
+- e38b412: Fixes
+
+## 0.1.57-alpha.100
+
+### Patch Changes
+
+- Updated dependencies [4139b43]
+- Updated dependencies [a5604c4]
+  - @mastra/deployer@0.0.1-alpha.0
+
+## 0.1.57-alpha.99
+
+### Patch Changes
+
+- Updated dependencies [14064f2]
+  - @mastra/core@0.1.27-alpha.66
+
+## 0.1.57-alpha.98
+
+### Patch Changes
+
+- 989833c: Handle rendering workflows without triggerschema on dev playground
+- Updated dependencies [e66643a]
+  - @mastra/core@0.1.27-alpha.65
+
+## 0.1.57-alpha.97
+
+### Patch Changes
+
+- 17608e9: Fix agent generate/stream with structured output
+
+## 0.1.57-alpha.96
+
+### Patch Changes
+
+- 97fb0d5: Move playground dependencies out of cli
+- 245e3f7: dev playground rebuild/refresh on file changes
+
 ## 0.1.57-alpha.95
 
 ### Patch Changes
