@@ -321,18 +321,40 @@ export class PgMemory extends MastraMemory {
     try {
       const result = await client.query<MessageType>(
         `
-                WITH ContextMessages AS (
+                WITH TargetMessage AS (
+                  SELECT created_at
+                  FROM mastra_messages
+                  WHERE id = $2
+                ),
+                ContextMessages AS (
                   SELECT 
                     id,
                     content,
                     role,
                     type,
                     created_at AS createdAt,
-                    thread_id AS threadId,
-                    LAG(id) OVER (ORDER BY created_at) AS prev_id,
-                    LEAD(id) OVER (ORDER BY created_at) AS next_id
+                    thread_id AS threadId
                   FROM mastra_messages
                   WHERE thread_id = $1
+                  AND (
+                    id = $2
+                    OR (
+                      created_at = (
+                        SELECT MAX(created_at)
+                        FROM mastra_messages
+                        WHERE thread_id = $1
+                        AND created_at < (SELECT created_at FROM TargetMessage)
+                      )
+                    )
+                    OR (
+                      created_at = (
+                        SELECT MIN(created_at)
+                        FROM mastra_messages
+                        WHERE thread_id = $1
+                        AND created_at > (SELECT created_at FROM TargetMessage)
+                      )
+                    )
+                  )
                 ),
                 RecentMessages AS (
                   SELECT
@@ -347,7 +369,7 @@ export class PgMemory extends MastraMemory {
                   FROM mastra_messages
                   WHERE thread_id = $1
                   ORDER BY created_at DESC
-                  LIMIT 1
+                  LIMIT $3
                 )
                 SELECT DISTINCT
                   id,
@@ -359,19 +381,18 @@ export class PgMemory extends MastraMemory {
                 FROM (
                   SELECT id, content, role, type, createdAt, threadId 
                   FROM ContextMessages
-                  WHERE id = $2
-                     OR id IN (
-                       SELECT prev_id FROM ContextMessages WHERE id = $2 AND prev_id IS NOT NULL
-                       UNION
-                       SELECT next_id FROM ContextMessages WHERE id = $2 AND next_id IS NOT NULL
-                     )
                   UNION
                   SELECT id, content, role, type, createdAt, threadId
                   FROM RecentMessages
                 ) combined
                 ORDER BY createdAt ASC
                 `,
-        [threadId, ragResults[0]?.metadata?.message_id],
+        [
+          threadId,
+          ragResults[0]?.metadata?.message_id,
+          // TODO: this should be configurable by the dev. This is the number of recent messages to include
+          10,
+        ],
       );
 
       const messages = this.parseMessages(result.rows);
