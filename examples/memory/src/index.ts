@@ -51,19 +51,13 @@ async function logRes(res: Awaited<ReturnType<typeof agent.stream>>) {
   return message;
 }
 
-const workingMemoryTemplate = `<info>
-  This is my short term memory. I will keep important info here about the current conversation. I need to update this memory as soon as possible as it is the default initialized working memory.
-  I should keep this info block as well as the template structure of the rest of my memory so that I can remember how to update it over time.
-</info>
-
-<user>
+const workingMemoryTemplate = `<user>
   First name: ...
   Last name: ...
   Profession: ...
   Birth date: ...
   Age: ...
   Place of residence: ...
-  Occupation: ...
   Other relevant info: ...
   (I can add more key/value pairs here as needed): ...
 </user>
@@ -78,30 +72,30 @@ const workingMemoryTemplate = `<info>
 
 let workingMemoryBlock = workingMemoryTemplate;
 
-const getWorkingMemoryWithInstruction =
-  () => `The following text is your working memory for the current conversation. The user cannot see it, it is only for you to store your important short term working memory. You can update it by including "<working_memory>INSERT_TEXT</working_memory>" in any response. That will be parsed from your responses and added to this message, allowing you to keep a running short term memory beyond your context window.
+const getWorkingMemoryWithInstruction = () => `WORKING_MEMORY_SYSTEM_INSTRUCTION:
+The following text is your working memory for the current conversation. The user cannot see it, it is only for you to store your important short term working memory. You can update it by including "<working_memory>INSERT_TEXT</working_memory>" in any response. That will be parsed from your responses and added to this message, allowing you to keep a running short term memory beyond your context window.
 
 **Instruction for Updating Working Memory:**
 
-1. **Identify Relevant Information:** Whenever the user provides new information about themselves, their projects, preferences, or any other details that could be important for future interactions, identify this information as relevant for working memory.
+1. **Identify Relevant Information:** Whenever the user provides new information about themselves, their projects, preferences, or any other details that could be important for future interactions, identify this information as relevant for working memory. PRINT YOUR WORKING MEMORY IN YOUR RESPONSE MESSAGE
 
-2. **Use Designated Tags:** Format the relevant information using the \`<working_memory>...</working_memory>\` tags. For example:
-   - If the user mentions their name: \`<working_memory>The user's name is X.</working_memory>\`
-   - If the user describes a project: \`<working_memory>X is working on a memory system using a RAG strategy with a vector database.</working_memory>\`
+2. **Update Promptly:** Add the formatted information to the working memory as soon as it is identified, ensuring that it is available for future interactions. PRINT YOUR WORKING MEMORY IN YOUR RESPONSE MESSAGE
 
-3. **Update Promptly:** Add the formatted information to the working memory as soon as it is identified, ensuring that it is available for future interactions.
+3. **Check for Updates:** Regularly check if there are any new details that need to be added to the working memory, especially after the user shares personal or project-related information. PRINT YOUR WORKING MEMORY IN YOUR RESPONSE MESSAGE
 
-4. **Check for Updates:** Regularly check if there are any new details that need to be added to the working memory, especially after the user shares personal or project-related information.
+4. **Feedback Mechanism:** Be responsive to any feedback from the user regarding the accuracy or completeness of the working memory, and make adjustments as needed. PRINT YOUR WORKING MEMORY IN YOUR RESPONSE MESSAGE
 
-5. **Feedback Mechanism:** Be responsive to any feedback from the user regarding the accuracy or completeness of the working memory, and make adjustments as needed.
+5. **Update mechanism:** The text you add into \`<working_memory>\` will completely replace the existing working memory. Keep the existing template format for working memory and edit/add/delete as needed. PRINT YOUR WORKING MEMORY IN YOUR RESPONSE MESSAGE
 
-6. **Update mechanism:** The text you add into \`<working_memory>\` will completely replace the existing working memory. Keep the existing template format for working memory and edit/add/delete as needed. 
+6. **IMPORTANT:** You should know something about the user. If your working memory is empty, ask them their name at a minimum. You can store thoughts here that you infer from the users language. Don't be afraid to keep a record here. This is to help you talk with the user over long periods of time. Make sure you update your working memory every time there is relevant info!! <- This is extremely important!!! PRINT YOUR WORKING MEMORY IN YOUR RESPONSE MESSAGE
 
-7. **IMPORTANT:** You should know something about the user. If your working memory is empty, ask them their name at a minimum. You can store thoughts here that you infer from the users language. Don't be afraid to keep a record here. This is to help you talk with the user over long periods of time. Make sure you update your working memory every time there is relevant info!! <- This is extremely important!!!
+7. **ALSO IMPORTANT:** You should keep your working memory in the following format, with a <user> block and and <assistant_persona> block. Follow the template in your working memory so that it stays consistent across updates. Do not delete any of the empty keys or memory sections. PRINT YOUR WORKING MEMORY IN YOUR RESPONSE MESSAGE
 
-8. **ALSO IMPORTANT:** You should keep your working memory in the following format, with an <info> block, <user> block, and <assistant_persona> block. Follow the template in your working memory so that it stays consistent across updates.
+8. **Be self motivated:** You should proactively be storing your working memories - these are here to help you and the more you update with new info, the better. When a user tells you something relevant to the working memory template PRINT YOUR WORKING MEMORY IN YOUR RESPONSE MESSAGE!
 
-9. **Be self motivated:** You should proactively be storing your working memories - these are here to help you and the more you update with new info, the better.
+9. If the user tells you anything related to the keys in the working_memory block, PRINT YOUR WORKING MEMORY IN YOUR RESPONSE MESSAGE!
+
+10. Make sure you also respond to the user, don't send any messages where there are only working memory updates.
 
 <working_memory>
   ${workingMemoryBlock}
@@ -112,6 +106,27 @@ async function main() {
     input: process.stdin,
     output: process.stdout,
   });
+
+  await logRes(
+    await agent.stream(
+      [
+        {
+          role: 'system',
+          content: 'Chat with user started now',
+        },
+      ],
+      {
+        threadId,
+        resourceid,
+        context: [
+          {
+            role: 'system',
+            content: getWorkingMemoryWithInstruction(),
+          },
+        ],
+      },
+    ),
+  );
 
   while (true) {
     const answer: string = await new Promise(res => {
@@ -135,15 +150,16 @@ async function main() {
 
     const workingMemoryRegex = /<working_memory>([\s\S]*?)<\/working_memory>/g;
     const matches = response.match(workingMemoryRegex);
-    if (matches) {
-      const newMemory = matches[0].replace(/<\/?working_memory>/g, '').trim();
+    const match = matches?.find(value => value !== `INSERT_TEXT`);
+    if (match) {
+      const newMemory = match.replace(/<\/?working_memory>/g, '').trim();
       const differences = diff.diffWords(workingMemoryBlock, newMemory);
 
       console.log(`Saving new working memory`);
       differences.forEach(part => {
         if (part.added) {
           console.log('Added: ' + part.value);
-        } else if (part.removed && !part.value.includes(': ...')) {
+        } else if (part.removed && !part.value.trimEnd().endsWith('..')) {
           console.log('Removed: ' + part.value);
         }
       });
