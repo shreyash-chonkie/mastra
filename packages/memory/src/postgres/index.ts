@@ -348,7 +348,7 @@ export class PgMemory extends MastraMemory {
                   FROM mastra_messages
                   WHERE thread_id = $1
                   ORDER BY created_at DESC
-                  LIMIT 5
+                  LIMIT 1
                 )
                 SELECT DISTINCT
                   id,
