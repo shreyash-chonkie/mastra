@@ -36,7 +36,7 @@ export function MastraRuntimeProvider({
     setIsRunning(true);
     console.log('isRunning', isRunning);
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_MASTRA_API_URL}/api/agents/ycAgent/stream`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_MASTRA_API_URL}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
