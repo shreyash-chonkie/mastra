@@ -66,7 +66,17 @@ export async function createHonoServer(mastra: Mastra, options: { playground?: b
   }, {});
 
   // Middleware
-  app.use('*', cors());
+  app.use(
+    '*',
+    cors({
+      origin: '*',
+      allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowHeaders: ['Content-Type', 'Authorization'],
+      exposeHeaders: ['Content-Length', 'X-Requested-With'],
+      credentials: false,
+      maxAge: 3600,
+    }),
+  );
 
   // Add Mastra to context
   app.use('*', async (c, next) => {
