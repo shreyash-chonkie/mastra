@@ -17,14 +17,35 @@ const resourceid = 'SOME_USER_ID';
 async function logRes(res: Awaited<ReturnType<typeof agent.stream>>) {
   console.log(`\n👨‍🍳 Agent:`);
   let message = ``;
+  let bufferedMessage = ``;
   let streamingWorkingMemoryChunks = false;
   for await (const chunk of res.textStream) {
-    if (chunk.includes(`<working_memory>`)) streamingWorkingMemoryChunks = true;
+    if (bufferedMessage.trim() === `<working_memory>`) {
+      streamingWorkingMemoryChunks = true;
+      bufferedMessage = ``;
+      process.stdout.write(`\nsaving working memory...\n`);
+    }
+
+    if (bufferedMessage.length > 9 && !bufferedMessage.startsWith(`<working_`)) {
+      message += bufferedMessage;
+      process.stdout.write(` ${bufferedMessage} `);
+      bufferedMessage = ``;
+    } else if (
+      !streamingWorkingMemoryChunks &&
+      ([`<`, `<work`, `<working`, `<working_`].includes(chunk) ||
+        (bufferedMessage.length > 0 && [`work`, `working`, `working_`, `_`, `_memory`, `memory`, `memory>`, `>`]))
+    ) {
+      bufferedMessage += chunk;
+      continue;
+    }
     if (!streamingWorkingMemoryChunks) {
       process.stdout.write(chunk);
     }
-    if (chunk.includes(`</working_memory>`)) streamingWorkingMemoryChunks = false;
     message += chunk;
+    if (message.trim().endsWith(`</working_memory>`)) {
+      streamingWorkingMemoryChunks = false;
+      process.stdout.write(`saved working memory.\n`);
+    }
   }
   console.log(`\n\n`);
   return message;
