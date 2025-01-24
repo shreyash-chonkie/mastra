@@ -840,6 +840,29 @@ importers:
       '@mastra/memory':
         specifier: workspace:*
         version: link:../../packages/memory
+      '@mastra/rag':
+        specifier: workspace:*
+        version: link:../../packages/rag
+    devDependencies:
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.4.7
+      tsx:
+        specifier: ^4.19.2
+        version: 4.19.2
+
+  examples/memory-upstashkv:
+    dependencies:
+      '@mastra/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@mastra/memory':
+        specifier: workspace:*
+        version: link:../../packages/memory
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.19.2
 
   examples/openapi-spec-writer:
     dependencies:
@@ -2803,6 +2826,9 @@ importers:
       '@mastra/core':
         specifier: workspace:*
         version: link:../core
+      '@mastra/rag':
+        specifier: workspace:*
+        version: link:../rag
       '@upstash/redis':
         specifier: ^1.34.3
         version: 1.34.3

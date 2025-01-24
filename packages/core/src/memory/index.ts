@@ -173,8 +173,10 @@ export abstract class MastraMemory {
    */
   abstract getMessages({
     threadId,
+    query,
   }: {
     threadId: string;
+    query: string;
   }): Promise<{ messages: MessageType[]; uiMessages: AiMessageType[] }>;
 
   /**

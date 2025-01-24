@@ -1,4 +1,5 @@
 import { MastraMemory, MessageType, ThreadType, AiMessageType, MessageResponse } from '@mastra/core';
+import { MDocument, PgVector, embed } from '@mastra/rag';
 import { ToolResultPart, TextPart } from 'ai';
 import crypto from 'crypto';
 import pg from 'pg';
@@ -7,11 +8,13 @@ const { Pool } = pg;
 
 export class PgMemory extends MastraMemory {
   private pool: pg.Pool;
+  private pgVector: PgVector;
   hasTables: boolean = false;
   constructor(config: { connectionString: string; maxTokens?: number }) {
     super();
     this.pool = new Pool({ connectionString: config.connectionString });
     this.MAX_CONTEXT_TOKENS = config.maxTokens;
+    this.pgVector = new PgVector(config.connectionString);
   }
 
   /**
@@ -298,31 +301,84 @@ export class PgMemory extends MastraMemory {
 
   async getMessages({
     threadId,
+    query,
   }: {
     threadId: string;
+    query: string;
   }): Promise<{ messages: MessageType[]; uiMessages: AiMessageType[] }> {
     await this.ensureTablesExist();
+
+    const { embedding } = await embed(query, {
+      provider: 'OPEN_AI',
+      model: 'text-embedding-ada-002',
+      maxRetries: 3,
+    });
+
+    const ragResults = await this.pgVector.query('memory_messages', embedding, 1, {
+      thread_id: threadId,
+    });
 
     const client = await this.pool.connect();
     try {
       const result = await client.query<MessageType>(
         `
-                SELECT 
-                    id, 
-                    content, 
-                    role, 
+                WITH ContextMessages AS (
+                  SELECT 
+                    id,
+                    content,
+                    role,
                     type,
-                    created_at AS createdAt, 
-                    thread_id AS threadId
-                FROM mastra_messages
-                WHERE thread_id = $1
-                ORDER BY created_at ASC
-            `,
-        [threadId],
+                    created_at AS createdAt,
+                    thread_id AS threadId,
+                    LAG(id) OVER (ORDER BY created_at) AS prev_id,
+                    LEAD(id) OVER (ORDER BY created_at) AS next_id
+                  FROM mastra_messages
+                  WHERE thread_id = $1
+                ),
+                RecentMessages AS (
+                  SELECT
+                    id,
+                    content,
+                    role,
+                    type,
+                    created_at AS createdAt,
+                    thread_id AS threadId,
+                    NULL AS prev_id,
+                    NULL AS next_id
+                  FROM mastra_messages
+                  WHERE thread_id = $1
+                  ORDER BY created_at DESC
+                  LIMIT 5
+                )
+                SELECT DISTINCT
+                  id,
+                  content,
+                  role,
+                  type,
+                  createdAt,
+                  threadId
+                FROM (
+                  SELECT id, content, role, type, createdAt, threadId 
+                  FROM ContextMessages
+                  WHERE id = $2
+                     OR id IN (
+                       SELECT prev_id FROM ContextMessages WHERE id = $2 AND prev_id IS NOT NULL
+                       UNION
+                       SELECT next_id FROM ContextMessages WHERE id = $2 AND next_id IS NOT NULL
+                     )
+                  UNION
+                  SELECT id, content, role, type, createdAt, threadId
+                  FROM RecentMessages
+                ) combined
+                ORDER BY createdAt ASC
+                `,
+        [threadId, ragResults[0]?.metadata?.message_id],
       );
 
       const messages = this.parseMessages(result.rows);
       const uiMessages = this.convertToUIMessages(messages);
+
+      console.log(`Found ${messages.length} memories`);
 
       return { messages, uiMessages };
     } finally {
@@ -395,6 +451,28 @@ export class PgMemory extends MastraMemory {
         );
       }
       await client.query('COMMIT');
+
+      for (const message of messages) {
+        if (typeof message.content !== `string`) continue; // TODO: is this ok?
+        const doc = MDocument.fromText(message.content);
+        const chunks = await doc.chunk({
+          strategy: 'character',
+          size: message.content.length,
+          overlap: 0,
+        });
+
+        const { embeddings } = await embed(chunks, {
+          provider: 'OPEN_AI', // TODO: wouldn't work of course - not everyone is using open ai (POC)
+          model: 'text-embedding-ada-002',
+          maxRetries: 3,
+        });
+        await this.pgVector.createIndex('memory_messages', 1536);
+        await this.pgVector.upsert(
+          'memory_messages',
+          embeddings,
+          chunks?.map((chunk: any) => ({ text: chunk.text, message_id: message.id, thread_id: message.threadId })),
+        );
+      }
       return messages;
     } catch (error) {
       await client.query('ROLLBACK');
