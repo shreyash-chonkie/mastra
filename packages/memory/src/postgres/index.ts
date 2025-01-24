@@ -230,7 +230,7 @@ export class PgMemory extends MastraMemory {
     threadId,
     startDate,
     endDate,
-    format = 'raw' as T,
+    // format = 'raw' as T,
   }: {
     format?: T;
     threadId: string;
@@ -284,7 +284,7 @@ export class PgMemory extends MastraMemory {
         [threadId],
       );
 
-      console.log('Format', format);
+      // console.log('Format', format);
       return this.parseMessages(result.rows) as MessageResponse<T>;
     } catch (error) {
       console.log('error getting context window====', error);
@@ -391,7 +391,7 @@ export class PgMemory extends MastraMemory {
           threadId,
           ragResults[0]?.metadata?.message_id,
           // TODO: this should be configurable by the dev. This is the number of recent messages to include
-          10,
+          1,
         ],
       );
 
@@ -413,6 +413,9 @@ export class PgMemory extends MastraMemory {
     try {
       await client.query('BEGIN');
       for (const message of messages) {
+        if (typeof message.content === `string` && message.content.startsWith('WORKING_MEMORY_SYSTEM_INSTRUCTION'))
+          continue;
+
         const { id, content, role, createdAt, threadId, toolCallIds, toolCallArgs, type, toolNames } = message;
         let tokens = null;
         if (type === 'text') {
