@@ -8,8 +8,9 @@ import { mastra } from './mastra';
 
 const agent = mastra.getAgent('memoryAgent');
 // const threadId = `39873fbf-84d6-425e-8c1b-8afd798d72a4`;
-const threadId = `27dfbd61-739a-4e57-bfed-5651469629fa`;
-// const threadId = randomUUID();
+// const threadId = `27dfbd61-739a-4e57-bfed-5651469629fa`; <- talked about mastra and gatsby
+// const threadId = `ae222dee-3b21-42b3-b817-2d96e352360a`;
+const threadId = randomUUID();
 console.log(threadId);
 const resourceid = 'SOME_USER_ID';
 
