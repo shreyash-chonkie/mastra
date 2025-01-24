@@ -265,7 +265,6 @@ export class PgMemory extends MastraMemory {
           [threadId, this.MAX_CONTEXT_TOKENS],
         );
 
-        console.log('Format', format);
         return this.parseMessages(result.rows) as MessageResponse<T>;
       }
 
