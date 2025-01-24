@@ -4,7 +4,7 @@ import { PgMemory } from '@mastra/memory';
 // import { PgVector } from '@mastra/rag';
 import 'dotenv/config';
 
-import { chefAgent } from './agents';
+import { chefAgent, memoryAgent } from './agents';
 
 const connectionString = process.env.POSTGRES_CONNECTION_STRING;
 
@@ -18,11 +18,12 @@ const pgMemory = new PgMemory({
 // export const pgVector = new PgVector(connectionString);
 
 export const mastra = new Mastra({
-  agents: { chefAgent },
+  agents: { chefAgent, memoryAgent },
   // vectors: { pgVector },
   memory: pgMemory,
-  logger: createLogger({
-    type: 'CONSOLE',
-    level: 'ERROR',
-  }),
+  logger: false,
+  // logger: createLogger({
+  //   type: 'CONSOLE',
+  //   level: 'ERROR',
+  // }),
 });
