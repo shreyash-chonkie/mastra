@@ -1,2 +1,5 @@
 .env
 node_modules
+local_cache/fast-bge-base-en
+.working-memory-*
+

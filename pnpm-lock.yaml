@@ -846,6 +846,12 @@ importers:
       diff:
         specifier: ^7.0.0
         version: 7.0.0
+      ollama-ai-provider:
+        specifier: ^1.2.0
+        version: 1.2.0(zod@3.24.1)
+      ora:
+        specifier: ^8.1.1
+        version: 8.1.1
     devDependencies:
       '@types/diff':
         specifier: ^7.0.0
@@ -2841,6 +2847,9 @@ importers:
       ai:
         specifier: ^4.0.12
         version: 4.0.22(react@19.0.0)(zod@3.24.1)
+      fastembed:
+        specifier: ^1.14.1
+        version: 1.14.1
       pg:
         specifier: ^8.13.1
         version: 8.13.1
@@ -3263,6 +3272,27 @@ packages:
 
   '@anthropic-ai/sdk@0.32.1':
     resolution: {integrity: sha512-U9JwTrDvdQ9iWuABVsMLj8nJVwAyQz6QXvgLsVhryhCEPkLsbcP/MXxm+jYcAwLoV8ESbaTTjnD4kuAFa+Hyjg==}
+
+  '@anush008/tokenizers-darwin-universal@0.0.0':
+    resolution: {integrity: sha512-SACpWEooTjFX89dFKRVUhivMxxcZRtA3nJGVepdLyrwTkQ1TZQ8581B5JoXp0TcTMHfgnDaagifvVoBiFEdNCQ==}
+    engines: {node: '>= 10'}
+    os: [darwin]
+
+  '@anush008/tokenizers-linux-x64-gnu@0.0.0':
+    resolution: {integrity: sha512-TLjByOPWUEq51L3EJkS+slyH57HKJ7lAz/aBtEt7TIPq4QsE2owOPGovByOLIq1x5Wgh9b+a4q2JasrEFSDDhg==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+
+  '@anush008/tokenizers-win32-x64-msvc@0.0.0':
+    resolution: {integrity: sha512-/5kP0G96+Cr6947F0ZetXnmL31YCaN15dbNbh2NHg7TXXRwfqk95+JtPP5Q7v4jbR2xxAmuseBqB4H/V7zKWuw==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
+
+  '@anush008/tokenizers@0.0.0':
+    resolution: {integrity: sha512-IQD9wkVReKAhsEAbDjh/0KrBGTEXelqZLpOBRDaIRvlzZ9sjmUP+gKbpvzyJnei2JHQiE8JAgj7YcNloINbGBw==}
+    engines: {node: '>= 10'}
 
   '@asteasolutions/zod-to-openapi@6.4.0':
     resolution: {integrity: sha512-8cxfF7AHHx2PqnN4Cd8/O8CBu/nVYJP9DpnfVLW3BFb66VJDnqI/CczZnkqMc3SNh6J9GiX7JbJ5T4BSP4HZ2Q==}
@@ -12443,6 +12473,9 @@ packages:
     resolution: {integrity: sha512-xkjOecfnKGkSsOwtZ5Pz7Us/T6mrbPQrq0nh+aCO5V9nk5NLWmasAHumTKjiPJPWANe+kAZ84Jc8ooJkzZ88Sw==}
     hasBin: true
 
+  fastembed@1.14.1:
+    resolution: {integrity: sha512-Y14v+FWZwjNUpQ7mRGYu4N5yF+hZkF7zqzPWzzLbwdIEtYsHy0DSpiVJ+Fg6Oi1fQjrBKASQt0hdSMSjw1/Wtw==}
+
   fastest-levenshtein@1.0.16:
     resolution: {integrity: sha512-eRnCtTTtGZFpQCwhJiUOuxPQWRXVKYDn0b2PeHfXL6/Zi53SLAzAHfVhVWK2AryC/WH05kGfxhFIPvTF0SXQzg==}
     engines: {node: '>= 4.9.1'}
@@ -15671,6 +15704,15 @@ packages:
   ohash@1.1.4:
     resolution: {integrity: sha512-FlDryZAahJmEF3VR3w1KogSEdWX3WhA5GPakFx4J81kEAiHyLMpdLLElS8n8dfNadMgAne/MywcvmogzscVt4g==}
 
+  ollama-ai-provider@1.2.0:
+    resolution: {integrity: sha512-jTNFruwe3O/ruJeppI/quoOUxG7NA6blG3ZyQj3lei4+NnJo7bi3eIRWqlVpRlu/mbzbFXeJSBuYQWF6pzGKww==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.0.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
+
   ollama@0.5.11:
     resolution: {integrity: sha512-lDAKcpmBU3VAOGF05NcQipHNKTdpKfAHpZ7bjCsElkUkmX7SNZImi6lwIxz/l1zQtLq0S3wuLneRuiXxX2KIew==}
 
@@ -15723,6 +15765,9 @@ packages:
   onnxruntime-common@1.14.0:
     resolution: {integrity: sha512-3LJpegM2iMNRX2wUmtYfeX/ytfOzNwAWKSq1HbRrKc9+uqG/FsEA0bbKZl1btQeZaXhC26l44NWpNUeXPII7Ew==}
 
+  onnxruntime-common@1.15.1:
+    resolution: {integrity: sha512-Y89eJ8QmaRsPZPWLaX7mfqhj63ny47rSkQe80hIo+lvBQdrdXYR9VO362xvZulk9DFkCnXmGidprvgJ07bKsIQ==}
+
   onnxruntime-common@1.20.1:
     resolution: {integrity: sha512-YiU0s0IzYYC+gWvqD1HzLc46Du1sXpSiwzKb63PACIJr6LfL27VsXSXQvt68EzD3V0D5Bc0vyJTjmMxp0ylQiw==}
 
@@ -15731,6 +15776,10 @@ packages:
 
   onnxruntime-node@1.14.0:
     resolution: {integrity: sha512-5ba7TWomIV/9b6NH/1x/8QEeowsb+jBEvFzU6z0T4mNsFwdPqXeFUM7uxC6QeSRkEbWu3qEB0VMjrvzN/0S9+w==}
+    os: [win32, darwin, linux]
+
+  onnxruntime-node@1.15.1:
+    resolution: {integrity: sha512-wzhVELulmrvNoMZw0/HfV+9iwgHX+kPS82nxodZ37WCXmbeo1jp3thamTsNg8MGhxvv4GmEzRum5mo40oqIsqw==}
     os: [win32, darwin, linux]
 
   onnxruntime-node@1.20.1:
@@ -16004,6 +16053,9 @@ packages:
   parseurl@1.3.3:
     resolution: {integrity: sha512-CiyeOxFT/JZyN5m0z9PfXw4SCBJ6Sygz1Dpl0wqjlhDEGGBP1GnsUVEL0p63hoG1fcj3fHynXi9NYO4nWOL+qQ==}
     engines: {node: '>= 0.8'}
+
+  partial-json@0.1.7:
+    resolution: {integrity: sha512-Njv/59hHaokb/hRUjce3Hdv12wd60MtM9Z5Olmn+nehe0QDAsRtRbJPvJ0Z91TusF0SuZRIvnM+S4l6EIP8leA==}
 
   pascal-case@3.1.2:
     resolution: {integrity: sha512-uWlGT3YSnK9x3BQJaOdcZwrnV6hPpd8jFH1/ucpiLRPh/2zCVJKS19E4GvYHvaCcACn3foXZ0cLB9Wrx1KGe5g==}
@@ -16496,6 +16548,10 @@ packages:
 
   progress-estimator@0.3.1:
     resolution: {integrity: sha512-I5bwE35adOrA2rfZ9iHHPESUp5C6cXrZd0J8LdFD9J+66ijSugBwZHooPCROf94Ox8YZaUyvTLViqSiRvBhSoA==}
+
+  progress@2.0.3:
+    resolution: {integrity: sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==}
+    engines: {node: '>=0.4.0'}
 
   promise-inflight@1.0.1:
     resolution: {integrity: sha512-6zWPyEOFaQBJYcGMHBKTKJ3u6TBsnMFOIZSa6ce1e/ZrrsOlnHRHbabMjLiBYKp+n44X9eUI6VUPaukCXHuG4g==}
@@ -19604,6 +19660,21 @@ snapshots:
       node-fetch: 2.7.0(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
+
+  '@anush008/tokenizers-darwin-universal@0.0.0':
+    optional: true
+
+  '@anush008/tokenizers-linux-x64-gnu@0.0.0':
+    optional: true
+
+  '@anush008/tokenizers-win32-x64-msvc@0.0.0':
+    optional: true
+
+  '@anush008/tokenizers@0.0.0':
+    optionalDependencies:
+      '@anush008/tokenizers-darwin-universal': 0.0.0
+      '@anush008/tokenizers-linux-x64-gnu': 0.0.0
+      '@anush008/tokenizers-win32-x64-msvc': 0.0.0
 
   '@asteasolutions/zod-to-openapi@6.4.0(zod@3.24.1)':
     dependencies:
@@ -32515,6 +32586,13 @@ snapshots:
     dependencies:
       strnum: 1.0.5
 
+  fastembed@1.14.1:
+    dependencies:
+      '@anush008/tokenizers': 0.0.0
+      onnxruntime-node: 1.15.1
+      progress: 2.0.3
+      tar: 6.2.1
+
   fastest-levenshtein@1.0.16: {}
 
   fastify-plugin@4.5.1: {}
@@ -37165,6 +37243,14 @@ snapshots:
 
   ohash@1.1.4: {}
 
+  ollama-ai-provider@1.2.0(zod@3.24.1):
+    dependencies:
+      '@ai-sdk/provider': 1.0.4
+      '@ai-sdk/provider-utils': 2.0.7(zod@3.24.1)
+      partial-json: 0.1.7
+    optionalDependencies:
+      zod: 3.24.1
+
   ollama@0.5.11:
     dependencies:
       whatwg-fetch: 3.6.20
@@ -37219,6 +37305,8 @@ snapshots:
 
   onnxruntime-common@1.14.0: {}
 
+  onnxruntime-common@1.15.1: {}
+
   onnxruntime-common@1.20.1: {}
 
   onnxruntime-common@1.21.0-dev.20241205-6ed77cc374: {}
@@ -37227,6 +37315,10 @@ snapshots:
     dependencies:
       onnxruntime-common: 1.14.0
     optional: true
+
+  onnxruntime-node@1.15.1:
+    dependencies:
+      onnxruntime-common: 1.15.1
 
   onnxruntime-node@1.20.1:
     dependencies:
@@ -37532,6 +37624,8 @@ snapshots:
       peberminta: 0.9.0
 
   parseurl@1.3.3: {}
+
+  partial-json@0.1.7: {}
 
   pascal-case@3.1.2:
     dependencies:
@@ -37971,6 +38065,8 @@ snapshots:
       cli-spinners: 1.3.1
       humanize-duration: 3.32.1
       log-update: 2.3.0
+
+  progress@2.0.3: {}
 
   promise-inflight@1.0.1:
     optional: true

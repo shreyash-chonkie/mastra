@@ -1,7 +1,8 @@
 import { MastraMemory, MessageType, ThreadType, AiMessageType, MessageResponse } from '@mastra/core';
-import { MDocument, PgVector, embed } from '@mastra/rag';
+import { MDocument, PgVector } from '@mastra/rag';
 import { ToolResultPart, TextPart } from 'ai';
 import crypto from 'crypto';
+import { EmbeddingModel, FlagEmbedding } from 'fastembed';
 import pg from 'pg';
 
 const { Pool } = pg;
@@ -307,13 +308,18 @@ export class PgMemory extends MastraMemory {
   }): Promise<{ messages: MessageType[]; uiMessages: AiMessageType[] }> {
     await this.ensureTablesExist();
 
-    const { embedding } = await embed(query, {
-      provider: 'OPEN_AI',
-      model: 'text-embedding-ada-002',
-      maxRetries: 3,
+    // const { embedding } = await embed(query, {
+    //   provider: 'OPEN_AI',
+    //   model: 'text-embedding-ada-002',
+    //   maxRetries: 3,
+    // });
+    const embeddingModel = await FlagEmbedding.init({
+      model: EmbeddingModel.BGEBaseEN,
     });
 
-    const ragResults = await this.pgVector.query('memory_messages', embedding, 1, {
+    const embedding = await embeddingModel.embed([query]).next();
+
+    const ragResults = await this.pgVector.query('memory_messages', embedding.value as any as number[], 1, {
       thread_id: threadId,
     });
 
@@ -389,9 +395,10 @@ export class PgMemory extends MastraMemory {
                 `,
         [
           threadId,
+          // null,
           ragResults[0]?.metadata?.message_id,
           // TODO: this should be configurable by the dev. This is the number of recent messages to include
-          1,
+          5,
         ],
       );
 
@@ -475,6 +482,10 @@ export class PgMemory extends MastraMemory {
       }
       await client.query('COMMIT');
 
+      const embeddingModel = await FlagEmbedding.init({
+        model: EmbeddingModel.BGEBaseEN,
+      });
+
       for (const message of messages) {
         if (typeof message.content !== `string`) continue; // TODO: is this ok?
         const doc = MDocument.fromText(message.content);
@@ -484,14 +495,18 @@ export class PgMemory extends MastraMemory {
           overlap: 0,
         });
 
-        const { embeddings } = await embed(chunks, {
-          provider: 'OPEN_AI', // TODO: wouldn't work of course - not everyone is using open ai (POC)
-          model: 'text-embedding-ada-002',
-          maxRetries: 3,
-        });
-        await this.pgVector.createIndex('memory_messages', 1536);
+        const embeddings = (await embeddingModel.embed([JSON.stringify(chunks)]).next()).value as any as number[][];
+
+        // const { embeddings } = await embed(chunks, {
+        //   provider: 'OPEN_AI', // TODO: wouldn't work of course - not everyone is using open ai (POC)
+        //   model: 'text-embedding-ada-002',
+        //   maxRetries: 3,
+        // });
+        const index = `memory_messages2`;
+        await this.pgVector.createIndex(index, 768);
+        // await this.pgVector.createIndex('memory_messages', 1536);
         await this.pgVector.upsert(
-          'memory_messages',
+          index,
           embeddings,
           chunks?.map((chunk: any) => ({ text: chunk.text, message_id: message.id, thread_id: message.threadId })),
         );
