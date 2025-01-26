@@ -12,8 +12,9 @@
   "dependencies": {
     "@mastra/core": "^0.1.27-alpha.65",
     "@mastra/engine": "^0.0.5-alpha.49",
-    "@mastra/memory": "^0.0.2-alpha.35",
+    "@mastra/memory": "0.0.2-alpha.49",
     "@mastra/rag": "^0.0.2-alpha.39",
+    "@types/ws": "^8.5.14",
     "canvas": "^3.1.0",
     "discord-interactions": "^4.0.0",
     "dotenv": "^16.4.7",
@@ -23,7 +24,8 @@
     "pg": "^8.13.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tsx": "^4.19.2"
+    "tsx": "^4.19.2",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

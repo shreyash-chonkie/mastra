@@ -10,6 +10,7 @@ interface DocumentChunk {
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getRandomEmoji, verifyDiscordRequest } from '@/discord/utils';
+import { gateway } from '@/discord/gateway';
 
 // Initialize RAG components
 const pgVector = new PgVector(process.env.DB_URL!);
@@ -90,7 +91,8 @@ const loadDocs = async () => {
   }
 };
 
-// Load docs when the server starts
+// Initialize gateway connection when the server starts
+gateway.connect();
 
 export const POST = async (req: NextRequest) => {
   const result = await verifyDiscordRequest(req, process.env.DISCORD_PUBLIC_KEY!);
