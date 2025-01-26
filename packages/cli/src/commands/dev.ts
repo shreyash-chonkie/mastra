@@ -3,7 +3,7 @@ import { ChildProcess } from 'child_process';
 import { watch } from 'chokidar';
 import { config } from 'dotenv';
 import { execa } from 'execa';
-import { writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -148,6 +148,7 @@ async function rebundleAndRestart(
     await deployer.prepare({
       dir: mastraPath,
       playground: true,
+
       useBanner: false,
     });
 
@@ -228,14 +229,9 @@ export async function dev({
   */
   const MASTRA_TOOLS_PATH = await bundleTools(mastraDir, dotMastraPath, toolsDirs);
 
-  writeFileSync(
-    join(dotMastraPath, 'index.mjs'),
-    `
-    import { createNodeServer } from './server.mjs';
-    import { mastra } from './mastra.mjs';
-    const server = await createNodeServer(mastra, { playground: true });
-  `,
-  );
+  writeFileSync(join(dotMastraPath, 'index.mjs'), readFileSync(join(__dirname, '../templates/dev.entry.js'), 'utf8'));
+
+  writeFileSync(join(dotMastraPath, 'evals.json'), ``);
 
   await startServer(dotMastraPath, port, MASTRA_TOOLS_PATH);
 

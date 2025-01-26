@@ -1,4 +1,4 @@
-import { Mastra } from '@mastra/core';
+import { Mastra, MastraBase } from '@mastra/core';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import path, { join } from 'path';
 import { fileURLToPath } from 'url';
@@ -7,18 +7,15 @@ import { bundle } from '../build/bundle.js';
 import { Deps } from '../build/deps.js';
 import { upsertMastraDir } from '../build/utils.js';
 
-export class Deployer {
+export class Deployer extends MastraBase {
   deps: Deps = new Deps();
   dotMastraPath: string;
   projectPath: string;
   name: string = '';
   type: 'Deploy' | 'Dev';
 
-  log = (message: string) => {
-    console.log(`[Mastra ${this.type}] - ${message}`);
-  };
-
   constructor({ dir, type }: { dir: string; type: 'Deploy' | 'Dev' }) {
+    super({ component: 'DEPLOYER', name: 'DEPLOYER' });
     this.projectPath = dir;
     this.dotMastraPath = join(dir, '.mastra');
     this.type = type;
@@ -33,7 +30,7 @@ export class Deployer {
   }
 
   async writePackageJson() {
-    this.log('Writing package.json');
+    this.logger.info(`[Mastra ${this.type}] - Writing package.json`);
     let projectPkg: any = {
       dependencies: {},
     };
@@ -91,7 +88,7 @@ export class Deployer {
   }
 
   async install(): Promise<void> {
-    this.log('Ensuring your dependencies up to date...');
+    this.logger.info(`[Mastra ${this.type}] - Ensuring your dependencies up to date...`);
     await this.deps.install({ dir: this.projectPath });
   }
 
@@ -137,7 +134,12 @@ export class Deployer {
     await bundle(dir, { useBanner, outfile: join(this.dotMastraPath, 'mastra.mjs') });
   }
 
-  async buildServer({ playground = false }: { playground?: boolean } = { playground: false }) {
+  async buildServer(
+    { playground = false, swaggerUI = false }: { playground?: boolean; swaggerUI?: boolean } = {
+      playground: false,
+      swaggerUI: false,
+    },
+  ) {
     upsertMastraDir({ dir: this.projectPath });
 
     const templatePath = join(this.dotMastraPath, 'hono.mjs');
@@ -148,7 +150,7 @@ export class Deployer {
       import { createHonoServer } from './server.mjs';
       import { mastra } from './mastra.mjs';
 
-      export const app = await createHonoServer(mastra, { playground: ${playground} });
+      export const app = await createHonoServer(mastra, { playground: ${playground}, swaggerUI: ${swaggerUI} });
     `,
     );
   }
@@ -159,14 +161,24 @@ export class Deployer {
     copyFileSync(serverPath, join(this.dotMastraPath, 'server.mjs'));
   }
 
-  async prepare({ dir, playground, useBanner = true }: { useBanner?: boolean; dir?: string; playground?: boolean }) {
-    this.log('Preparing .mastra directory');
+  async prepare({
+    dir,
+    playground,
+    useBanner = true,
+    swaggerUI,
+  }: {
+    useBanner?: boolean;
+    dir?: string;
+    playground?: boolean;
+    swaggerUI?: boolean;
+  }) {
+    this.logger.info('Preparing .mastra directory');
     upsertMastraDir({ dir: this.projectPath });
     const dirPath = dir || path.join(this.projectPath, 'src/mastra');
     this.writePackageJson();
     this.writeServerFile();
     await this.install();
     await this.build({ dir: dirPath, useBanner });
-    await this.buildServer({ playground });
+    await this.buildServer({ playground, swaggerUI });
   }
 }

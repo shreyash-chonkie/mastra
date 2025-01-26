@@ -1,5 +1,6 @@
 import { MastraDeployer } from '@mastra/core';
 import * as child_process from 'child_process';
+import { Cloudflare } from 'cloudflare';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 
@@ -10,21 +11,35 @@ interface CFRoute {
 }
 
 export class CloudflareDeployer extends MastraDeployer {
+  private cloudflare: Cloudflare | undefined;
   routes?: CFRoute[] = [];
+  workerNamespace?: string;
   constructor({
     scope,
     env,
     projectName,
     routes,
+    workerNamespace,
+    auth,
   }: {
     env?: Record<string, any>;
     scope: string;
     projectName: string;
     routes?: CFRoute[];
+    workerNamespace?: string;
+    auth?: {
+      apiToken: string;
+      apiEmail: string;
+    };
   }) {
     super({ scope, env, projectName });
 
     this.routes = routes;
+    this.workerNamespace = workerNamespace;
+
+    if (auth) {
+      this.cloudflare = new Cloudflare(auth);
+    }
   }
 
   writeFiles({ dir }: { dir: string }): void {
@@ -34,25 +49,27 @@ export class CloudflareDeployer extends MastraDeployer {
 
     const cfWorkerName = this.projectName || 'mastra';
 
-    writeFileSync(
-      join(dir, 'wrangler.json'),
-      JSON.stringify({
-        name: cfWorkerName,
-        main: 'index.mjs',
-        compatibility_date: '2024-12-02',
-        compatibility_flags: ['nodejs_compat'],
-        build: {
-          command: 'npm install',
+    const wranglerConfig: Record<string, any> = {
+      name: cfWorkerName,
+      main: 'index.mjs',
+      compatibility_date: '2024-12-02',
+      compatibility_flags: ['nodejs_compat'],
+      build: {
+        command: 'npm install',
+      },
+      observability: {
+        logs: {
+          enabled: true,
         },
-        observability: {
-          logs: {
-            enabled: true,
-          },
-        },
-        routes: this.routes,
-        vars: this.env,
-      }),
-    );
+      },
+      vars: this.env,
+    };
+
+    if (!this.workerNamespace && this.routes) {
+      wranglerConfig.routes = this.routes;
+    }
+
+    writeFileSync(join(dir, 'wrangler.json'), JSON.stringify(wranglerConfig));
   }
 
   writeIndex({ dir }: { dir: string }): void {
@@ -60,9 +77,12 @@ export class CloudflareDeployer extends MastraDeployer {
       join(dir, './index.mjs'),
       `
       export default {
-        fetch: async (event, context) => {
-                const { app } = await import('./hono.mjs');
-                return app.fetch(event, context);
+        fetch: async (request, env, context) => {
+          Object.keys(env).forEach(key => {
+            process.env[key] = env[key]
+          })
+          const { app } = await import('./hono.mjs');
+          return app.fetch(request, env, context);
         }
       }
       `,
@@ -70,7 +90,10 @@ export class CloudflareDeployer extends MastraDeployer {
   }
 
   async deploy({ dir, token }: { dir: string; token: string }): Promise<void> {
-    child_process.execSync(`npm exec wrangler deploy`, {
+    const cmd = this.workerNamespace
+      ? `npm exec -- wrangler deploy --dispatch-namespace ${this.workerNamespace}`
+      : 'npm exec -- wrangler deploy';
+    child_process.execSync(cmd, {
       cwd: dir,
       stdio: 'inherit',
       env: {
@@ -79,6 +102,27 @@ export class CloudflareDeployer extends MastraDeployer {
         ...this.env,
         PATH: process.env.PATH,
       },
+    });
+  }
+
+  async tagWorker({
+    workerName,
+    namespace,
+    tags,
+    scope,
+  }: {
+    scope: string;
+    workerName: string;
+    namespace: string;
+    tags: string[];
+  }): Promise<void> {
+    if (!this.cloudflare) {
+      throw new Error('Cloudflare Deployer not initialized');
+    }
+
+    await this.cloudflare.workersForPlatforms.dispatch.namespaces.scripts.tags.update(namespace, workerName, {
+      account_id: scope,
+      body: tags,
     });
   }
 }

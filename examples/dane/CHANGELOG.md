@@ -1,5 +1,55 @@
 # @mastra/dane
 
+## 0.0.2-alpha.75
+
+### Patch Changes
+
+- Updated dependencies [1944807]
+- Updated dependencies [9ade36e]
+  - @mastra/core@0.1.27-alpha.69
+  - @mastra/rag@0.0.2-alpha.55
+  - @mastra/firecrawl@1.0.4-alpha.57
+  - @mastra/github@1.0.3-alpha.53
+  - @mastra/stabilityai@1.0.1-alpha.44
+  - @mastra/engine@0.0.5-alpha.63
+  - @mastra/mcp@0.0.1-alpha.9
+  - @mastra/memory@0.0.2-alpha.49
+
+## 0.0.2-alpha.74
+
+### Patch Changes
+
+- ef09ea1: Fix dane
+
+## 0.0.2-alpha.72
+
+### Patch Changes
+
+- Updated dependencies [0be7181]
+- Updated dependencies [0be7181]
+  - @mastra/core@0.1.27-alpha.68
+  - @mastra/firecrawl@1.0.4-alpha.56
+  - @mastra/github@1.0.3-alpha.52
+  - @mastra/stabilityai@1.0.1-alpha.43
+  - @mastra/engine@0.0.5-alpha.62
+  - @mastra/mcp@0.0.1-alpha.8
+  - @mastra/memory@0.0.2-alpha.48
+  - @mastra/rag@0.0.2-alpha.54
+
+## 0.0.2-alpha.70
+
+### Patch Changes
+
+- Updated dependencies [c8ff2f5]
+  - @mastra/core@0.1.27-alpha.67
+  - @mastra/firecrawl@1.0.4-alpha.55
+  - @mastra/github@1.0.3-alpha.51
+  - @mastra/stabilityai@1.0.1-alpha.42
+  - @mastra/engine@0.0.5-alpha.61
+  - @mastra/mcp@0.0.1-alpha.7
+  - @mastra/memory@0.0.2-alpha.47
+  - @mastra/rag@0.0.2-alpha.53
+
 ## 0.0.2-alpha.65
 
 ### Patch Changes

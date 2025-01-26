@@ -16,6 +16,9 @@ import 'dotenv/config';
 
 import { MastraPrimitives } from '../action';
 import { MastraBase } from '../base';
+import { Metric } from '../eval';
+import { executeHook } from '../hooks';
+import { AvailableHooks } from '../hooks';
 import { LLM } from '../llm';
 import { GenerateReturn, ModelConfig, OutputType, StreamReturn } from '../llm/types';
 import { LogLevel, RegisteredLogger } from '../logger';
@@ -31,6 +34,7 @@ import { ToolsetsInput } from './types';
 })
 export class Agent<
   TTools extends Record<string, ToolAction<any, any, any, any>> = Record<string, ToolAction<any, any, any, any>>,
+  TMetrics extends Record<string, Metric> = Record<string, Metric>,
 > extends MastraBase {
   public name: string;
   readonly llm: LLM;
@@ -38,6 +42,7 @@ export class Agent<
   readonly model: ModelConfig;
   #mastra?: MastraPrimitives;
   tools: TTools;
+  metrics: TMetrics;
 
   constructor(config: {
     name: string;
@@ -45,6 +50,7 @@ export class Agent<
     model: ModelConfig;
     tools?: TTools;
     mastra?: MastraPrimitives;
+    metrics?: TMetrics;
   }) {
     super({ component: RegisteredLogger.AGENT });
 
@@ -55,9 +61,9 @@ export class Agent<
 
     this.model = config.model;
 
-    this.log(LogLevel.DEBUG, `Agent ${this.name} initialized with model ${this.model.provider}`, { runId: this.name });
-
     this.tools = {} as TTools;
+
+    this.metrics = {} as TMetrics;
 
     if (config.tools) {
       this.tools = config.tools;
@@ -65,6 +71,10 @@ export class Agent<
 
     if (config.mastra) {
       this.#mastra = config.mastra;
+    }
+
+    if (config.metrics) {
+      this.metrics = config.metrics;
     }
   }
 
@@ -75,9 +85,12 @@ export class Agent<
 
     if (p.logger) {
       this.__setLogger(p.logger);
+      this.llm.__setLogger(p.logger);
     }
 
     this.#mastra = p;
+
+    this.logger.debug(`[Agents:${this.name}] initialized.`, { model: this.model, name: this.name });
   }
 
   /**
@@ -86,7 +99,7 @@ export class Agent<
    */
   __setTools(tools: TTools) {
     this.tools = tools;
-    this.log(LogLevel.DEBUG, `Tools set for agent ${this.name}`, { runId: this.name });
+    this.logger.debug(`[Agents:${this.name}] Tools set for agent ${this.name}`, { model: this.model, name: this.name });
   }
 
   async generateTitleFromUserMessage({ message }: { message: CoreUserMessage }) {
@@ -136,19 +149,21 @@ export class Agent<
     threadId,
     resourceid,
     userMessages,
+    runId,
   }: {
     resourceid: string;
     threadId?: string;
     userMessages: CoreMessage[];
     time?: Date;
     keyword?: string;
+    runId?: string;
   }) {
     const userMessage = this.getMostRecentUserMessage(userMessages);
     if (this.#mastra?.memory) {
       let thread: ThreadType | null;
       if (!threadId) {
-        this.log(LogLevel.DEBUG, `No threadId, creating new thread for agent ${this.name}`, {
-          runId: this.name,
+        this.logger.debug(`No threadId, creating new thread for agent ${this.name}`, {
+          runId: runId || this.name,
         });
         const title = await this.genTitle(userMessage);
 
@@ -160,8 +175,8 @@ export class Agent<
       } else {
         thread = await this.#mastra.memory.getThreadById({ threadId });
         if (!thread) {
-          this.log(LogLevel.DEBUG, `Thread not found, creating new thread for agent ${this.name}`, {
-            runId: this.name,
+          this.logger.debug(`Thread not found, creating new thread for agent ${this.name}`, {
+            runId: runId || this.name,
           });
           const title = await this.genTitle(userMessage);
           thread = await this.#mastra.memory.createThread({
@@ -214,9 +229,9 @@ export class Agent<
             }),
           });
 
-          this.log(LogLevel.DEBUG, 'Text Object result', {
+          this.logger.debug('Text Object result', {
             contextObject: JSON.stringify(context.object, null, 2),
-            runId: this.name,
+            runId: runId || this.name,
           });
         } catch (e) {
           if (e instanceof Error) {
@@ -244,7 +259,7 @@ export class Agent<
 
         this.log(LogLevel.DEBUG, 'Saved messages to memory', {
           threadId: thread.id,
-          runId: this.name,
+          runId,
         });
 
         return {
@@ -262,7 +277,7 @@ export class Agent<
     return { threadId: threadId || '', messages: userMessages };
   }
 
-  async saveResponse({ result, threadId }: { result: Record<string, any>; threadId: string }) {
+  async saveResponse({ result, threadId, runId }: { runId: string; result: Record<string, any>; threadId: string }) {
     const { response } = result;
     try {
       if (response.messages) {
@@ -271,7 +286,7 @@ export class Agent<
         const responseMessagesWithoutIncompleteToolCalls = this.sanitizeResponseMessages(ms);
 
         if (this.#mastra?.memory) {
-          this.log(LogLevel.DEBUG, 'Saving response to memory', { threadId, runId: this.name });
+          this.log(LogLevel.DEBUG, 'Saving response to memory', { threadId, runId });
 
           await this.#mastra.memory.saveMessages({
             messages: responseMessagesWithoutIncompleteToolCalls.map((message: CoreMessage | CoreAssistantMessage) => {
@@ -328,9 +343,9 @@ export class Agent<
         }
       }
     } catch (err) {
-      this.log(LogLevel.ERROR, 'Failed to save assistant response', {
+      this.logger.error('Failed to save assistant response', {
         error: err,
-        runId: this.name,
+        runId: runId,
       });
     }
   }
@@ -381,7 +396,7 @@ export class Agent<
     threadId?: string;
     runId?: string;
   }): Record<string, CoreTool> {
-    this.log(LogLevel.DEBUG, `Starting tool conversion for Agent ${this.name}`, { runId });
+    this.logger.debug(`[Agents:${this.name}] - Assigning tools`, { runId });
     const converted = Object.entries(this.tools || {}).reduce(
       (memo, value) => {
         const k = value[0];
@@ -399,14 +414,14 @@ export class Agent<
                   toolName: k as string,
                 });
                 if (cachedResult) {
-                  this.log(LogLevel.DEBUG, `Cached Result ${k as string} runId: ${runId}`, {
+                  this.logger.debug(`Cached Result ${k as string} runId: ${runId}`, {
                     cachedResult: JSON.stringify(cachedResult, null, 2),
                     runId,
                   });
                   return cachedResult;
                 }
               }
-              this.log(LogLevel.DEBUG, `Cache not found or not enabled, executing tool runId: ${runId}`, {
+              this.logger.debug(`Cache not found or not enabled, executing tool runId: ${runId}`, {
                 runId,
               });
               return tool.execute({
@@ -425,12 +440,10 @@ export class Agent<
       ...converted,
     };
 
-    this.log(LogLevel.DEBUG, `Converted tools for Agent ${this.name}`, { runId });
-
     const toolsFromToolsets = Object.values(toolsets || {});
 
     if (toolsFromToolsets.length > 0) {
-      this.log(LogLevel.DEBUG, `Adding tools from toolsets ${Object.keys(toolsets || {}).join(', ')}`, { runId });
+      this.logger.debug(`Adding tools from toolsets ${Object.keys(toolsets || {}).join(', ')}`, { runId });
       toolsFromToolsets.forEach(toolset => {
         Object.entries(toolset).forEach(([toolName, tool]) => {
           const toolObj = tool;
@@ -445,14 +458,14 @@ export class Agent<
                   toolName,
                 });
                 if (cachedResult) {
-                  this.log(LogLevel.DEBUG, `Cached Result ${toolName as string} runId: ${runId}`, {
+                  this.logger.debug(`Cached Result ${toolName as string} runId: ${runId}`, {
                     cachedResult: JSON.stringify(cachedResult, null, 2),
                     runId,
                   });
                   return cachedResult;
                 }
               }
-              this.log(LogLevel.DEBUG, `Cache not found or not enabled, executing tool runId: ${runId}`, {
+              this.logger.debug(`Cache not found or not enabled, executing tool runId: ${runId}`, {
                 runId,
               });
               return toolObj.execute!({
@@ -526,26 +539,20 @@ export class Agent<
     threadId?: string;
     context?: CoreMessage[];
     runId?: string;
-    messages: UserContent[];
+    messages: CoreMessage[];
   }) {
     return {
       before: async () => {
-        this.log(LogLevel.INFO, `Starting generation for agent ${this.name}`, { runId });
+        if (process.env.NODE_ENV !== 'test') {
+          this.logger.debug(`[Agents:${this.name}] - Starting generation`, { runId });
+        }
 
         const systemMessage: CoreMessage = {
           role: 'system',
           content: `${this.instructions}. Today's date is ${new Date().toISOString()}`,
         };
 
-        const userMessages: CoreMessage[] = messages.map(content => ({
-          role: 'user',
-          content: content,
-        }));
-
-        let coreMessages = userMessages;
-
-        let convertedTools: Record<string, CoreTool> | undefined;
-
+        let coreMessages = messages;
         let threadIdToUse = threadId;
 
         let rememberedMessages: CoreMessage[] | undefined;
@@ -555,17 +562,22 @@ export class Agent<
             resourceid,
             runId,
             threadId: threadIdToUse,
-            messages: userMessages,
+            messages,
           });
 
           coreMessages = preExecuteResult.coreMessages;
           threadIdToUse = preExecuteResult.threadIdToUse;
           rememberedMessages = preExecuteResult.rememberedMessages;
         } else {
-          this.log(LogLevel.DEBUG, `No memory or resourceid, skipping save to memory for agent ${this.name}`, {
-            runId: this.name,
-          });
+          this.logger.debug(
+            `[Agents:${this.name}] - No memory store or resourceid identifier found. Skipping memory persistence.`,
+            {
+              runId,
+            },
+          );
         }
+
+        let convertedTools: Record<string, CoreTool> | undefined;
 
         if (
           (toolsets && Object.keys(toolsets || {}).length > 0) ||
@@ -579,8 +591,8 @@ export class Agent<
             runId,
           });
         } else {
-          this.log(LogLevel.DEBUG, `Skipping tool conversion for agent ${this.name}`, {
-            runId: this.name,
+          this.logger.debug(`Skipping tool conversion for agent ${this.name}`, {
+            runId,
           });
         }
 
@@ -588,31 +600,80 @@ export class Agent<
 
         return { messageObjects, convertedTools, threadId: threadIdToUse as string, rememberedMessages };
       },
-      after: async ({ result, threadId }: { result: Record<string, any>; threadId: string }) => {
-        this.log(LogLevel.DEBUG, `After LLM call for agent ${this.name}`, {
-          runId: this.name,
+      after: async ({
+        result,
+        threadId,
+        outputText,
+        runId,
+      }: {
+        runId: string;
+        result: Record<string, any>;
+        threadId: string;
+        outputText: string;
+      }) => {
+        const resToLog = {
+          text: result?.text,
+          object: result?.object,
+          toolResults: result?.toolResults,
+          toolCalls: result?.toolCalls,
+          usage: result?.usage,
+          steps: result?.steps?.map((s: any) => {
+            return {
+              stepType: s?.stepType,
+              text: result?.text,
+              object: result?.object,
+              toolResults: result?.toolResults,
+              toolCalls: result?.toolCalls,
+              usage: result?.usage,
+            };
+          }),
+        };
+        this.logger.debug(`[Agent:${this.name}] - Post processing LLM response`, {
+          runId,
+          result: resToLog,
+          threadId,
         });
         if (this.#mastra?.memory && resourceid) {
           try {
-            this.log(LogLevel.INFO, `Saving assistant message in memory for agent ${this.name}`, { runId });
+            this.logger.debug(`Saving assistant message in memory for agent ${this.name}`, {
+              runId,
+              threadId,
+            });
             await this.saveResponse({
               result,
               threadId,
+              runId,
             });
           } catch (e) {
-            this.log(LogLevel.ERROR, 'Error saving response', {
+            this.logger.error('Error saving response', {
               error: e,
               runId,
+              result: resToLog,
+              threadId,
             });
           }
         } else {
-          this.log(
-            LogLevel.DEBUG,
-            `No memory or resourceid, skipping save assistant response to memory for agent ${this.name}`,
+          this.logger.debug(
+            `[Agents:${this.name}] - No memory store or resourceid identifier found. Skipping memory persistence.`,
             {
-              runId: this.name,
+              runId,
+              threadId,
             },
           );
+        }
+
+        if (Object.keys(this.metrics || {}).length > 0) {
+          const input = messages.map(message => message).join('\n');
+          const runIdToUse = runId || crypto.randomUUID();
+          for (const metric of Object.values(this.metrics || {})) {
+            executeHook(AvailableHooks.ON_GENERATION, {
+              input,
+              output: outputText,
+              runId: runIdToUse,
+              metric,
+              agentName: this.name,
+            });
+          }
         }
       },
     };
@@ -640,25 +701,35 @@ export class Agent<
       output?: OutputType | Z;
     } = {},
   ): Promise<GenerateReturn<Z>> {
-    let messagesToUse: UserContent[] = [];
+    let messagesToUse: CoreMessage[] = [];
 
-    if (Array.isArray(messages)) {
-      messagesToUse = messages.map(content => {
-        if (typeof content === 'string') {
-          return content;
-        }
-        return content.content as string;
-      });
+    if (typeof messages === `string`) {
+      messagesToUse = [
+        {
+          role: 'user',
+          content: messages,
+        },
+      ];
     } else {
-      messagesToUse = [messages];
+      messagesToUse = messages.map(message => {
+        if (typeof message === `string`) {
+          return {
+            role: 'user',
+            content: message,
+          };
+        }
+        return message;
+      });
     }
+
+    const runIdToUse = runId || randomUUID();
 
     const { before, after } = this.__primitive({
       messages: messagesToUse,
       context,
       threadId: threadIdInFn,
       resourceid,
-      runId: runId || this.name,
+      runId: runIdToUse,
       toolsets,
     });
 
@@ -670,27 +741,22 @@ export class Agent<
     }
 
     if (output === 'text') {
-      this.log(LogLevel.DEBUG, `Starting agent ${this.name} llm text call`, {
-        runId: this.name,
-      });
-
       const result = await this.llm.__text({
         messages: messageObjects,
         tools: this.tools,
         convertedTools,
         onStepFinish,
         maxSteps,
-        runId,
+        runId: runIdToUse,
       });
 
-      await after({ result, threadId });
+      const outputText = result.text;
+
+      await after({ result, threadId, outputText, runId: runIdToUse });
 
       return result as unknown as GenerateReturn<Z>;
     }
 
-    this.log(LogLevel.DEBUG, `Starting agent ${this.name} llm textObject call`, {
-      runId: this.name,
-    });
     const result = await this.llm.__textObject({
       messages: messageObjects,
       tools: this.tools,
@@ -698,10 +764,12 @@ export class Agent<
       convertedTools,
       onStepFinish,
       maxSteps,
-      runId,
+      runId: runIdToUse,
     });
 
-    await after({ result, threadId });
+    const outputText = JSON.stringify(result.object);
+
+    await after({ result, threadId, outputText, runId: runIdToUse });
 
     return result as unknown as GenerateReturn<Z>;
   }
@@ -730,17 +798,27 @@ export class Agent<
       output?: OutputType | Z;
     } = {},
   ): Promise<StreamReturn<Z>> {
-    let messagesToUse: UserContent[] = [];
+    const runIdToUse = runId || randomUUID();
 
-    if (Array.isArray(messages)) {
-      messagesToUse = messages.map(content => {
-        if (typeof content === 'string') {
-          return content;
-        }
-        return content.content as string;
-      });
+    let messagesToUse: CoreMessage[] = [];
+
+    if (typeof messages === `string`) {
+      messagesToUse = [
+        {
+          role: 'user',
+          content: messages,
+        },
+      ];
     } else {
-      messagesToUse = [messages];
+      messagesToUse = messages.map(message => {
+        if (typeof message === `string`) {
+          return {
+            role: 'user',
+            content: message,
+          };
+        }
+        return message;
+      });
     }
 
     const { before, after } = this.__primitive({
@@ -748,7 +826,7 @@ export class Agent<
       context,
       threadId: threadIdInFn,
       resourceid,
-      runId: runId || this.name,
+      runId: runIdToUse,
       toolsets,
     });
 
@@ -760,8 +838,8 @@ export class Agent<
     }
 
     if (output === 'text') {
-      this.log(LogLevel.DEBUG, `Starting agent ${this.name} llm stream call`, {
-        runId: this.name,
+      this.logger.debug(`Starting agent ${this.name} llm stream call`, {
+        runId,
       });
       return this.llm.__stream({
         messages: messageObjects,
@@ -771,11 +849,12 @@ export class Agent<
         onFinish: async result => {
           try {
             const res = JSON.parse(result) || {};
-            await after({ result: res, threadId });
+            const outputText = res.text;
+            await after({ result: res, threadId, outputText, runId: runIdToUse });
           } catch (e) {
-            this.log(LogLevel.ERROR, 'Error saving memory on finish', {
+            this.logger.error('Error saving memory on finish', {
               error: e,
-              runId: this.name,
+              runId,
             });
           }
           onFinish?.(result);
@@ -785,8 +864,8 @@ export class Agent<
       }) as unknown as StreamReturn<Z>;
     }
 
-    this.log(LogLevel.DEBUG, `Starting agent ${this.name} llm streamObject call`, {
-      runId: this.name,
+    this.logger.debug(`Starting agent ${this.name} llm streamObject call`, {
+      runId,
     });
     return this.llm.__streamObject({
       messages: messageObjects,
@@ -797,11 +876,12 @@ export class Agent<
       onFinish: async result => {
         try {
           const res = JSON.parse(result) || {};
-          await after({ result: res, threadId });
+          const outputText = JSON.stringify(res.object);
+          await after({ result: res, threadId, outputText, runId: runIdToUse });
         } catch (e) {
-          this.log(LogLevel.ERROR, 'Error saving memory on finish', {
+          this.logger.error('Error saving memory on finish', {
             error: e,
-            runId: this.name,
+            runId,
           });
         }
         onFinish?.(result);
