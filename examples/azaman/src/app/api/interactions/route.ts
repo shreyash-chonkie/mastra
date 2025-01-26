@@ -1,95 +1,10 @@
-// import { mastra } from "@/mastra";
-import { Agent, Mastra } from '@mastra/core';
-import { MDocument, PgVector, createVectorQueryTool, embed } from '@mastra/rag';
 import { InteractionResponseType, InteractionType, MessageComponentTypes } from 'discord-interactions';
-
-interface DocumentChunk {
-  text: string;
-}
 
 import { NextRequest, NextResponse } from 'next/server';
 
-import { getRandomEmoji, verifyDiscordRequest } from '@/discord/utils';
 import { gateway } from '@/discord/gateway';
-
-// Initialize RAG components
-const pgVector = new PgVector(process.env.DB_URL!);
-
-const vectorQueryTool = createVectorQueryTool({
-  vectorStoreName: 'pgVector',
-  indexName: 'embeddings',
-  options: {
-    provider: 'OPEN_AI',
-    model: 'text-embedding-ada-002',
-    maxRetries: 3,
-  },
-  topK: 3,
-});
-
-// Create the RAG agent
-const ragAgent = new Agent({
-  name: 'RAG Agent',
-  instructions: 'You are a helpful assistant that answers questions about mastra based on the provided context. Keep your answers concise and relevant.',
-  model: {
-    provider: 'OPEN_AI',
-    name: 'gpt-4o-mini',
-  },
-  tools: {
-    vectorQueryTool,
-  },
-});
-
-// Initialize Mastra
-const mastra = new Mastra({
-  agents: { ragAgent },
-  vectors: { pgVector },
-});
-
-// Load and index the documentation
-const loadDocs = async () => {
-  try {
-    const response = await fetch('https://mastra.ai/llms.txt');
-    const text = await response.text();
-    const doc = MDocument.fromText(text);
-
-    console.log('doc');
-
-    // Create chunks
-    const chunks = await doc.chunk({
-      strategy: 'recursive',
-      size: 512,
-      overlap: 50,
-    });
-
-    console.log('chunks');
-
-    // Generate embeddings and store them
-    const embedResult = (await embed(chunks, {
-      provider: 'OPEN_AI',
-      model: 'text-embedding-ada-002',
-      maxRetries: 3,
-    }));
-
-    console.log('embedResult');
-
-    const vectorStore = mastra.getVector('pgVector');
-
-    if ('embeddings' in embedResult) {
-      await vectorStore.createIndex('embeddings', 1536);
-      await vectorStore.upsert(
-        'embeddings',
-        embedResult.embeddings,
-        chunks.map((chunk: DocumentChunk) => ({ text: chunk.text })),
-      );
-      await pgVector.upsert('embeddings', embedResult.embeddings);
-    } else {
-      throw new Error('Failed to generate embeddings');
-    }
-    console.log('Documentation loaded and indexed successfully');
-  } catch (error) {
-    console.error('Failed to load documentation:', error);
-  }
-};
+import { getRandomEmoji, verifyDiscordRequest } from '@/discord/utils';
+import { loadDocs, mastra } from '@/mastra';
 
 // Initialize gateway connection when the server starts
 gateway.connect();
@@ -130,7 +45,6 @@ export const POST = async (req: NextRequest) => {
 
     // "docs" command
     if (name === 'docs') {
-      console.log('logsssssssssssssssssssssss');
       return NextResponse.json(
         // this is a modal
         {
@@ -150,11 +64,11 @@ export const POST = async (req: NextRequest) => {
                     min_length: 1,
                     max_length: 4000,
                     placeholder: 'How do I create a workflow?',
-                    required: true
-                  }
-                ]
-              }
-            ]
+                    required: true,
+                  },
+                ],
+              },
+            ],
           },
         },
       );
@@ -185,7 +99,7 @@ export const POST = async (req: NextRequest) => {
       const question = components[0].components[0].value;
 
       try {
-        const agent = mastra.getAgent('ragAgent');
+        const agent = mastra.getAgent('generateAnswerAgent');
         const completion = await agent.generate(question);
 
         console.log('completion', completion);
@@ -201,7 +115,7 @@ export const POST = async (req: NextRequest) => {
             body: JSON.stringify({
               content: completion.text,
             }),
-          }
+          },
         );
 
         if (!followupResponse.ok) {
@@ -222,9 +136,10 @@ export const POST = async (req: NextRequest) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              content: "I'm sorry, I encountered an error while trying to answer your question. Please try again later.",
+              content:
+                "I'm sorry, I encountered an error while trying to answer your question. Please try again later.",
             }),
-          }
+          },
         );
 
         return new Response(null, { status: 200 });
