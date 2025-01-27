@@ -9,6 +9,8 @@ export const POST = async (req: NextRequest) => {
     return result.response;
   }
 
+  console.log('result', result);
+
   // Handle the message
   await handleMessage(result.body);
 

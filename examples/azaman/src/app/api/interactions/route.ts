@@ -2,12 +2,8 @@ import { InteractionResponseType, InteractionType, MessageComponentTypes } from 
 
 import { NextRequest, NextResponse } from 'next/server';
 
-import { gateway } from '@/discord/gateway';
 import { getRandomEmoji, verifyDiscordRequest } from '@/discord/utils';
 import { loadDocs, mastra } from '@/mastra';
-
-// Initialize gateway connection when the server starts
-gateway.connect();
 
 export const POST = async (req: NextRequest) => {
   const result = await verifyDiscordRequest(req, process.env.DISCORD_PUBLIC_KEY!);
