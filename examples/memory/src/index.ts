@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import { randomUUID } from 'crypto';
 import * as diff from 'diff';
 import fs from 'fs';
@@ -223,9 +224,14 @@ function updateWorkingMemory(response: string) {
 
     differences.forEach(part => {
       if (part.added) {
-        console.log('Added: ' + part.value.trimEnd());
-      } else if (part.removed && (!part.value.trimEnd().endsWith('..') || part.value.trim() === `.`)) {
-        console.log('Removed: ' + part.value);
+        console.log(chalk.green('  + ' + part.value.trim()));
+      } else if (
+        part.removed &&
+        !part.value.trimEnd().endsWith('..') &&
+        !part.value.trimEnd().endsWith(`:`) &&
+        !!part.value.trim()
+      ) {
+        console.log(chalk.red('  - ' + part.value.trim()));
       }
     });
     workingMemoryBlock = newMemory;
@@ -269,7 +275,7 @@ async function main() {
   while (true) {
     const answer: string = await new Promise(res => {
       process.stdin.resume();
-      rl.question('Message: ', answer => {
+      rl.question(chalk.grey('\n> '), answer => {
         res(answer);
       });
     });
