@@ -1,5 +1,23 @@
 # create-mastra
 
+## 0.1.0-alpha.27
+
+### Patch Changes
+
+- 932d86c: Fix build
+
+## 0.1.0-alpha.26
+
+### Patch Changes
+
+- 04434b6: Create separate logger file
+
+## 0.1.0-alpha.25
+
+### Patch Changes
+
+- b425845: Logger and execa logs
+
 ## 0.1.0-alpha.24
 
 ### Minor Changes

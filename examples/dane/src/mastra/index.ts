@@ -2,18 +2,12 @@ import { Mastra } from '@mastra/core';
 import { PostgresEngine } from '@mastra/engine';
 import { UpstashKVMemory } from '@mastra/memory';
 
-import {
-  dane,
-  daneChangeLog,
-  daneCommitMessage,
-  daneIssueLabeler,
-  daneLinkChecker,
-  danePackagePublisher,
-} from './agents/index.js';
-import { daneNewContributor } from './agents/new-contributor';
+import { dane, daneChangeLog, daneCommitMessage, daneIssueLabeler, daneLinkChecker } from './agents/index.js';
+import { daneNewContributor } from './agents/new-contributor.js';
+import { danePackagePublisher } from './agents/package-publisher.js';
 import { firecrawl } from './integrations/index.js';
 import { changelogWorkflow } from './workflows/changelog.js';
-import { githubFirstContributorMessage } from './workflows/first-contributor';
+import { githubFirstContributorMessage } from './workflows/first-contributor.js';
 import { messageWorkflow, githubIssueLabeler, commitMessageGenerator } from './workflows/index.js';
 import { linkCheckerWorkflow } from './workflows/link-checker.js';
 import { packagePublisher } from './workflows/publish-packages.js';

@@ -1,5 +1,23 @@
 # docs
 
+## 0.1.1-alpha.22
+
+### Patch Changes
+
+- 0d5a03d: Vector store modules
+
+## 0.1.1-alpha.21
+
+### Patch Changes
+
+- ee856f3: Updated pg filter function and updated docs and example
+
+## 0.1.1-alpha.20
+
+### Patch Changes
+
+- 9ade36e: Changed measure for evals, added endpoints, attached metrics to agent, added ui for evals in playground, and updated docs
+
 ## 0.1.1-alpha.19
 
 ### Patch Changes

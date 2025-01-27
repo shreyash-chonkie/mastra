@@ -1,5 +1,57 @@
 # @mastra/rag
 
+## 0.0.2-alpha.59
+
+### Patch Changes
+
+- bdaf834: publish packages
+
+## 0.0.2-alpha.58
+
+### Patch Changes
+
+- Updated dependencies [dd6d87f]
+- Updated dependencies [04434b6]
+  - @mastra/core@0.1.27-alpha.70
+
+## 0.0.2-alpha.57
+
+### Patch Changes
+
+- ab1dc59: Add Cloudflare vectorize
+- 4769753: Added turso/libsql support for RAG
+
+## 0.0.2-alpha.56
+
+### Patch Changes
+
+- ee856f3: Updated pg filter function and updated docs and example
+- c3047a7: Added tests
+
+## 0.0.2-alpha.55
+
+### Patch Changes
+
+- 1944807: Unified logger and major step in better logs
+- Updated dependencies [1944807]
+- Updated dependencies [9ade36e]
+  - @mastra/core@0.1.27-alpha.69
+
+## 0.0.2-alpha.54
+
+### Patch Changes
+
+- Updated dependencies [0be7181]
+- Updated dependencies [0be7181]
+  - @mastra/core@0.1.27-alpha.68
+
+## 0.0.2-alpha.53
+
+### Patch Changes
+
+- Updated dependencies [c8ff2f5]
+  - @mastra/core@0.1.27-alpha.67
+
 ## 0.0.2-alpha.52
 
 ### Patch Changes

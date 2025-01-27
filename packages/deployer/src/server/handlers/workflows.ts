@@ -1,4 +1,4 @@
-import { Context } from 'hono';
+import type { Context } from 'hono';
 import { stringify } from 'superjson';
 import zodToJsonSchema from 'zod-to-json-schema';
 
@@ -52,7 +52,9 @@ export async function executeWorkflowHandler(c: Context) {
     const workflow = mastra.getWorkflow(workflowId);
     const body = await c.req.json();
 
-    const result = await workflow.execute(body);
+    const result = await workflow.execute({
+      triggerData: body,
+    });
     return c.json(result);
   } catch (error) {
     return handleError(error, 'Error executing workflow');

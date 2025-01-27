@@ -1,5 +1,36 @@
 # @mastra/resend
 
+## 1.0.1-alpha.49
+
+### Patch Changes
+
+- Updated dependencies [dd6d87f]
+- Updated dependencies [04434b6]
+  - @mastra/core@0.1.27-alpha.70
+
+## 1.0.1-alpha.48
+
+### Patch Changes
+
+- Updated dependencies [1944807]
+- Updated dependencies [9ade36e]
+  - @mastra/core@0.1.27-alpha.69
+
+## 1.0.1-alpha.47
+
+### Patch Changes
+
+- Updated dependencies [0be7181]
+- Updated dependencies [0be7181]
+  - @mastra/core@0.1.27-alpha.68
+
+## 1.0.1-alpha.46
+
+### Patch Changes
+
+- Updated dependencies [c8ff2f5]
+  - @mastra/core@0.1.27-alpha.67
+
 ## 1.0.1-alpha.45
 
 ### Patch Changes

@@ -1,5 +1,63 @@
 # @mastra/firecrawl
 
+## 1.0.4-alpha.61
+
+### Patch Changes
+
+- Updated dependencies [bdaf834]
+  - @mastra/rag@0.0.2-alpha.59
+
+## 1.0.4-alpha.60
+
+### Patch Changes
+
+- Updated dependencies [dd6d87f]
+- Updated dependencies [04434b6]
+  - @mastra/core@0.1.27-alpha.70
+  - @mastra/rag@0.0.2-alpha.58
+
+## 1.0.4-alpha.59
+
+### Patch Changes
+
+- Updated dependencies [ab1dc59]
+- Updated dependencies [4769753]
+  - @mastra/rag@0.0.2-alpha.57
+
+## 1.0.4-alpha.58
+
+### Patch Changes
+
+- Updated dependencies [ee856f3]
+- Updated dependencies [c3047a7]
+  - @mastra/rag@0.0.2-alpha.56
+
+## 1.0.4-alpha.57
+
+### Patch Changes
+
+- Updated dependencies [1944807]
+- Updated dependencies [9ade36e]
+  - @mastra/core@0.1.27-alpha.69
+  - @mastra/rag@0.0.2-alpha.55
+
+## 1.0.4-alpha.56
+
+### Patch Changes
+
+- Updated dependencies [0be7181]
+- Updated dependencies [0be7181]
+  - @mastra/core@0.1.27-alpha.68
+  - @mastra/rag@0.0.2-alpha.54
+
+## 1.0.4-alpha.55
+
+### Patch Changes
+
+- Updated dependencies [c8ff2f5]
+  - @mastra/core@0.1.27-alpha.67
+  - @mastra/rag@0.0.2-alpha.53
+
 ## 1.0.4-alpha.54
 
 ### Patch Changes
