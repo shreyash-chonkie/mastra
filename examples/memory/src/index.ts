@@ -113,7 +113,12 @@ async function logRes(res: Awaited<ReturnType<typeof agent.stream>>) {
     tagName: `working_memory`,
     onStartMasking: () => memorySpinner.start(),
     onEndMasking: () => {
-      memorySpinner.succeed();
+      if (memorySpinner.isSpinning) {
+        memorySpinner.succeed();
+        setImmediate(() => {
+          process.stdin.resume();
+        });
+      }
     },
   });
 
@@ -273,7 +278,6 @@ async function main() {
   });
   while (true) {
     const answer: string = await new Promise(res => {
-      process.stdin.resume();
       rl.question(chalk.grey('\n> '), answer => {
         res(answer);
       });
