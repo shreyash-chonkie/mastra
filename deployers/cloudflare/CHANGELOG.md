@@ -1,5 +1,19 @@
 # @mastra/deployer-cloudflare
 
+## 0.0.1-alpha.11
+
+### Patch Changes
+
+- 9066f95: CF deployer fixes
+- Updated dependencies [9066f95]
+  - @mastra/deployer@0.0.1-alpha.9
+
+## 0.0.1-alpha.10
+
+### Patch Changes
+
+- 0d5a03d: Vector store modules
+
 ## 0.0.1-alpha.9
 
 ### Patch Changes
