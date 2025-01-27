@@ -12,9 +12,9 @@ import { mastra } from './mastra';
 
 const agent = mastra.getAgent('memoryAgent');
 let threadId = ``;
-// threadId = `07faa23e-14f0-4a7f-bf12-8cadc382250b`; // long thread
-// threadId = `07faa23e-14f0-4a7f-bf12-8cadc382250b`;
 threadId = randomUUID();
+threadId = `07faa23e-14f0-4a7f-bf12-8cadc382250b`; // long thread
+// threadId = `07faa23e-14f0-4a7f-bf12-8cadc382250b`;
 console.log(threadId);
 const resourceid = 'SOME_USER_ID';
 
