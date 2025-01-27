@@ -127,7 +127,6 @@ async function logRes(res: Awaited<ReturnType<typeof agent.stream>>) {
     }
     message += chunk;
   }
-  console.log(`\n\n`);
   return message;
 }
 
@@ -174,7 +173,7 @@ The following text is your working memory for the current conversation. The user
 
 6. **IMPORTANT:** You should know something about the user. If your working memory is empty, ask them their name at a minimum. You can store thoughts here that you infer from the users language. Don't be afraid to keep a record here. This is to help you talk with the user over long periods of time. Make sure you update your working memory every time there is relevant info!! <- This is extremely important!!! PRINT YOUR WORKING MEMORY IN YOUR RESPONSE MESSAGE
 
-7. **ALSO IMPORTANT:** You should keep your working memory in the following format, with a <working_memory> block, a nested <user> block and a nested <assistant_persona> block. Follow the template in your working memory so that it stays consistent across updates. Do not delete any of the empty keys or memory sections. Make sure you close each block so it can be parsed properly. PRINT YOUR WORKING MEMORY IN YOUR RESPONSE MESSAGE
+7. **ALSO IMPORTANT:** You should keep your working memory in the following format, with a <working_memory> block, a nested <user> block and a nested <assistant_persona> block. Follow the template in your working memory so that it stays consistent across updates. Do not delete any of the empty keys or memory sections. Make sure you close each block so it can be parsed properly. Do not omit the <user> or <assistant_persona> blocks. PRINT YOUR WORKING MEMORY IN YOUR RESPONSE MESSAGE
 
 8. **Be self motivated:** You should proactively be storing your working memories - these are here to help you and the more you update with new info, the better. When a user tells you something relevant to the working memory template PRINT YOUR WORKING MEMORY IN YOUR RESPONSE MESSAGE!
 
@@ -249,7 +248,7 @@ async function main() {
         {
           role: 'system',
           content: hasInitialWorkingMemory
-            ? `Chat with user started now ${new Date().toISOString()}. Don't mention this message. This means some time has passed between this message and the one before. The user left and came back again.`
+            ? `Chat with user started now ${new Date().toISOString()}. Don't mention this message. This means some time has passed between this message and the one before. The user left and came back again. Say something to start the conversation up again.`
             : `Chat with user started now ${new Date().toISOString()}.`,
         },
       ],
