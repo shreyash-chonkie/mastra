@@ -48,7 +48,6 @@ export const loadDocs = async () => {
         embedResult.embeddings,
         chunks.map((chunk: DocumentChunk) => ({ text: chunk.text })),
       );
-      await pgVector.upsert('embeddings', embedResult.embeddings);
       console.log('Documentation loaded and indexed successfully');
     } else {
       throw new Error('Failed to generate embeddings');

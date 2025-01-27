@@ -24,6 +24,8 @@ const memory = new PgMemory({
 const generateResponse = async (question: string, threadId: string) => {
   const agent = mastra.getAgent('generateAnswerAgentWithMemory');
 
+  await loadDocs();
+
   // Generate response
   const completion = await agent.generate(question);
 
@@ -77,8 +79,6 @@ export const handleMessage = async (message: DiscordMessage) => {
     const discordThreadId = message.thread_id || message.channel_id;
     const threadId = uuidv4(); // Generate a new UUID for the thread
 
-    await loadDocs();
-
     // Try to find existing thread by Discord thread ID in metadata
     const existingThreads = await memory.getThreadsByResourceId({ resourceid: `discord-${message.channel_id}` });
     console.log('existingThreads', existingThreads, '==============');
@@ -111,17 +111,20 @@ export const handleMessage = async (message: DiscordMessage) => {
 
     if (!message.thread_id) {
       // Create a new thread
-      const threadResponse = await fetch(`https://discord.com/api/v10/channels/${message.channel_id}/messages/${message.id}/threads`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bot ${process.env.DISCORD_TOKEN}`,
-          'Content-Type': 'application/json',
+      const threadResponse = await fetch(
+        `https://discord.com/api/v10/channels/${message.channel_id}/messages/${message.id}/threads`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bot ${process.env.DISCORD_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: `Chat: ${question.slice(0, 50)}...`, // Use first 50 chars of question as thread name
+            auto_archive_duration: 1440, // Archive after 24 hours of inactivity
+          }),
         },
-        body: JSON.stringify({
-          name: `Chat: ${question.slice(0, 50)}...`, // Use first 50 chars of question as thread name
-          auto_archive_duration: 1440, // Archive after 24 hours of inactivity
-        }),
-      });
+      );
 
       if (!threadResponse.ok) {
         throw new Error('Failed to create thread');
