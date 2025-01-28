@@ -1,12 +1,13 @@
-import { Mastra, Agent, EmbedManyResult } from '@mastra/core';
-import { embed, MDocument, PgVector, createGraphRAGTool } from '@mastra/rag';
+import { Mastra, Agent } from '@mastra/core';
+import { embedMany, MDocument, createGraphRAGTool } from '@mastra/rag';
+import { PgVector } from '@mastra/vector-pg';
 
 const graphRagTool = createGraphRAGTool({
   vectorStoreName: 'pgVector',
   indexName: 'embeddings',
   options: {
     provider: 'OPEN_AI',
-    model: 'text-embedding-ada-002',
+    model: 'text-embedding-3-small',
     maxRetries: 3,
   },
   graphOptions: {
@@ -82,11 +83,11 @@ const chunks = await doc.chunk({
   separator: '\n',
 });
 
-const { embeddings } = (await embed(chunks, {
+const { embeddings } = await embedMany(chunks, {
   provider: 'OPEN_AI',
-  model: 'text-embedding-ada-002',
+  model: 'text-embedding-3-small',
   maxRetries: 3,
-})) as EmbedManyResult<string>;
+});
 
 const vectorStore = mastra.getVector('pgVector');
 await vectorStore.createIndex('embeddings', 1536);

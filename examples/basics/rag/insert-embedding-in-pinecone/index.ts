@@ -1,4 +1,5 @@
-import { MDocument, embed, PineconeVector } from '@mastra/rag';
+import { MDocument, embed } from '@mastra/rag';
+import { PineconeVector } from '@mastra/vector-pinecone';
 
 const doc = MDocument.fromText('Your text content...');
 
@@ -6,7 +7,7 @@ const chunks = await doc.chunk();
 
 const { embeddings } = await embed(chunks, {
   provider: 'OPEN_AI',
-  model: 'text-embedding-ada-002',
+  model: 'text-embedding-3-small',
   maxRetries: 3,
 });
 

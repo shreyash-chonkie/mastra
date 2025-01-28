@@ -6,7 +6,6 @@ import color from 'picocolors';
 import fs from 'fs/promises';
 
 import { DepsService } from '../../services/service.deps.js';
-import { logger } from '../../utils/logger.js';
 
 const exec = util.promisify(child_process.exec);
 
@@ -52,6 +51,19 @@ export const createMastraProject = async () => {
   s.start('Installing npm dependencies');
   await exec(`npm i zod`);
   await exec(`npm i typescript tsx @types/node --save-dev`);
+  await exec(`echo '{
+  "compilerOptions": {
+    "target": "es2016",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", ".mastra"]
+ }' > tsconfig.json`);
   s.stop('NPM dependencies installed');
   s.start('Installing mastra');
   await exec(`npm i -D mastra`);
@@ -69,7 +81,7 @@ export const createMastraProject = async () => {
   s.stop('.gitignore added');
 
   p.outro('Project created successfully');
-  logger.break();
+  console.log('');
 
   return { projectName };
 };

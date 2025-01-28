@@ -1,8 +1,10 @@
 import { Step, Workflow } from '@mastra/core';
 import chalk from 'chalk';
-import { existsSync, readFileSync } from 'fs';
+import { existsSync } from 'fs';
 import path from 'path';
 import { z } from 'zod';
+
+import { BUILD_PACKAGES_PROMPT, PACKAGES_LIST_PROMPT, PUBLISH_PACKAGES_PROMPT } from '../agents/package-publisher.js';
 
 export const packagePublisher = new Workflow({
   name: 'pnpm-changset-publisher',
@@ -13,7 +15,8 @@ const getPacakgesToPublish = new Step({
   outputSchema: z.object({
     packages: z.array(z.string()),
     integrations: z.array(z.string()),
-    danePackage: z.string(),
+    deployers: z.array(z.string()),
+    vector_stores: z.array(z.string()),
   }),
   execute: async ({ mastra }) => {
     const agent = mastra?.agents?.['danePackagePublisher'];
@@ -22,37 +25,37 @@ const getPacakgesToPublish = new Step({
       throw new Error('Agent not found');
     }
 
-    const result = await agent.generate(`
-        Here is my project structure in my monorepo.
-        * My core modules are in the 'packages' directory.
-        * My integrations are in the 'integrations' directory.
-        * My deployers are in the 'deployers' directory.
+    const result = await agent.generate(PACKAGES_LIST_PROMPT);
 
-        Can you tell me which packages within these folders need to be published to npm?
-    `);
+    console.log(chalk.green(`\n${result.text}`));
 
     const resultObj = await agent.generate(
       `
-      Can you format the following text with my described format?
-      Text: ${result.text}
+      Please convert this into a structured object:
 
-      Precheck: ONLY RETURN DATA IF WE HAVE PACKAGES TO PUBLISH. If we do not, return empty arrays.
+      Input Text: ${result.text}
 
-      Formatting Rules:
-      * @mastra/core must be first. 
-      * @mastra/deployer must be second.
-      * mastra must be third.
-      
-      Very Important:
-      * create-mastra is a package (not an integration) and should be listed in packages array.
-      * @mastra/deployers-{name} should be listed after packages.
-      * @mastra/dane should be listed after packages and integrations.    
+      1. Order Requirements:
+         - @mastra/core MUST be first within packages
+         - @mastra/deployer MUST be second within packages
+         - Group parallel builds by directory type
+
+      2. Output Format:
+         - Group into: packages[], integrations[], deployers[], vector_stores[]
+         - Place create-mastra in packages[] array
+         - Maintain correct order within each group
+
+      3. Critical Rules:
+         - Never publish without building first
+         - Only include packages that need updates
+         - Follow dependency order strictly
     `,
       {
         output: z.object({
           packages: z.array(z.string()),
           integrations: z.array(z.string()),
-          danePackage: z.string(),
+          deployers: z.array(z.string()),
+          vector_stores: z.array(z.string()),
         }),
       },
     );
@@ -60,7 +63,8 @@ const getPacakgesToPublish = new Step({
     return {
       packages: resultObj?.object?.packages!,
       integrations: resultObj?.object?.integrations!,
-      danePackage: resultObj?.object?.danePackage!,
+      deployers: resultObj?.object?.deployers!,
+      vector_stores: resultObj?.object?.vector_stores!,
     };
   },
 });
@@ -93,6 +97,28 @@ const assemblePackages = new Step({
       });
     }
 
+    if (payload?.deployers) {
+      payload.deployers.forEach((pkg: string) => {
+        let pkgName = pkg.replace('@mastra/deployer-', '');
+
+        if (pkgName === 'mastra') {
+          pkgName = 'cli';
+        }
+
+        const pkgPath = path.join(process.cwd(), 'deployers', pkgName);
+        packagesToBuild.add(pkgPath);
+      });
+    }
+
+    if (payload?.vector_stores) {
+      payload.vector_stores.forEach((pkg: string) => {
+        let pkgName = pkg.replace('@mastra/vector-', '');
+
+        const pkgPath = path.join(process.cwd(), 'vector-stores', pkgName);
+        packagesToBuild.add(pkgPath);
+      });
+    }
+
     if (payload?.integrations) {
       const integrations = payload.integrations;
       integrations.forEach((integration: string) => {
@@ -103,31 +129,6 @@ const assemblePackages = new Step({
       });
     }
 
-    if (payload?.danePackage) {
-      const danePackage = payload.danePackage;
-      let pkgName = danePackage.replace('@mastra/', '');
-      const danePackageMapped = path.join(process.cwd(), 'examples', pkgName);
-      const pkgJsonPath = readFileSync(path.join(danePackageMapped, 'package.json'), 'utf-8');
-      const pkgJson = JSON.parse(pkgJsonPath);
-      const dependencies = Object.keys(pkgJson.dependencies || {}).filter((dep: string) => dep.startsWith('@mastra/'));
-      dependencies.forEach((dep: string) => {
-        const pkgName = dep.replace('@mastra/', '');
-        const pkgPath = path.join(process.cwd(), 'packages', pkgName);
-        const integrationPath = path.join(process.cwd(), 'integrations', pkgName);
-        try {
-          if (existsSync(pkgPath)) {
-            packagesToBuild.add(pkgPath);
-          } else {
-            packagesToBuild.add(integrationPath);
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      });
-
-      packagesToBuild.add(path.join(process.cwd(), 'examples', 'dane'));
-    }
-
     const pkgSet = Array.from(packagesToBuild.keys());
 
     if (!packagesToBuild.size) {
@@ -136,6 +137,11 @@ const assemblePackages = new Step({
         packages: [],
       };
     }
+
+    console.log(chalk.green(`\nBuilding packages:\n`));
+    pkgSet.forEach((pkg: string) => {
+      console.log(chalk.green(pkg));
+    });
 
     return { packages: pkgSet };
   },
@@ -161,18 +167,67 @@ const buildPackages = new Step({
       throw new Error('Agent not found');
     }
 
-    let res = await agent.generate(`
-              Here are the packages that need to be built: ${pkgSet.join(',')}.
-              Always build @mastra/core first.
-              Always build mastra second.
-              Next packages found within the 'packages' directory should be built next in parallel.
-              After packages found within the 'integrations' directory should be built in parallel.
-              dane should be built last.
-          `);
+    let res = await agent.generate(BUILD_PACKAGES_PROMPT(pkgSet));
 
     console.log(chalk.green(res.text));
 
     return { packages: pkgSet };
+  },
+});
+
+const verifyBuild = new Step({
+  id: 'verifyBuild',
+  outputSchema: z.object({
+    packages: z.array(z.string()),
+  }),
+  execute: async ({ mastra, context }) => {
+    if (context.machineContext?.stepResults.buildPackages?.status !== 'success') {
+      return {
+        packages: [],
+      };
+    }
+
+    console.log('Verifying the output for:', context.machineContext.stepResults.buildPackages.payload.packages);
+
+    const pkgSet = context.machineContext.stepResults.buildPackages.payload.packages;
+
+    function checkMissingPackages(pkgSet: string[]) {
+      const missingPackages = [];
+
+      for (const pkg of pkgSet) {
+        if (!existsSync(`${pkg}/dist`)) {
+          console.error(chalk.red(`We did not find the dist folder for ${pkg}.`));
+          missingPackages.push(pkg);
+        }
+      }
+
+      return missingPackages;
+    }
+
+    let missingPackages = checkMissingPackages(pkgSet);
+
+    if (missingPackages.length > 0) {
+      const agent = mastra?.agents?.['danePackagePublisher'];
+
+      if (!agent) {
+        throw new Error('Agent not found');
+      }
+
+      let res = await agent.generate(`These packages were not built but need to be: ${missingPackages.join(', ')}.`);
+
+      console.log(chalk.green(res.text));
+    }
+
+    missingPackages = checkMissingPackages(pkgSet);
+
+    if (missingPackages.length > 0) {
+      console.error(chalk.red(`Missing packages: ${missingPackages.join(', ')}`));
+      throw new Error('Failed to build one or more packages');
+    }
+
+    return {
+      packages: pkgSet,
+    };
   },
 });
 
@@ -195,9 +250,8 @@ const publishChangeset = new Step({
     if (!agent) {
       throw new Error('Agent not found');
     }
-    let res = await agent.generate(`
-            Publish the changeset.
-        `);
+
+    const res = await agent.generate(PUBLISH_PACKAGES_PROMPT);
 
     console.log(chalk.green(res.text));
 
@@ -246,7 +300,16 @@ packagePublisher
       );
     },
   })
-  .then(publishChangeset, {
+  .then(verifyBuild, {
+    when: async ({ context }) => {
+      return (
+        context.stepResults.buildPackages?.status === 'success' &&
+        context.stepResults.buildPackages?.payload?.packages.length > 0
+      );
+    },
+  })
+  .after(verifyBuild)
+  .step(publishChangeset, {
     when: async ({ context }) => {
       return (
         context.stepResults.buildPackages?.status === 'success' &&

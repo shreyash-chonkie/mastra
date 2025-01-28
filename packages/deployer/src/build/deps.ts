@@ -1,21 +1,24 @@
-import { execa } from 'execa';
+import { MastraBase } from '@mastra/core';
 import fs from 'fs';
 import path, { dirname } from 'path';
-import { PackageJson } from 'type-fest';
+import type { PackageJson } from 'type-fest';
 import { fileURLToPath } from 'url';
 
 import fsExtra from 'fs-extra/esm';
 import fsPromises from 'fs/promises';
 
-export class Deps {
+import { createChildProcessLogger } from '../deploy/log.js';
+
+export class Deps extends MastraBase {
   private packageManager: string;
 
   constructor() {
+    super({ component: 'DEPLOYER', name: 'DEPS' });
     this.packageManager = this.getPackageManager();
   }
 
   private findLockFile(dir: string): string | null {
-    const lockFiles = ['pnpm-lock.yaml', 'package-lock.json', 'yarn.lock'];
+    const lockFiles = ['pnpm-lock.yaml', 'package-lock.json', 'yarn.lock', 'bun.lock'];
     for (const file of lockFiles) {
       if (fs.existsSync(path.join(dir, file))) {
         return file;
@@ -37,6 +40,8 @@ export class Deps {
         return 'npm';
       case 'yarn.lock':
         return 'yarn';
+      case 'bun.lock':
+        return 'bun';
       default:
         return 'npm';
     }
@@ -50,11 +55,17 @@ export class Deps {
       runCommand = `${this.packageManager} ${packages?.length > 0 ? `add` : `install`}`;
     }
 
-    return execa(`${runCommand}`, packages, {
-      cwd: dir,
-      all: true,
-      shell: true,
-      stdio: 'inherit',
+    const cpLogger = createChildProcessLogger({
+      logger: this.logger,
+      root: dir,
+    });
+
+    return cpLogger({
+      cmd: runCommand,
+      args: packages,
+      env: {
+        PATH: process.env.PATH!,
+      },
     });
   }
 
@@ -66,11 +77,17 @@ export class Deps {
       runCommand = `${this.packageManager} add`;
     }
 
-    const packageList = packages.join(' ');
-    return execa(`${runCommand} ${packageList}`, {
-      all: true,
-      shell: true,
-      stdio: 'inherit',
+    const cpLogger = createChildProcessLogger({
+      logger: this.logger,
+      root: '',
+    });
+
+    return cpLogger({
+      cmd: `${runCommand}`,
+      args: packages,
+      env: {
+        PATH: process.env.PATH!,
+      },
     });
   }
 

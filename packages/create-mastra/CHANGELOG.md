@@ -1,5 +1,35 @@
 # create-mastra
 
+## 0.1.0-alpha.29
+
+### Patch Changes
+
+- 255fc56: create mastra bundle correctly
+
+## 0.1.0-alpha.28
+
+### Patch Changes
+
+- 215a1c2: Fix bad cli create starter files copying
+
+## 0.1.0-alpha.27
+
+### Patch Changes
+
+- 932d86c: Fix build
+
+## 0.1.0-alpha.26
+
+### Patch Changes
+
+- 04434b6: Create separate logger file
+
+## 0.1.0-alpha.25
+
+### Patch Changes
+
+- b425845: Logger and execa logs
+
 ## 0.1.0-alpha.24
 
 ### Minor Changes

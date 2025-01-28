@@ -1,5 +1,3 @@
-import { z } from 'zod';
-
 import 'dotenv/config';
 
 import { Agent } from '../agent';
@@ -7,33 +5,27 @@ import { MastraDeployer } from '../deployer';
 import { MastraEngine } from '../engine';
 import { LLM } from '../llm';
 import { ModelConfig } from '../llm/types';
-import { BaseLogger, createLogger, noopLogger } from '../logger';
+import { LogLevel, Logger, createLogger, noopLogger } from '../logger';
 import { MastraMemory } from '../memory';
-import { Run } from '../run/types';
-import { SyncAction } from '../sync';
 import { InstrumentClass, OtelConfig, Telemetry } from '../telemetry';
 import { MastraTTS } from '../tts';
 import { MastraVector } from '../vector';
 import { Workflow } from '../workflows';
-
-import { StripUndefined } from './types';
 
 @InstrumentClass({
   prefix: 'mastra',
   excludeMethods: ['getLogger', 'getTelemetry'],
 })
 export class Mastra<
-  TSyncs extends Record<string, SyncAction<any, any, any, any>> = Record<string, SyncAction<any, any, any, any>>,
   TAgents extends Record<string, Agent<any>> = Record<string, Agent<any>>,
   TWorkflows extends Record<string, Workflow> = Record<string, Workflow>,
   TVectors extends Record<string, MastraVector> = Record<string, MastraVector>,
   TTTS extends Record<string, MastraTTS> = Record<string, MastraTTS>,
-  TLogger extends BaseLogger = BaseLogger,
+  TLogger extends Logger = Logger,
 > {
   private vectors?: TVectors;
   private agents: TAgents;
   private logger: TLogger;
-  private syncs: TSyncs;
   private workflows: TWorkflows;
   private telemetry?: Telemetry;
   private tts?: TTTS;
@@ -43,7 +35,6 @@ export class Mastra<
 
   constructor(config?: {
     memory?: MastraMemory;
-    syncs?: TSyncs;
     agents?: TAgents;
     engine?: MastraEngine;
     vectors?: TVectors;
@@ -54,24 +45,19 @@ export class Mastra<
     deployer?: MastraDeployer;
   }) {
     /*
-    Logger
+      Logger
     */
 
+    let logger: TLogger;
     if (config?.logger === false) {
-      this.logger = noopLogger as unknown as TLogger;
+      logger = noopLogger as unknown as TLogger;
     } else {
-      let logger = createLogger({ type: 'CONSOLE', level: 'WARN' }) as unknown as TLogger;
       if (config?.logger) {
         logger = config.logger;
+      } else {
+        const levleOnEnv = process.env.NODE_ENV === 'production' ? LogLevel.WARN : LogLevel.INFO;
+        logger = createLogger({ name: 'Mastra', level: levleOnEnv }) as unknown as TLogger;
       }
-      this.logger = logger;
-    }
-
-    /**
-     * Deployer
-     **/
-    if (config?.deployer) {
-      this.deployer = config.deployer;
     }
 
     /*
@@ -79,6 +65,19 @@ export class Mastra<
     */
     if (config?.telemetry) {
       this.telemetry = Telemetry.init(config.telemetry);
+    }
+
+    /**
+     * Deployer
+     **/
+    if (config?.deployer) {
+      this.deployer = config.deployer;
+      if (this.telemetry) {
+        this.deployer = this.telemetry.traceClass(config.deployer, {
+          excludeMethods: ['__setTelemetry', '__getTelemetry'],
+        });
+        this.deployer.__setTelemetry(this.telemetry);
+      }
     }
 
     /*
@@ -110,23 +109,9 @@ export class Mastra<
           vectors[key] = vector;
         }
       });
+
       this.vectors = vectors as TVectors;
     }
-
-    /*
-    Syncs
-    */
-    if (config?.syncs && !config.engine) {
-      throw new Error('Engine is required to run syncs');
-    }
-
-    this.syncs = (config?.syncs || {}) as TSyncs;
-
-    if (config?.syncs && !config?.engine) {
-      throw new Error('Engine is required to run syncs');
-    }
-
-    this.syncs = (config?.syncs || {}) as TSyncs;
 
     if (config?.engine) {
       this.engine = config.engine;
@@ -136,10 +121,29 @@ export class Mastra<
       this.vectors = config.vectors;
     }
 
-    this.memory = config?.memory;
+    if (config?.memory) {
+      this.memory = config.memory;
+      if (this.telemetry) {
+        this.memory = this.telemetry.traceClass(config.memory, {
+          excludeMethods: ['__setTelemetry', '__getTelemetry'],
+        });
+        this.memory.__setTelemetry(this.telemetry);
+      }
+    }
 
     if (config?.tts) {
       this.tts = config.tts;
+      Object.entries(this.tts).forEach(([key, ttsCl]) => {
+        if (this.tts?.[key]) {
+          if (this.telemetry) {
+            // @ts-ignore
+            this.tts[key] = this.telemetry.traceClass(ttsCl, {
+              excludeMethods: ['__setTelemetry', '__getTelemetry'],
+            });
+            this.tts[key].__setTelemetry(this.telemetry);
+          }
+        }
+      });
     }
 
     /*
@@ -157,7 +161,6 @@ export class Mastra<
           telemetry: this.telemetry,
           engine: this.engine,
           memory: this.memory,
-          syncs: this.syncs,
           agents: agents,
           tts: this.tts,
           vectors: this.vectors,
@@ -181,7 +184,6 @@ export class Mastra<
           telemetry: this.telemetry,
           engine: this.engine,
           memory: this.memory,
-          syncs: this.syncs,
           agents: this.agents,
           tts: this.tts,
           vectors: this.vectors,
@@ -192,6 +194,9 @@ export class Mastra<
         this.workflows[key] = workflow;
       });
     }
+
+    this.logger = logger;
+    this.setLogger({ logger });
   }
 
   LLM(modelConfig: ModelConfig) {
@@ -208,43 +213,6 @@ export class Mastra<
     }
 
     return llm;
-  }
-
-  public async sync<K extends keyof TSyncs>(
-    key: K,
-    params: TSyncs[K] extends SyncAction<any, infer TSchemaIn, any, any>
-      ? TSchemaIn extends z.ZodSchema
-        ? z.infer<TSchemaIn>
-        : never
-      : never,
-    runId?: Run['runId'],
-  ): Promise<StripUndefined<TSyncs[K]['outputSchema']>['_input']> {
-    if (!this.engine) {
-      throw new Error(`Engine is required to run syncs`);
-    }
-
-    const sync = this.syncs?.[key];
-    if (!sync) {
-      throw new Error(`Sync function ${key as string} not found`);
-    }
-
-    const syncFn = sync['execute'];
-    if (!syncFn) {
-      throw new Error(`Sync function ${key as string} not found`);
-    }
-
-    return await syncFn({
-      context: params,
-      mastra: {
-        engine: this.engine,
-        memory: this.memory,
-        agents: this.agents,
-        vectors: this.vectors,
-        llm: this.LLM,
-        tts: this.tts,
-      },
-      runId,
-    });
   }
 
   public getAgent<TAgentName extends keyof TAgents>(name: TAgentName): TAgents[TAgentName] {
@@ -305,6 +273,41 @@ export class Mastra<
 
   public setLogger({ logger }: { logger: TLogger }) {
     this.logger = logger;
+
+    if (this.agents) {
+      Object.keys(this.agents).forEach(key => {
+        this.agents?.[key]?.__setLogger(this.logger);
+      });
+    }
+
+    if (this.workflows) {
+      Object.keys(this.workflows).forEach(key => {
+        this.workflows?.[key]?.__setLogger(this.logger);
+      });
+    }
+
+    if (this.memory) {
+      this.memory.__setLogger(this.logger);
+    }
+
+    if (this.deployer) {
+      this.deployer.__setLogger(this.logger);
+    }
+
+    if (this.tts) {
+      Object.keys(this.tts).forEach(key => {
+        this.tts?.[key]?.__setLogger(this.logger);
+      });
+    }
+    if (this.engine) {
+      this.engine.__setLogger(this.logger);
+    }
+
+    if (this.vectors) {
+      Object.keys(this.vectors).forEach(key => {
+        this.vectors?.[key]?.__setLogger(this.logger);
+      });
+    }
   }
 
   public getLogger() {
@@ -315,11 +318,17 @@ export class Mastra<
     return this.telemetry;
   }
 
-  public async getLogsByRunId(runId: string) {
-    return await this.logger.getLogsByRunId(runId);
+  public async getLogsByRunId({ runId, transportId }: { runId: string; transportId: string }) {
+    if (!transportId) {
+      throw new Error('Transport ID is required');
+    }
+    return await this.logger.getLogsByRunId({ runId, transportId });
   }
 
-  public async getLogs() {
-    return await this.logger.getLogs();
+  public async getLogs(transportId: string) {
+    if (!transportId) {
+      throw new Error('Transport ID is required');
+    }
+    return await this.logger.getLogs(transportId);
   }
 }

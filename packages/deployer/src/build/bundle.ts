@@ -1,4 +1,4 @@
-import { Workflow, Step } from '@mastra/core';
+import { Workflow, Step, noopLogger, Logger, createLogger } from '@mastra/core';
 import * as esbuild from 'esbuild';
 import { type BuildOptions } from 'esbuild';
 import { join } from 'path';
@@ -6,6 +6,11 @@ import { z } from 'zod';
 
 import { FileService } from './fs.js';
 import { upsertMastraDir } from './utils.js';
+
+const logger = createLogger({
+  name: 'Mastra CLI',
+  level: 'debug',
+});
 
 const buildWorkflow = new Workflow({
   name: 'Build',
@@ -17,8 +22,6 @@ const buildWorkflow = new Workflow({
     devMode: z.boolean().optional(),
   }),
 });
-
-buildWorkflow.__setLogger(null as any);
 
 const ensureDir = new Step({
   id: 'Ensure Directory',
@@ -137,14 +140,37 @@ const bundleStep = new Step({
         '@mastra/rag',
         '@mastra/evals',
         '@mastra/mcp',
-        '@mastra/tts',
         '@mastra/firecrawl',
         '@mastra/github',
         '@mastra/stabilityai',
+
+        // Your deployer packages
         '@mastra/deployer',
         '@mastra/deployer-cloudflare',
         '@mastra/deployer-netlify',
         '@mastra/deployer-vercel',
+
+        // Your speech packages
+        '@mastra/speech-elevenlabs',
+        '@mastra/speech-openai',
+        '@mastra/speech-playai',
+        '@mastra/speech-azure',
+        '@mastra/speech-deepgram',
+        '@mastra/speech-google',
+        '@mastra/speech-ibm',
+        '@mastra/speech-murf',
+        '@mastra/speech-speechify',
+        '@mastra/speech-replicate',
+
+        // Your vector store packages
+        '@mastra/vector-astra',
+        '@mastra/vector-chroma',
+        '@mastra/vector-libsql',
+        '@mastra/vector-pg',
+        '@mastra/vector-pinecone',
+        '@mastra/vector-qdrant',
+        '@mastra/vector-upstash',
+        '@mastra/vector-vectorize',
       ],
       plugins,
     };
@@ -161,14 +187,14 @@ const bundleStep = new Step({
     const result = await esbuild.build(esbuildConfig);
 
     if (devMode && missingMastraDependency) {
-      console.error(
+      logger.error(
         `Missing Mastra dependency. Please install the mastra package in your project or globally using npm i -g mastra`,
       );
       process.exit(1);
     }
 
     // Log build results
-    console.log(`[${buildName}]: build completed successfully`);
+    logger.info(`[${buildName}]: completed successfully`);
 
     return result;
   },
@@ -198,6 +224,8 @@ export async function bundle(
 ) {
   const { start } = buildWorkflow.createRun();
 
+  buildWorkflow.__setLogger(noopLogger as unknown as Logger);
+
   try {
     await start({
       triggerData: {
@@ -208,12 +236,8 @@ export async function bundle(
         devMode,
       },
     });
-
-    // console.log(JSON.stringify(result, null, 2));
-
-    // return result;
   } catch (error) {
-    console.error('Failed to build:', error);
+    logger.error('Failed to build:', { error });
     process.exit(1);
   }
 }

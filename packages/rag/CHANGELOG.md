@@ -1,5 +1,125 @@
 # @mastra/rag
 
+## 0.0.2-alpha.68
+
+### Patch Changes
+
+- 685108a: Remove syncs and excess rag
+- Updated dependencies [685108a]
+- Updated dependencies [685108a]
+  - @mastra/core@0.1.27-alpha.78
+
+## 0.0.2-alpha.67
+
+### Patch Changes
+
+- 8105fae: Split embed into embed and embedMany to handle different return types
+- ecdee97: Update return type for chunk to Chunk[]
+- Updated dependencies [8105fae]
+  - @mastra/core@0.1.27-alpha.77
+
+## 0.0.2-alpha.66
+
+### Patch Changes
+
+- 9c0d010: Deprecated Reranker in favor of rerank function (BREAKING CHANGE)
+
+## 0.0.2-alpha.65
+
+### Patch Changes
+
+- Updated dependencies [ae7bf94]
+- Updated dependencies [ae7bf94]
+  - @mastra/core@0.1.27-alpha.76
+
+## 0.0.2-alpha.64
+
+### Patch Changes
+
+- Updated dependencies [23dcb23]
+  - @mastra/core@0.1.27-alpha.75
+
+## 0.0.2-alpha.63
+
+### Patch Changes
+
+- Updated dependencies [7b87567]
+  - @mastra/core@0.1.27-alpha.74
+
+## 0.0.2-alpha.62
+
+### Patch Changes
+
+- Updated dependencies [3427b95]
+  - @mastra/core@0.1.27-alpha.73
+
+## 0.0.2-alpha.61
+
+### Patch Changes
+
+- Updated dependencies [e4d4ede]
+- Updated dependencies [06b2c0a]
+  - @mastra/core@0.1.27-alpha.72
+
+## 0.0.2-alpha.60
+
+### Patch Changes
+
+- Updated dependencies [d9c8dd0]
+  - @mastra/core@0.1.27-alpha.71
+
+## 0.0.2-alpha.59
+
+### Patch Changes
+
+- bdaf834: publish packages
+
+## 0.0.2-alpha.58
+
+### Patch Changes
+
+- Updated dependencies [dd6d87f]
+- Updated dependencies [04434b6]
+  - @mastra/core@0.1.27-alpha.70
+
+## 0.0.2-alpha.57
+
+### Patch Changes
+
+- ab1dc59: Add Cloudflare vectorize
+- 4769753: Added turso/libsql support for RAG
+
+## 0.0.2-alpha.56
+
+### Patch Changes
+
+- ee856f3: Updated pg filter function and updated docs and example
+- c3047a7: Added tests
+
+## 0.0.2-alpha.55
+
+### Patch Changes
+
+- 1944807: Unified logger and major step in better logs
+- Updated dependencies [1944807]
+- Updated dependencies [9ade36e]
+  - @mastra/core@0.1.27-alpha.69
+
+## 0.0.2-alpha.54
+
+### Patch Changes
+
+- Updated dependencies [0be7181]
+- Updated dependencies [0be7181]
+  - @mastra/core@0.1.27-alpha.68
+
+## 0.0.2-alpha.53
+
+### Patch Changes
+
+- Updated dependencies [c8ff2f5]
+  - @mastra/core@0.1.27-alpha.67
+
 ## 0.0.2-alpha.52
 
 ### Patch Changes

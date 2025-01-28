@@ -16,12 +16,12 @@ export const createMastra = ({
     memory: pgMemory,
     agents: { cryptoAgent: createCryptoAgent(modelProvider, modelName) },
     logger: createLogger({
-      type: 'CONSOLE',
-      level: 'DEBUG',
+      name: 'CONSOLE',
+      level: 'debug',
     }),
   });
 
 export const mastra = createMastra({
-  modelProvider: 'ANTHROPIC',
-  modelName: 'claude-3-haiku-20240307',
+  modelProvider: 'OPEN_AI',
+  modelName: 'gpt-4o-mini',
 });

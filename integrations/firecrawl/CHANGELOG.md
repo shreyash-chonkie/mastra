@@ -1,5 +1,140 @@
 # @mastra/firecrawl
 
+## 1.0.4-alpha.70
+
+### Patch Changes
+
+- 685108a: Remove syncs and excess rag
+- 685108a: Removing mastra syncs
+- Updated dependencies [685108a]
+- Updated dependencies [685108a]
+  - @mastra/core@0.1.27-alpha.78
+  - @mastra/rag@0.0.2-alpha.68
+
+## 1.0.4-alpha.69
+
+### Patch Changes
+
+- Updated dependencies [8105fae]
+- Updated dependencies [ecdee97]
+  - @mastra/core@0.1.27-alpha.77
+  - @mastra/rag@0.0.2-alpha.67
+
+## 1.0.4-alpha.68
+
+### Patch Changes
+
+- Updated dependencies [9c0d010]
+  - @mastra/rag@0.0.2-alpha.66
+
+## 1.0.4-alpha.67
+
+### Patch Changes
+
+- Updated dependencies [ae7bf94]
+- Updated dependencies [ae7bf94]
+  - @mastra/core@0.1.27-alpha.76
+  - @mastra/rag@0.0.2-alpha.65
+
+## 1.0.4-alpha.66
+
+### Patch Changes
+
+- Updated dependencies [23dcb23]
+  - @mastra/core@0.1.27-alpha.75
+  - @mastra/rag@0.0.2-alpha.64
+
+## 1.0.4-alpha.65
+
+### Patch Changes
+
+- Updated dependencies [7b87567]
+  - @mastra/core@0.1.27-alpha.74
+  - @mastra/rag@0.0.2-alpha.63
+
+## 1.0.4-alpha.64
+
+### Patch Changes
+
+- Updated dependencies [3427b95]
+  - @mastra/core@0.1.27-alpha.73
+  - @mastra/rag@0.0.2-alpha.62
+
+## 1.0.4-alpha.63
+
+### Patch Changes
+
+- Updated dependencies [e4d4ede]
+- Updated dependencies [06b2c0a]
+  - @mastra/core@0.1.27-alpha.72
+  - @mastra/rag@0.0.2-alpha.61
+
+## 1.0.4-alpha.62
+
+### Patch Changes
+
+- Updated dependencies [d9c8dd0]
+  - @mastra/core@0.1.27-alpha.71
+  - @mastra/rag@0.0.2-alpha.60
+
+## 1.0.4-alpha.61
+
+### Patch Changes
+
+- Updated dependencies [bdaf834]
+  - @mastra/rag@0.0.2-alpha.59
+
+## 1.0.4-alpha.60
+
+### Patch Changes
+
+- Updated dependencies [dd6d87f]
+- Updated dependencies [04434b6]
+  - @mastra/core@0.1.27-alpha.70
+  - @mastra/rag@0.0.2-alpha.58
+
+## 1.0.4-alpha.59
+
+### Patch Changes
+
+- Updated dependencies [ab1dc59]
+- Updated dependencies [4769753]
+  - @mastra/rag@0.0.2-alpha.57
+
+## 1.0.4-alpha.58
+
+### Patch Changes
+
+- Updated dependencies [ee856f3]
+- Updated dependencies [c3047a7]
+  - @mastra/rag@0.0.2-alpha.56
+
+## 1.0.4-alpha.57
+
+### Patch Changes
+
+- Updated dependencies [1944807]
+- Updated dependencies [9ade36e]
+  - @mastra/core@0.1.27-alpha.69
+  - @mastra/rag@0.0.2-alpha.55
+
+## 1.0.4-alpha.56
+
+### Patch Changes
+
+- Updated dependencies [0be7181]
+- Updated dependencies [0be7181]
+  - @mastra/core@0.1.27-alpha.68
+  - @mastra/rag@0.0.2-alpha.54
+
+## 1.0.4-alpha.55
+
+### Patch Changes
+
+- Updated dependencies [c8ff2f5]
+  - @mastra/core@0.1.27-alpha.67
+  - @mastra/rag@0.0.2-alpha.53
+
 ## 1.0.4-alpha.54
 
 ### Patch Changes

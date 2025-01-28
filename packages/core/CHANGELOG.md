@@ -1,5 +1,83 @@
 # @mastra/core
 
+## 0.1.27-alpha.78
+
+### Patch Changes
+
+- 685108a: Remove syncs and excess rag
+- 685108a: Removing mastra syncs
+
+## 0.1.27-alpha.77
+
+### Patch Changes
+
+- 8105fae: Split embed into embed and embedMany to handle different return types
+
+## 0.1.27-alpha.76
+
+### Patch Changes
+
+- ae7bf94: Fix loggers messing up deploys
+- ae7bf94: Changeset
+
+## 0.1.27-alpha.75
+
+### Patch Changes
+
+- 23dcb23: Redeploy core
+
+## 0.1.27-alpha.74
+
+### Patch Changes
+
+- 7b87567: Propagate setLogger calls to more places
+
+## 0.1.27-alpha.73
+
+### Patch Changes
+
+- 3427b95: Updated docs to include intermediate rag examples (metadata filtering, query filters, etc)
+
+## 0.1.27-alpha.72
+
+### Patch Changes
+
+- e4d4ede: Better setLogger()
+- 06b2c0a: Update summarization prompt and fix eval input
+
+## 0.1.27-alpha.71
+
+### Patch Changes
+
+- d9c8dd0: Logger changes for default transports
+
+## 0.1.27-alpha.70
+
+### Patch Changes
+
+- dd6d87f: Update Agent and LLM config to accept temperature setting
+- 04434b6: Create separate logger file
+
+## 0.1.27-alpha.69
+
+### Patch Changes
+
+- 1944807: Unified logger and major step in better logs
+- 9ade36e: Changed measure for evals, added endpoints, attached metrics to agent, added ui for evals in playground, and updated docs
+
+## 0.1.27-alpha.68
+
+### Patch Changes
+
+- 0be7181: Fix forward version
+- 0be7181: Add perplexity models
+
+## 0.1.27-alpha.67
+
+### Patch Changes
+
+- c8ff2f5: Fixed passing CoreMessages to stream/generate where the role is not user. Previously all messages would be rewritten to have role: "user"
+
 ## 0.1.27-alpha.66
 
 ### Patch Changes

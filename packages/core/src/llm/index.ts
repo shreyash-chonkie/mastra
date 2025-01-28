@@ -27,7 +27,6 @@ import 'dotenv/config';
 import { ToolsInput } from '../agent/types';
 import { MastraBase } from '../base';
 import { LogLevel, RegisteredLogger } from '../logger';
-import { Run } from '../run/types';
 import { InstrumentClass } from '../telemetry/telemetry.decorators';
 import { CoreTool } from '../tools/types';
 import { delay } from '../utils';
@@ -36,11 +35,14 @@ import {
   CustomModelConfig,
   GenerateReturn,
   GoogleGenerativeAISettings,
+  LLMInnerStreamOptions,
   LLMProvider,
+  LLMStreamObjectOptions,
+  LLMStreamOptions,
+  LLMTextObjectOptions,
+  LLMTextOptions,
   ModelConfig,
-  OutputType,
   StreamReturn,
-  StructuredOutput,
 } from './types';
 
 @InstrumentClass({
@@ -83,7 +85,10 @@ export class LLM extends MastraBase {
     };
     const type = providerToType[model.provider as LLMProvider] ?? model.provider;
 
-    this.log(LogLevel.DEBUG, `Model type resolved to ${type} for provider ${model.provider}`);
+    this.logger.debug(`[LLM] - Model resolved to provider ${model.provider}`, {
+      sdk_type: type,
+      provider: model.provider,
+    });
 
     return type;
   }
@@ -119,12 +124,14 @@ export class LLM extends MastraBase {
       toolChoice?: 'auto' | 'required';
       baseURL?: string;
       fetch?: typeof globalThis.fetch;
+      apiVersion?: string;
+      headers?: Record<string, string>;
       apiKey?: string;
     };
   }): LanguageModelV1 {
     let modelDef: LanguageModelV1;
     if (model.type === 'openai') {
-      this.log(LogLevel.DEBUG, `Initializing OpenAI model ${model.name || 'gpt-4o-2024-08-06'}`);
+      this.logger.debug(`[LLM] - Initializing OpenAI model ${model.name || 'gpt-4o-2024-08-06'}`);
       const openai = createOpenAI({
         apiKey: model?.apiKey || process.env.OPENAI_API_KEY,
       });
@@ -232,6 +239,10 @@ export class LLM extends MastraBase {
       const azure = createAzure({
         resourceName: process.env.AZURE_RESOURCE_NAME || '',
         apiKey: model?.apiKey || process.env.AZURE_API_KEY || '',
+        apiVersion: model?.apiVersion,
+        baseURL: model?.baseURL,
+        headers: model?.headers,
+        fetch: model?.fetch,
       });
       modelDef = azure(model.name || 'gpt-35-turbo-instruct');
     } else if (model.type === 'amazon') {
@@ -282,6 +293,8 @@ export class LLM extends MastraBase {
           toolChoice?: 'auto' | 'required';
           baseURL?: string;
           apiKey?: string;
+          apiVersion?: string;
+          headers?: Record<string, string>;
           fetch?: typeof globalThis.fetch;
         } & GoogleGenerativeAISettings)
       | CustomModelConfig;
@@ -380,15 +393,8 @@ export class LLM extends MastraBase {
       convertedTools,
       runId,
       output = 'text',
-    }: {
-      runId?: string;
-      onFinish?: (result: string) => Promise<void> | void;
-      onStepFinish?: (step: string) => void;
-      maxSteps?: number;
-      tools?: ToolsInput;
-      convertedTools?: Record<string, CoreTool>;
-      output?: OutputType | Z;
-    } = {},
+      temperature,
+    }: LLMStreamOptions<Z> = {},
   ): Promise<GenerateReturn<Z>> {
     const msgs = this.convertToMessages(messages);
 
@@ -400,6 +406,7 @@ export class LLM extends MastraBase {
         tools,
         convertedTools,
         runId,
+        temperature,
       })) as unknown as GenerateReturn<Z>;
     }
 
@@ -424,15 +431,8 @@ export class LLM extends MastraBase {
       convertedTools,
       runId,
       output = 'text',
-    }: {
-      runId?: string;
-      onFinish?: (result: string) => Promise<void> | void;
-      onStepFinish?: (step: string) => void;
-      maxSteps?: number;
-      tools?: ToolsInput;
-      convertedTools?: Record<string, CoreTool>;
-      output?: OutputType | Z;
-    } = {},
+      temperature,
+    }: LLMStreamOptions<Z> = {},
   ): Promise<StreamReturn<Z>> {
     const msgs = this.convertToMessages(messages);
 
@@ -445,6 +445,7 @@ export class LLM extends MastraBase {
         tools,
         convertedTools,
         runId,
+        temperature,
       })) as unknown as StreamReturn<Z>;
     }
 
@@ -457,36 +458,23 @@ export class LLM extends MastraBase {
       tools,
       convertedTools,
       runId,
+      temperature,
     })) as unknown as StreamReturn<Z>;
   }
 
-  async __text({
-    messages,
-    onStepFinish,
-    maxSteps = 5,
-    tools,
-    runId,
-    convertedTools,
-  }: {
-    tools?: ToolsInput;
-    convertedTools?: Record<string, CoreTool>;
-    messages: CoreMessage[];
-    onStepFinish?: (step: string) => void;
-    maxSteps?: number;
-  } & Run) {
+  async __text({ messages, onStepFinish, maxSteps = 5, tools, runId, convertedTools, temperature }: LLMTextOptions) {
     const model = this.#model;
-    this.log(LogLevel.DEBUG, `Generating text with ${messages.length} messages`, { runId });
+    this.logger.debug(`[LLM] - Generating text`, {
+      runId,
+      messages,
+      maxSteps,
+      tools: Object.keys(tools || convertedTools || {}),
+    });
+
     let modelToPass;
 
     if ('name' in model) {
-      modelToPass = {
-        type: this.getModelType(),
-        name: model.name,
-        toolChoice: model.toolChoice,
-        apiKey: model.provider !== 'LM_STUDIO' ? model?.apiKey : undefined,
-        baseURL: model.provider === 'LM_STUDIO' ? model.baseURL : undefined,
-        fetch: model.provider === 'BASETEN' ? model.fetch : undefined,
-      };
+      modelToPass = this.__getNamedModel();
     } else {
       modelToPass = model;
     }
@@ -498,6 +486,7 @@ export class LLM extends MastraBase {
 
     const argsForExecute = {
       model: params.modelDef,
+      temperature,
       tools: {
         ...params.toolsConverted,
         ...params.answerTool,
@@ -506,6 +495,16 @@ export class LLM extends MastraBase {
       maxSteps,
       onStepFinish: async (props: any) => {
         onStepFinish?.(JSON.stringify(props, null, 2));
+
+        this.logger.debug('[LLM] - Step Change:', {
+          text: props?.text,
+          toolCalls: props?.toolCalls,
+          toolResults: props?.toolResults,
+          finishReason: props?.finishReason,
+          usage: props?.usage,
+          runId,
+        });
+
         if (
           props?.response?.headers?.['x-ratelimit-remaining-tokens'] &&
           parseInt(props?.response?.headers?.['x-ratelimit-remaining-tokens'], 10) < 2000
@@ -523,6 +522,24 @@ export class LLM extends MastraBase {
     });
   }
 
+  __getNamedModel() {
+    const model = this.#model;
+
+    if (!('name' in model)) {
+      throw new Error('Model name is required');
+    }
+
+    return {
+      type: this.getModelType(),
+      name: model.name,
+      toolChoice: model.toolChoice,
+      apiKey: model?.apiKey,
+      baseURL: model?.baseURL,
+      headers: model?.headers,
+      fetch: model?.fetch,
+    };
+  }
+
   async __textObject<T>({
     messages,
     onStepFinish,
@@ -531,27 +548,14 @@ export class LLM extends MastraBase {
     convertedTools,
     structuredOutput,
     runId,
-  }: {
-    structuredOutput: JSONSchema7 | z.ZodType<T> | StructuredOutput;
-    tools?: ToolsInput;
-    convertedTools?: Record<string, CoreTool>;
-    messages: CoreMessage[];
-    onStepFinish?: (step: string) => void;
-    maxSteps?: number;
-  } & Run) {
+    temperature,
+  }: LLMTextObjectOptions<T>) {
     const model = this.#model;
-    this.log(LogLevel.DEBUG, `Generating text with ${messages.length} messages`, { runId });
+    this.logger.debug(`[LLM] - Generating a text object`, { runId });
     let modelToPass;
 
     if ('name' in model) {
-      modelToPass = {
-        type: this.getModelType(),
-        name: model.name,
-        toolChoice: model.toolChoice,
-        apiKey: model.provider !== 'LM_STUDIO' ? model?.apiKey : undefined,
-        baseURL: model.provider === 'LM_STUDIO' ? model.baseURL : undefined,
-        fetch: model.provider === 'BASETEN' ? model.fetch : undefined,
-      };
+      modelToPass = this.__getNamedModel();
     } else {
       modelToPass = model;
     }
@@ -563,6 +567,7 @@ export class LLM extends MastraBase {
 
     const argsForExecute = {
       model: params.modelDef,
+      temperature,
       tools: {
         ...params.toolsConverted,
         ...params.answerTool,
@@ -570,12 +575,20 @@ export class LLM extends MastraBase {
       toolChoice: params.toolChoice,
       maxSteps,
       onStepFinish: async (props: any) => {
+        this.logger.debug('[LLM] - Step Change:', {
+          text: props?.text,
+          toolCalls: props?.toolCalls,
+          toolResults: props?.toolResults,
+          finishReason: props?.finishReason,
+          usage: props?.usage,
+        });
+
         onStepFinish?.(JSON.stringify(props, null, 2));
         if (
           props?.response?.headers?.['x-ratelimit-remaining-tokens'] &&
           parseInt(props?.response?.headers?.['x-ratelimit-remaining-tokens'], 10) < 2000
         ) {
-          this.logger.warn('Rate limit approaching, waiting 10 seconds', runId);
+          this.logger.warn('Rate limit approaching, waiting 10 seconds', { runId });
           await delay(10 * 1000);
         }
       },
@@ -611,26 +624,13 @@ export class LLM extends MastraBase {
     tools,
     runId,
     convertedTools,
-  }: {
-    tools?: ToolsInput;
-    convertedTools?: Record<string, CoreTool>;
-    messages: CoreMessage[];
-    onStepFinish?: (step: string) => void;
-    onFinish?: (result: string) => Promise<void> | void;
-    maxSteps?: number;
-  } & Run) {
+    temperature,
+  }: LLMInnerStreamOptions) {
     const model = this.#model;
     this.log(LogLevel.DEBUG, `Streaming text with ${messages.length} messages`, { runId });
     let modelToPass;
     if ('name' in model) {
-      modelToPass = {
-        type: this.getModelType(),
-        name: model.name,
-        toolChoice: model.toolChoice,
-        apiKey: model.provider !== 'LM_STUDIO' ? model?.apiKey : undefined,
-        baseURL: model.provider === 'LM_STUDIO' ? model.baseURL : undefined,
-        fetch: model.provider === 'BASETEN' ? model.fetch : undefined,
-      };
+      modelToPass = this.__getNamedModel();
     } else {
       modelToPass = model;
     }
@@ -641,6 +641,7 @@ export class LLM extends MastraBase {
     });
 
     const argsForExecute = {
+      temperature,
       model: params.modelDef,
       tools: {
         ...params.toolsConverted,
@@ -649,16 +650,32 @@ export class LLM extends MastraBase {
       toolChoice: params.toolChoice,
       maxSteps,
       onStepFinish: async (props: any) => {
+        this.logger.debug('[LLM] - Step Change:', {
+          text: props?.text,
+          toolCalls: props?.toolCalls,
+          toolResults: props?.toolResults,
+          finishReason: props?.finishReason,
+          usage: props?.usage,
+        });
+
         onStepFinish?.(JSON.stringify(props, null, 2));
         if (
           props?.response?.headers?.['x-ratelimit-remaining-tokens'] &&
           parseInt(props?.response?.headers?.['x-ratelimit-remaining-tokens'], 10) < 2000
         ) {
-          this.logger.warn('Rate limit approaching, waiting 10 seconds', runId);
+          this.logger.warn('Rate limit approaching, waiting 10 seconds', { runId });
           await delay(10 * 1000);
         }
       },
       onFinish: async (props: any) => {
+        this.logger.debug('[LLM] - On Finish:', {
+          text: props?.text,
+          toolCalls: props?.toolCalls,
+          toolResults: props?.toolResults,
+          finishReason: props?.finishReason,
+          usage: props?.usage,
+        });
+
         onFinish?.(JSON.stringify(props, null, 2));
       },
     };
@@ -679,27 +696,13 @@ export class LLM extends MastraBase {
     convertedTools,
     structuredOutput,
     runId,
-  }: {
-    structuredOutput: JSONSchema7 | z.ZodType<T> | StructuredOutput;
-    tools?: ToolsInput;
-    convertedTools?: Record<string, CoreTool>;
-    messages: CoreMessage[];
-    onStepFinish?: (step: string) => void;
-    onFinish?: (result: string) => Promise<void> | void;
-    maxSteps?: number;
-  } & Run) {
+    temperature,
+  }: LLMStreamObjectOptions<T>) {
     const model = this.#model;
     this.log(LogLevel.DEBUG, `Streaming text with ${messages.length} messages`, { runId });
     let modelToPass;
     if ('name' in model) {
-      modelToPass = {
-        type: this.getModelType(),
-        name: model.name,
-        toolChoice: model.toolChoice,
-        apiKey: model.provider !== 'LM_STUDIO' ? model?.apiKey : undefined,
-        baseURL: model.provider === 'LM_STUDIO' ? model.baseURL : undefined,
-        fetch: model.provider === 'BASETEN' ? model.fetch : undefined,
-      };
+      modelToPass = this.__getNamedModel();
     } else {
       modelToPass = model;
     }
@@ -710,6 +713,7 @@ export class LLM extends MastraBase {
     });
 
     const argsForExecute = {
+      temperature,
       model: params.modelDef,
       tools: {
         ...params.toolsConverted,
@@ -718,16 +722,32 @@ export class LLM extends MastraBase {
       toolChoice: params.toolChoice,
       maxSteps,
       onStepFinish: async (props: any) => {
+        this.logger.debug('[LLM] - Step Change:', {
+          text: props?.text,
+          toolCalls: props?.toolCalls,
+          toolResults: props?.toolResults,
+          finishReason: props?.finishReason,
+          usage: props?.usage,
+        });
+
         onStepFinish?.(JSON.stringify(props, null, 2));
         if (
           props?.response?.headers?.['x-ratelimit-remaining-tokens'] &&
           parseInt(props?.response?.headers?.['x-ratelimit-remaining-tokens'], 10) < 2000
         ) {
-          this.logger.warn('Rate limit approaching, waiting 10 seconds', runId);
+          this.logger.warn('Rate limit approaching, waiting 10 seconds', { runId });
           await delay(10 * 1000);
         }
       },
       onFinish: async (props: any) => {
+        this.logger.debug('[LLM] - On Finish:', {
+          text: props?.text,
+          toolCalls: props?.toolCalls,
+          toolResults: props?.toolResults,
+          finishReason: props?.finishReason,
+          usage: props?.usage,
+        });
+
         onFinish?.(JSON.stringify(props, null, 2));
       },
     };

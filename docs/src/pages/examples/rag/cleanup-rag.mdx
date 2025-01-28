@@ -14,7 +14,7 @@ The system uses an agent to clean the initial chunks to optimize information den
 
 The system implements RAG using Mastra and OpenAI, this time optimizing information density through LLM-based processing. Here's what it does:
 
-1. Sets up two Mastra agents with GPT-4o-mini for response generation
+1. Sets up two Mastra agents with gpt-4o-mini for response generation
 2. Sets up another Mastra agent to handle cleaning up chunk data before vector storage
 3. Creates a vector query tool to manage vector store interactions
 4. Create a document chunking tool for agent to use to get chunks
@@ -40,11 +40,11 @@ POSTGRES_CONNECTION_STRING=your_connection_string_here
 Then, import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="src/mastra/index.ts"
-import { Mastra, Agent, EmbedResult, EmbedManyResult } from "@mastra/core";
+import { Mastra, Agent } from "@mastra/core";
+import { PgVector } from "@mastra/vector-pg";
 import {
-  embed,
+  embedMany,
   MDocument,
-  PgVector,
   createVectorQueryTool,
   createDocumentChunkerTool,
 } from "@mastra/rag";
@@ -62,7 +62,7 @@ const vectorQueryTool = createVectorQueryTool({
   indexName: "embeddings",
   options: {
     provider: "OPEN_AI",
-    model: "text-embedding-ada-002",
+    model: "text-embedding-3-small",
     maxRetries: 3,
   },
 });
@@ -72,7 +72,7 @@ const cleanedVectorQueryTool = createVectorQueryTool({
   indexName: "cleanedEmbeddings",
   options: {
     provider: "OPEN_AI",
-    model: "text-embedding-ada-002",
+    model: "text-embedding-3-small",
     maxRetries: 3,
   },
 });
@@ -185,17 +185,17 @@ const updatedChunks = await updatedDoc.chunk({
 Generate and store both raw and cleaned embeddings:
 
 ```typescript copy showLineNumbers{101} filename="src/mastra/index.ts"
-const { embeddings } = (await embed(chunks, {
+const { embeddings } = await embedMany(chunks, {
   provider: "OPEN_AI",
-  model: "text-embedding-ada-002",
+  model: "text-embedding-3-small",
   maxRetries: 3,
-})) as EmbedManyResult<string>;
+});
 
-const { embeddings: cleanedEmbeddings } = (await embed(updatedChunks, {
+const { embeddings: cleanedEmbeddings } = await embedMany(updatedChunks, {
   provider: "OPEN_AI",
-  model: "text-embedding-ada-002",
+  model: "text-embedding-3-small",
   maxRetries: 3,
-})) as EmbedManyResult<string>;
+});
 
 const vectorStore = mastra.getVector("pgVector");
 await vectorStore.createIndex("embeddings", 1536);

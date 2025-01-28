@@ -15,21 +15,21 @@ import { ToxicityMetric } from "@mastra/evals/llm";
 // Configure the model for evaluation
 const model = {
   provider: "OPEN_AI",
-  name: "gpt-4o",
-  apiKey: process.env.OPENAI_API_KEY
+  name: "gpt-4o-mini",
+  apiKey: process.env.OPENAI_API_KEY,
 };
 
 const metric = new ToxicityMetric(model, {
-  scale: 1 // Default scale is 0-1
+  scale: 1, // Default scale is 0-1
 });
 
-const result = await metric.measure({
-  input: "How is Sarah as a person?",
-  output: "Sarah is a dedicated team member who always delivers quality work."
-});
+const result = await metric.measure(
+  "How is Sarah as a person?",
+  "Sarah is a dedicated team member who always delivers quality work.",
+);
 
 console.log(result.score); // Score from 0-1 (0 = not toxic, 1 = toxic)
-console.log(result.reason); // Explanation of the toxicity assessment
+console.log(result.info.reason); // Explanation of the toxicity assessment
 ```
 
 ## Constructor Parameters
@@ -48,7 +48,7 @@ console.log(result.reason); // Explanation of the toxicity assessment
       description: "Configuration options for the metric",
       isOptional: true,
       defaultValue: "{ scale: 1 }",
-    }
+    },
   ]}
 />
 
@@ -62,7 +62,7 @@ console.log(result.reason); // Explanation of the toxicity assessment
       description: "Maximum score value (default is 1)",
       isOptional: true,
       defaultValue: "1",
-    }
+    },
   ]}
 />
 
@@ -78,10 +78,10 @@ console.log(result.reason); // Explanation of the toxicity assessment
     },
     {
       name: "output",
-      type: "string", 
+      type: "string",
       description: "The LLM's response to evaluate",
       isOptional: false,
-    }
+    },
   ]}
 />
 
@@ -95,16 +95,29 @@ console.log(result.reason); // Explanation of the toxicity assessment
       description: "Toxicity score (0 to scale, default 0-1)",
     },
     {
-      name: "reason",
-      type: "string",
-      description: "Detailed explanation of the toxicity assessment",
-    }
+      name: "info",
+      type: "object",
+      description: "Detailed toxicity info",
+      properties: [
+        {
+          type: "string",
+          parameters: [
+            {
+              name: "reason",
+              type: "string",
+              description: "Detailed explanation of the toxicity assessment",
+            },
+          ],
+        },
+      ],
+    },
   ]}
 />
 
 ## Scoring Details
 
 The metric evaluates toxicity through multiple aspects and calculates a score based on:
+
 - Personal attacks
 - Mockery or sarcasm
 - Hate speech
@@ -112,6 +125,7 @@ The metric evaluates toxicity through multiple aspects and calculates a score ba
 - Threats or intimidation
 
 The final score is normalized to the configured scale (default 0-1) where:
+
 - 0: No toxic elements detected
 - 0.1-0.3: Mild toxicity
 - 0.4-0.7: Moderate toxicity
@@ -123,21 +137,21 @@ The final score is normalized to the configured scale (default 0-1) where:
 const metric = new ToxicityMetric(
   {
     provider: "OPEN_AI",
-    name: "gpt-4o",
-    apiKey: process.env.OPENAI_API_KEY
+    name: "gpt-4o-mini",
+    apiKey: process.env.OPENAI_API_KEY,
   },
   {
-    scale: 10 // Use 0-10 scale instead of 0-1
-  }
+    scale: 10, // Use 0-10 scale instead of 0-1
+  },
 );
 
-const result = await metric.measure({
-  input: "What do you think about the new team member?",
-  output: "The new team member shows promise but needs significant improvement in basic skills."
-});
+const result = await metric.measure(
+  "What do you think about the new team member?",
+  "The new team member shows promise but needs significant improvement in basic skills.",
+);
 ```
 
 ## Related
 
 - [Tone Consistency Metric](./tone-consistency)
-{/* - [Bias Detection Metric](./bias-detection) */}
+- [Bias Metric](./bias)

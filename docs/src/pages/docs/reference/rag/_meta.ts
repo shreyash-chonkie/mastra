@@ -1,8 +1,10 @@
 const meta = {
   chunk: ".chunk()",
   embeddings: ".embed()",
-  reranker: "Reranker",
+  "extract-params": "ExtractParams",
+  rerank: "rerank()",
   document: "MDocument",
+  "metadata-filters": "Metadata Filters",
   "graph-rag": "GraphRAG",
   pgstore: "PGStore",
   pinecone: "PineconeStore",

@@ -1,5 +1,41 @@
 # docs
 
+## 0.1.1-alpha.25
+
+### Patch Changes
+
+- 8105fae: Split embed into embed and embedMany to handle different return types
+
+## 0.1.1-alpha.24
+
+### Patch Changes
+
+- 9c0d010: Deprecated Reranker in favor of rerank function (BREAKING CHANGE)
+
+## 0.1.1-alpha.23
+
+### Patch Changes
+
+- 3427b95: Updated docs to include intermediate rag examples (metadata filtering, query filters, etc)
+
+## 0.1.1-alpha.22
+
+### Patch Changes
+
+- 0d5a03d: Vector store modules
+
+## 0.1.1-alpha.21
+
+### Patch Changes
+
+- ee856f3: Updated pg filter function and updated docs and example
+
+## 0.1.1-alpha.20
+
+### Patch Changes
+
+- 9ade36e: Changed measure for evals, added endpoints, attached metrics to agent, added ui for evals in playground, and updated docs
+
 ## 0.1.1-alpha.19
 
 ### Patch Changes

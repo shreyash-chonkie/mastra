@@ -14,7 +14,7 @@ This system uses metadata filters to search for relevant chunks in the vector st
 
 The system implements RAG using Mastra and OpenAI. Here's what it does:
 
-1. Sets up a Mastra agent with GPT-4o-mini for response generation
+1. Sets up a Mastra agent with gpt-4o-mini for response generation
 2. Creates a vector query tool to manage vector store interactions
 3. Chunks text documents into smaller segments
 4. Creates embeddings for these chunks
@@ -37,8 +37,9 @@ POSTGRES_CONNECTION_STRING=your_connection_string_here
 Then, import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="src/mastra/index.ts"
-import { Mastra, Agent, EmbedResult, EmbedManyResult } from "@mastra/core";
-import { createVectorQueryTool, embed, MDocument, PgVector } from "@mastra/rag";
+import { Mastra, Agent } from "@mastra/core";
+import { PgVector } from "@mastra/vector-pg";
+import { createVectorQueryTool, embedMany, MDocument } from "@mastra/rag";
 ```
 
 ## Vector Query Tool Creation
@@ -51,7 +52,7 @@ const vectorQueryTool = createVectorQueryTool({
   indexName: "embeddings",
   options: {
     provider: "OPEN_AI",
-    model: "text-embedding-ada-002",
+    model: "text-embedding-3-small",
     maxRetries: 3,
   },
   topK: 3,
@@ -116,11 +117,11 @@ const chunks = await doc.chunk({
 Generate embeddings for the chunks and store them in the vector database:
 
 ```typescript copy showLineNumbers{48} filename="src/mastra/index.ts"
-const { embeddings } = (await embed(chunks, {
+const { embeddings } = await embedMany(chunks, {
   provider: "OPEN_AI",
-  model: "text-embedding-ada-002",
+  model: "text-embedding-3-small",
   maxRetries: 3,
-})) as EmbedManyResult<string>;
+});
 
 const vectorStore = mastra.getVector("pgVector");
 await vectorStore.createIndex("embeddings", 1536);
@@ -130,6 +131,13 @@ await vectorStore.upsert(
   chunks?.map((chunk: any) => ({
     text: chunk.text,
     ...chunk.metadata,
+    nested: {
+      keywords: chunk.metadata.excerptKeywords
+        .replace("KEYWORDS:", "")
+        .split(",")
+        .map((k) => k.trim()),
+      id: index,
+    },
   })),
 );
 ```
@@ -139,21 +147,23 @@ await vectorStore.upsert(
 Function to generate responses based on retrieved context:
 
 ```typescript copy showLineNumbers{65} filename="src/mastra/index.ts"
-async function generateResponse(
-  query: string,
-  filter: {
-    keyword: string;
-    operator: string;
-    value: string;
-  },
-) {
-  const { keyword, operator, value } = filter;
+async function generateResponse(query: string, filter: any) {
+  const buildFilterString = (f: any): string => {
+    if ("type" in f) {
+      return `type:${f.type} condition with filters: [${f.filters
+        .map(buildFilterString)
+        .join(", ")}]`;
+    }
+    return `keyword: ${f.keyword} operator: ${f.operator} value: ${f.value}`;
+  };
+  const filterDescription = buildFilterString(filter);
   const prompt = `
       Please answer the following question:
       ${query}
 
-      Please base your answer only on the context provided in the tool using this keyword: ${keyword}, this operator: ${operator}, and this value: ${value}.
-      If the context doesn't contain enough information to fully answer the question, please state that explicitly.
+    Please base your answer only on the context provided in the tool using these filter conditions:
+    ${filterDescription}
+    If the context doesn't contain enough information to fully answer the question, please state that explicitly.
       `;
 
   // Call the agent to generate a response
@@ -165,15 +175,11 @@ async function generateResponse(
 
 ## Example Usage
 
-```typescript copy showLineNumbers{87} filename="src/mastra/index.ts"
+```typescript copy showLineNumbers{89} filename="src/mastra/index.ts"
 async function answerQueries(
   queries: {
     query: string;
-    filter: {
-      keyword: string;
-      operator: string;
-      value: string;
-    };
+    filter: any;
   }[],
 ) {
   for (const { query, filter } of queries) {
@@ -192,21 +198,53 @@ const queries = [
   {
     query: "What adaptation strategies are mentioned?",
     filter: {
-      keyword: "excerptKeywords",
+      keyword: "nested.keywords",
       operator: "ilike",
-      value: `%adaptation%`,
+      value: "adaptation",
     },
   },
   {
-    query: "How do temperatures affect crop yields specifically?",
-    filter: { keyword: "excerptKeywords", operator: "ilike", value: `%crop%` },
+    query: "Show me recent sections",
+    filter: {
+      keyword: "nested.id",
+      operator: "gt",
+      value: "2",
+    },
   },
   {
-    query: "What are the future challenges?",
+    query: "Find sections about drought and irrigation",
     filter: {
-      keyword: "excerptKeywords",
-      operator: "ilike",
-      value: `%technologies%`,
+      type: "$and",
+      filters: [
+        {
+          keyword: "text",
+          operator: "ilike",
+          value: "drought",
+        },
+        {
+          keyword: "text",
+          operator: "ilike",
+          value: "irrigation",
+        },
+      ],
+    },
+  },
+  {
+    query: "Find sections about wheat or rice",
+    filter: {
+      type: "$or",
+      filters: [
+        {
+          keyword: "text",
+          operator: "ilike",
+          value: "wheat",
+        },
+        {
+          keyword: "text",
+          operator: "ilike",
+          value: "rice",
+        },
+      ],
     },
   },
 ];

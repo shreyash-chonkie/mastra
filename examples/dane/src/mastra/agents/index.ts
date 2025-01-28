@@ -7,9 +7,8 @@ import { execaTool } from '../tools/execa.js';
 import { fsTool } from '../tools/fs.js';
 import { imageTool } from '../tools/image.js';
 import { readPDF } from '../tools/pdf.js';
-import { activeDistTag, pnpmBuild, pnpmChangesetPublish, pnpmChangesetStatus } from '../tools/pnpm.js';
 
-import { getBaseModelConfig } from './model';
+import { getBaseModelConfig } from './model.js';
 
 export const daneCommitMessage = new Agent({
   name: 'DaneCommitMessage',
@@ -30,22 +29,6 @@ export const daneIssueLabeler = new Agent({
     You help engineers label their issues.
     `,
   model: getBaseModelConfig(),
-});
-
-export const danePackagePublisher = new Agent({
-  name: 'DanePackagePublisher',
-  instructions: `
-    You are Dane, the ultimate node module publisher.
-    You help engineers publish their pnpm changesets.
-    `,
-  model: getBaseModelConfig(),
-  tools: {
-    execaTool,
-    pnpmBuild,
-    pnpmChangesetPublish,
-    pnpmChangesetStatus,
-    activeDistTag,
-  },
 });
 
 export const daneLinkChecker = new Agent({
