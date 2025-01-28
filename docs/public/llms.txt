@@ -10244,7 +10244,7 @@ The `.generate()` method is used to interact with the TTS model to produce an au
 ### Basic Audio Generation (ElevenLabs)
 
 ```typescript
-import { ElevenLabsTTS } from '@mastra/tts'
+import { ElevenLabsTTS } from '@mastra/tts/elevenlabs'
 
 const tts = new ElevenLabsTTS({
   model: {
@@ -10264,7 +10264,7 @@ await writeFile(path.join(process.cwd(), '/test-outputs/generate-output.mp3'), a
 ### Basic Audio Generation (OpenAI)
 
 ```typescript
-import { OpenAITTS } from '@mastra/tts'
+import { OpenAITTS } from '@mastra/tts/openai'
 
 const tts = new OpenAITTS({
   model: {
@@ -10285,7 +10285,7 @@ writeFileSync(outputPath, audioResult);
 ### Basic Audio Generation (OpenAI)
 
 ```typescript
-import { PlayAITTS } from '@mastra/tts'
+import { PlayAITTS } from '@mastra/tts/playai'
 
 const tts = new PlayAITTS({
   model: {
@@ -10376,7 +10376,7 @@ The `stream()` method is used to interact with the TTS model to produce an audio
 ### Basic Audio Stream (ElevenLabs)
 
 ```typescript
-import { ElevenLabsTTS } from '@mastra/tts'
+import { ElevenLabsTTS } from '@mastra/tts/elevenlabs'
 
  const tts = new ElevenLabsTTS({
     model: {
@@ -10419,7 +10419,7 @@ writeStream.end()
 ### Basic Audio Stream (OpenAI)
 
 ```typescript
-import { OpenAITTS } from '@mastra/tts'
+import { OpenAITTS } from '@mastra/tts/openai'
 
  const tts = new OpenAITTS({
     model: {
@@ -10462,7 +10462,7 @@ writeStream.end()
 ### Basic Audio Stream (PlayAI)
 
 ```typescript
-import { PlayAITTS } from '@mastra/tts'
+import { PlayAITTS } from '@mastra/tts/playai'
 
  const tts = new PlayAITTS({
     model: {
