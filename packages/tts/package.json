@@ -3,25 +3,38 @@
   "version": "0.0.1-alpha.25",
   "description": "",
   "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "import": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
-      },
-      "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.cjs"
+      }
+    },
+    "./elevenlabs": {
+      "import": {
+        "types": "./dist/elevenlabs/index.d.ts",
+        "default": "./dist/elevenlabs/index.js"
+      }
+    },
+    "./openai": {
+      "import": {
+        "types": "./dist/openai/index.d.ts",
+        "default": "./dist/openai/index.js"
+      }
+    },
+    "./playai": {
+      "import": {
+        "types": "./dist/playai/index.d.ts",
+        "default": "./dist/playai/index.js"
       }
     },
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsup-node src/elevenlabs/index.ts src/openai/index.ts src/playai/index.ts --format esm --dts --clean --treeshake",
+    "dev": "tsup-node src/elevenlabs/index.ts src/openai/index.ts src/playai/index.ts --format esm --dts --clean --treeshake --watch",
     "test": "vitest run"
   },
   "keywords": [],
