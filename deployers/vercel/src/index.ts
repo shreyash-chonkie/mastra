@@ -19,7 +19,7 @@ export class VercelDeployer extends MastraDeployer {
   constructor({ scope, env, projectName }: { env?: Record<string, any>; scope: string; projectName: string }) {
     super({ scope, env, projectName });
   }
-  writeFiles({ dir }: { dir: string }): void {
+  override writeFiles({ dir }: { dir: string }): void {
     this.writeIndex({ dir });
 
     writeFileSync(
@@ -111,7 +111,7 @@ export class VercelDeployer extends MastraDeployer {
     }
   }
 
-  async deploy({ dir, token }: { dir: string; token: string }): Promise<void> {
+  override async deploy({ dir, token }: { dir: string; token: string }): Promise<void> {
     // Get env vars for initial deployment
     const envFiles = this.getEnvFiles();
     const envVars: string[] = [];
@@ -159,7 +159,7 @@ export class VercelDeployer extends MastraDeployer {
     }
   }
 
-  writeIndex({ dir }: { dir: string }): void {
+  override writeIndex({ dir }: { dir: string }): void {
     writeFileSync(
       join(dir, 'index.mjs'),
       `
