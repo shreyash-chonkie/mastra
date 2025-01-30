@@ -30,7 +30,7 @@ describe('MastraStorageLibSql', () => {
       type: 'text',
       threadId,
       content: [{ type: 'text', text: 'Hello' }],
-      created_at: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     }) as any;
 
   beforeAll(async () => {
