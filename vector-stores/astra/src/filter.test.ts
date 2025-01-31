@@ -224,6 +224,10 @@ describe('AstraFilterTranslator', () => {
       expect(() => translator.translate({ $not: 'value' })).toThrow();
       expect(() => translator.translate({ $not: [{ field: 'value' }] })).toThrow();
     });
+
+    it('throws error for $not if empty', () => {
+      expect(() => translator.translate({ $not: {} })).toThrow();
+    });
   });
 
   // Nested Objects and Fields

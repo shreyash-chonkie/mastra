@@ -169,6 +169,7 @@ abstract class BaseFilterTranslator {
     INVALID_LOGICAL_OPERATOR_LOCATION: (op: string, path: string) =>
       `Logical operator ${op} cannot be used at field level: ${path}`,
     NOT_REQUIRES_OBJECT: `$not operator requires an object`,
+    NOT_CANNOT_BE_EMPTY: `$not operator cannot be empty`,
     INVALID_LOGICAL_OPERATOR_CONTENT: (path: string) =>
       `Logical operators must contain field conditions, not direct operators: ${path}`,
   } as const;
@@ -235,6 +236,11 @@ abstract class BaseFilterTranslator {
             if (Array.isArray(value) || typeof value !== 'object') {
               isSupported = false;
               messages.push(BaseFilterTranslator.ErrorMessages.NOT_REQUIRES_OBJECT);
+              continue;
+            }
+            if (this.isEmpty(value)) {
+              isSupported = false;
+              messages.push(BaseFilterTranslator.ErrorMessages.NOT_CANNOT_BE_EMPTY);
               continue;
             }
             // $not can be used at field level or top level

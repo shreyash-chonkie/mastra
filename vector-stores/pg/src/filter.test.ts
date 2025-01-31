@@ -567,6 +567,9 @@ describe('PGFilterTranslator', () => {
       expect(() => translator.translate({ $not: 'value' })).toThrow();
       expect(() => translator.translate({ $not: [{ field: 'value' }] })).toThrow();
     });
+    it('throws error for $not if empty', () => {
+      expect(() => translator.translate({ $not: {} })).toThrow();
+    });
 
     // Add tests for logical operator placement restrictions
     it('throws error when logical operators are used in field-level conditions', () => {
