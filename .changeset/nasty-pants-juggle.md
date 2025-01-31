@@ -7,4 +7,4 @@
 '@mastra/core': patch
 ---
 
-Updated PG Filter and tests
+Started work on Unified Filter API for several vector stores.
