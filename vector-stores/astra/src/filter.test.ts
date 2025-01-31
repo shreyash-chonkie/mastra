@@ -219,6 +219,11 @@ describe('AstraFilterTranslator', () => {
         }),
       ).not.toThrow(); // $not is allowed to contain logical operators
     });
+
+    it('throws error for $not if not an object', () => {
+      expect(() => translator.translate({ $not: 'value' })).toThrow();
+      expect(() => translator.translate({ $not: [{ field: 'value' }] })).toThrow();
+    });
   });
 
   // Nested Objects and Fields
