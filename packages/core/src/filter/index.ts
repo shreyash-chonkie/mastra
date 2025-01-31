@@ -57,6 +57,10 @@ abstract class BaseFilterTranslator {
     return key.startsWith('$');
   }
 
+  protected isFieldOperator(key: string): key is QueryOperator {
+    return this.isOperator(key) && !this.isLogicalOperator(key);
+  }
+
   protected readonly supportedBasicOperators: BasicOperator[] = ['$eq', '$ne'];
   protected readonly supportedNumericOperators: NumericOperator[] = ['$gt', '$gte', '$lt', '$lte'];
   protected readonly supportedArrayOperators: ArrayOperator[] = ['$in', '$nin', '$all', '$elemMatch'];
@@ -148,6 +152,11 @@ abstract class BaseFilterTranslator {
 
   protected static readonly ErrorMessages = {
     UNSUPPORTED_OPERATOR: (op: string) => `Unsupported operator: ${op}`,
+    INVALID_LOGICAL_OPERATOR_LOCATION: (op: string, path: string) =>
+      `Logical operator ${op} cannot be used at field level: ${path}`,
+    INVALID_NOT_VALUE: (op: string) => `Logical operator ${op} cannot be used with an array value`,
+    INVALID_LOGICAL_OPERATOR_CONTENT: (path: string) =>
+      `Logical operators must contain field conditions, not direct operators: ${path}`,
   } as const;
 
   /**
@@ -168,7 +177,10 @@ abstract class BaseFilterTranslator {
    * Validates if a filter structure is supported by the specific vector DB
    * and returns detailed validation information.
    */
-  private validateFilterSupport(node: Filter | FieldCondition): {
+  private validateFilterSupport(
+    node: Filter | FieldCondition,
+    path: string = '',
+  ): {
     supported: boolean;
     messages: string[];
   } {
@@ -181,7 +193,7 @@ abstract class BaseFilterTranslator {
 
     // Handle arrays
     if (Array.isArray(node)) {
-      const arrayResults = node.map(item => this.validateFilterSupport(item));
+      const arrayResults = node.map(item => this.validateFilterSupport(item, path));
       const arrayMessages = arrayResults.flatMap(r => r.messages);
       return {
         supported: arrayResults.every(r => r.supported),
@@ -194,6 +206,7 @@ abstract class BaseFilterTranslator {
     let isSupported = true;
 
     for (const [key, value] of Object.entries(nodeObj)) {
+      const newPath = path ? `${path}.${key}` : key;
       // Check if the key is an operator
       if (this.isOperator(key)) {
         if (!this.isValidOperator(key)) {
@@ -201,10 +214,44 @@ abstract class BaseFilterTranslator {
           messages.push(BaseFilterTranslator.ErrorMessages.UNSUPPORTED_OPERATOR(key));
           continue;
         }
+
+        // Special validation for logical operators
+        if (this.isLogicalOperator(key)) {
+          if (key === '$not') {
+            if (Array.isArray(value)) {
+              isSupported = false;
+              messages.push(BaseFilterTranslator.ErrorMessages.INVALID_NOT_VALUE(key));
+              continue;
+            }
+            // $not can be used at field level or top level
+            continue;
+          }
+          // Other logical operators can only be at top level or nested in logical operators
+          if (path && !this.isLogicalOperator(path.split('.').pop()!)) {
+            isSupported = false;
+            messages.push(BaseFilterTranslator.ErrorMessages.INVALID_LOGICAL_OPERATOR_LOCATION(key, newPath));
+            continue;
+          }
+
+          if (Array.isArray(value)) {
+            const hasDirectOperators = value.some(
+              item =>
+                typeof item === 'object' &&
+                Object.keys(item).length === 1 &&
+                this.isFieldOperator(Object.keys(item)[0]!),
+            );
+
+            if (hasDirectOperators) {
+              isSupported = false;
+              messages.push(BaseFilterTranslator.ErrorMessages.INVALID_LOGICAL_OPERATOR_CONTENT(newPath));
+              continue;
+            }
+          }
+        }
       }
 
       // Recursively validate nested value
-      const nestedValidation = this.validateFilterSupport(value);
+      const nestedValidation = this.validateFilterSupport(value, newPath);
       if (!nestedValidation.supported) {
         isSupported = false;
         messages.push(...nestedValidation.messages);
