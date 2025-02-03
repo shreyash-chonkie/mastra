@@ -11,6 +11,7 @@ import {
   LanguageModelV1,
   StreamObjectResult,
   StreamTextResult,
+  Tool as CT,
 } from 'ai';
 import { JSONSchema7 } from 'json-schema';
 import { z, ZodSchema } from 'zod';
@@ -680,4 +681,15 @@ export type LLMInnerStreamOptions = {
 
 export type LLMStreamObjectOptions<T> = LLMInnerStreamOptions & {
   structuredOutput: JSONSchema7 | z.ZodType<T> | StructuredOutput;
+};
+
+export type GenerateTextInputOptions = {
+  runId?: string;
+  messages: CoreMessage[];
+  maxSteps?: number;
+  tools?: ToolsInput;
+  convertedTools?: Record<string, CT>;
+  temperature?: number;
+  toolChoice?: 'required' | 'auto';
+  onStepFinish?: (step: string) => void;
 };
