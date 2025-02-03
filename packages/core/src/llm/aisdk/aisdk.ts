@@ -12,18 +12,17 @@ import {
 import { JSONSchema7 } from 'json-schema';
 import { z, ZodSchema } from 'zod';
 
-import { MastraPrimitives } from '../action';
-import { ToolsInput } from '../agent/types';
-import { delay } from '../utils';
-
-import { MastraLLM } from './new';
+import { MastraPrimitives } from '../../action';
+import { ToolsInput } from '../../agent/types';
+import { delay } from '../../utils';
+import { MastraLLM } from '../new';
 import {
   GenerateReturn,
   GenerateTextInputOptions,
   LLMStreamOptions,
   LLMTextObjectOptions,
   StreamReturn,
-} from './types';
+} from '../types';
 
 export class AISDK extends MastraLLM {
   #model: LanguageModel;

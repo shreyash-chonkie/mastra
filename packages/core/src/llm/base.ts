@@ -6,16 +6,11 @@ import { MastraPrimitives } from '../action';
 import { MastraBase } from '../base';
 import { RegisteredLogger } from '../logger';
 
-import {
-  GenerateReturn,
-  GenerateTextInputOptions,
-  LLMStreamOptions,
-  LLMTextObjectOptions,
-  StreamReturn,
-} from './types';
+import { GenerateTextInputOptions, LLMStreamOptions, LLMTextObjectOptions } from './types';
 
 export class MastraLLM extends MastraBase {
   #mastra?: MastraPrimitives;
+
   constructor({ name }: { name: string }) {
     super({
       component: RegisteredLogger.LLM,
@@ -64,6 +59,8 @@ export class MastraLLM extends MastraBase {
   __text(input: GenerateTextInputOptions) {}
 
   __textObject<T>(input: LLMTextObjectOptions<T>) {}
+
+  __streamObject<T>(input: LLMTextObjectOptions<T>) {}
 
   stream<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
     messages: string | string[] | CoreMessage[],

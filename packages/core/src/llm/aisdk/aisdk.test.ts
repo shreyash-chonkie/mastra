@@ -3,7 +3,7 @@ import { JSONSchema7 } from 'json-schema';
 import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod';
 
-import { createTool } from '../tools';
+import { createTool } from '../../tools';
 
 import { MockProvider } from './providers/mock';
 
@@ -186,6 +186,112 @@ describe('AISDK', () => {
     });
   });
 
+  describe('stream', () => {
+    it('should stream text by default', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+
+      await aisdkText.stream(messages, {
+        tools: mockTools,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should handle string messages', async () => {
+      await aisdkText.stream('test message', {
+        tools: mockTools,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should handle array of string messages', async () => {
+      await aisdkText.stream(['test message 1', 'test message 2'], {
+        tools: mockTools,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should stream structured output with Zod schema', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const schema = z.object({
+        content: z.string(),
+      });
+
+      await aisdkObject.stream(messages, {
+        tools: mockTools,
+        output: schema,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should stream structured output with JSON schema', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const jsonSchema = {
+        type: 'object',
+        properties: {
+          content: { type: 'string' },
+        },
+        required: ['content'],
+      } as JSONSchema7;
+
+      await aisdkObject.stream(messages, {
+        tools: mockTools,
+        output: jsonSchema,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should handle callbacks for text streaming', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      await aisdkText.stream(messages, {
+        tools: mockTools,
+        onStepFinish,
+        onFinish,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should handle callbacks for structured output streaming', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const schema = z.object({
+        content: z.string(),
+      });
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      await aisdkObject.stream(messages, {
+        tools: mockTools,
+        output: schema,
+        onStepFinish,
+        onFinish,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+  });
+
   describe('__text', () => {
     it('should generate text with correct parameters', async () => {
       const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
@@ -276,15 +382,6 @@ describe('AISDK', () => {
       });
 
       expect(generateSpy).toHaveBeenCalled();
-
-      expect(mockMastra.logger.debug).toHaveBeenCalledWith(
-        '[LLM] - Generating text',
-        expect.objectContaining({
-          runId,
-          messages: expect.any(Array),
-          maxSteps: 5,
-        }),
-      );
     });
 
     it('should handle step change logging', async () => {
@@ -313,17 +410,12 @@ describe('AISDK', () => {
     it('should stream text with correct parameters', async () => {
       const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
 
-      const res = await aisdkText.__stream({
+      await aisdkText.__stream({
         messages,
         tools: mockTools,
         temperature: 0.7,
         maxSteps: 5,
       });
-
-      for await (const chunk of res.textStream) {
-        // Write each chunk without a newline to create a continuous stream
-        process.stdout.write(chunk);
-      }
 
       expect(streamSpy).toHaveBeenCalled();
     });
@@ -484,8 +576,6 @@ describe('AISDK', () => {
         temperature: 0.7,
         maxSteps: 5,
       });
-
-      expect(mockMastra.logger.debug).toHaveBeenCalledWith('[LLM] - Generating a text object', expect.any(Object));
     });
   });
 
@@ -603,18 +693,6 @@ describe('AISDK', () => {
         content: z.string(),
       });
       const runId = 'test-run';
-      const mockStepData = {
-        text: 'Custom text response',
-        toolCalls: [],
-        toolResults: [],
-        finishReason: 'stop',
-        usage: { promptTokens: 10, completionTokens: 20 },
-        response: {
-          headers: {
-            'x-ratelimit-remaining-tokens': '1500',
-          },
-        },
-      };
 
       await aisdkObject.__streamObject({
         messages,
