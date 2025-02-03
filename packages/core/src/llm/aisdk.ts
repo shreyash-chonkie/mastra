@@ -1,4 +1,14 @@
-import { generateText, LanguageModel, Tool, generateObject, jsonSchema, Schema, CoreMessage } from 'ai';
+import {
+  generateText,
+  LanguageModel,
+  Tool,
+  generateObject,
+  jsonSchema,
+  Schema,
+  CoreMessage,
+  streamText,
+  streamObject,
+} from 'ai';
 import { JSONSchema7 } from 'json-schema';
 import { z, ZodSchema } from 'zod';
 
@@ -7,7 +17,13 @@ import { ToolsInput } from '../agent/types';
 import { delay } from '../utils';
 
 import { MastraLLM } from './new';
-import { GenerateReturn, GenerateTextInputOptions, LLMStreamOptions, LLMTextObjectOptions } from './types';
+import {
+  GenerateReturn,
+  GenerateTextInputOptions,
+  LLMStreamOptions,
+  LLMTextObjectOptions,
+  StreamReturn,
+} from './types';
 
 export class AISDK extends MastraLLM {
   #model: LanguageModel;
@@ -183,6 +199,177 @@ export class AISDK extends MastraLLM {
     });
   }
 
+  async __stream({
+    messages,
+    onStepFinish,
+    onFinish,
+    maxSteps = 5,
+    tools,
+    convertedTools,
+    runId,
+    temperature,
+  }: {
+    messages: CoreMessage[];
+    onStepFinish?: (step: string) => void;
+    onFinish?: (step: string) => void;
+    maxSteps?: number;
+    tools?: ToolsInput;
+    convertedTools?: Record<string, Tool>;
+    runId?: string;
+    temperature?: number;
+  }) {
+    const model = this.#model;
+    this.logger.debug(`[LLM] - Streaming text`, {
+      runId,
+      messages,
+      maxSteps,
+      tools: Object.keys(tools || convertedTools || {}),
+    });
+
+    const finalTools = convertedTools || this.convertTools(tools);
+
+    const argsForExecute = {
+      model,
+      temperature,
+      tools: {
+        ...finalTools,
+      },
+      maxSteps,
+      onStepFinish: async (props: any) => {
+        onStepFinish?.(JSON.stringify(props, null, 2));
+
+        this.logger.debug('[LLM] - Stream Step Change:', {
+          text: props?.text,
+          toolCalls: props?.toolCalls,
+          toolResults: props?.toolResults,
+          finishReason: props?.finishReason,
+          usage: props?.usage,
+          runId,
+        });
+
+        if (
+          props?.response?.headers?.['x-ratelimit-remaining-tokens'] &&
+          parseInt(props?.response?.headers?.['x-ratelimit-remaining-tokens'], 10) < 2000
+        ) {
+          this.logger.warn('Rate limit approaching, waiting 10 seconds', { runId });
+          await delay(10 * 1000);
+        }
+      },
+      onFinish: async (props: any) => {
+        onFinish?.(JSON.stringify(props, null, 2));
+
+        this.logger.debug('[LLM] - Stream Finished:', {
+          text: props?.text,
+          toolCalls: props?.toolCalls,
+          toolResults: props?.toolResults,
+          finishReason: props?.finishReason,
+          usage: props?.usage,
+          runId,
+        });
+      },
+    };
+
+    return await streamText({
+      messages,
+      ...argsForExecute,
+      experimental_telemetry: this.experimental_telemetry,
+    });
+  }
+
+  async __streamObject<T>({
+    messages,
+    onStepFinish,
+    onFinish,
+    maxSteps = 5,
+    tools,
+    convertedTools,
+    structuredOutput,
+    runId,
+    temperature,
+  }: {
+    messages: CoreMessage[];
+    onStepFinish?: (step: string) => void;
+    onFinish?: (step: string) => void;
+    maxSteps?: number;
+    tools?: ToolsInput;
+    convertedTools?: Record<string, Tool>;
+    structuredOutput: ZodSchema | JSONSchema7;
+    runId?: string;
+    temperature?: number;
+  }) {
+    const model = this.#model;
+    this.logger.debug(`[LLM] - Streaming structured output`, {
+      runId,
+      messages,
+      maxSteps,
+      tools: Object.keys(tools || convertedTools || {}),
+    });
+
+    const finalTools = convertedTools || this.convertTools(tools);
+
+    const argsForExecute = {
+      model,
+      temperature,
+      tools: {
+        ...finalTools,
+      },
+      maxSteps,
+      onStepFinish: async (props: any) => {
+        onStepFinish?.(JSON.stringify(props, null, 2));
+
+        this.logger.debug('[LLM] - Stream Step Change:', {
+          text: props?.text,
+          toolCalls: props?.toolCalls,
+          toolResults: props?.toolResults,
+          finishReason: props?.finishReason,
+          usage: props?.usage,
+          runId,
+        });
+
+        if (
+          props?.response?.headers?.['x-ratelimit-remaining-tokens'] &&
+          parseInt(props?.response?.headers?.['x-ratelimit-remaining-tokens'], 10) < 2000
+        ) {
+          this.logger.warn('Rate limit approaching, waiting 10 seconds', { runId });
+          await delay(10 * 1000);
+        }
+      },
+      onFinish: async (props: any) => {
+        onFinish?.(JSON.stringify(props, null, 2));
+
+        this.logger.debug('[LLM] - Stream Finished:', {
+          text: props?.text,
+          toolCalls: props?.toolCalls,
+          toolResults: props?.toolResults,
+          finishReason: props?.finishReason,
+          usage: props?.usage,
+          runId,
+        });
+      },
+    };
+
+    let schema: z.ZodType<T> | Schema<T>;
+    let output = 'object';
+
+    if (typeof (structuredOutput as any).parse === 'function') {
+      schema = structuredOutput as z.ZodType<T>;
+      if (schema instanceof z.ZodArray) {
+        output = 'array';
+        schema = schema._def.type as z.ZodType<T>;
+      }
+    } else {
+      schema = jsonSchema(structuredOutput as JSONSchema7) as Schema<T>;
+    }
+
+    return await streamObject({
+      messages,
+      ...argsForExecute,
+      output: output as any,
+      schema,
+      experimental_telemetry: this.experimental_telemetry,
+    });
+  }
+
   async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
     messages: string | string[] | CoreMessage[],
     {
@@ -218,5 +405,46 @@ export class AISDK extends MastraLLM {
       convertedTools,
       runId,
     })) as unknown as GenerateReturn<Z>;
+  }
+
+  async stream<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
+    messages: string | string[] | CoreMessage[],
+    {
+      maxSteps = 5,
+      onFinish,
+      onStepFinish,
+      tools,
+      convertedTools,
+      runId,
+      output = 'text',
+      temperature,
+    }: LLMStreamOptions<Z> = {},
+  ): Promise<StreamReturn<Z>> {
+    const msgs = this.convertToMessages(messages);
+
+    if (output === 'text') {
+      return (await this.__stream({
+        messages: msgs as CoreMessage[],
+        onStepFinish,
+        onFinish,
+        maxSteps,
+        tools,
+        convertedTools,
+        runId,
+        temperature,
+      })) as unknown as StreamReturn<Z>;
+    }
+
+    return (await this.__streamObject({
+      messages: msgs as CoreMessage[],
+      structuredOutput: output,
+      onStepFinish,
+      onFinish,
+      maxSteps,
+      tools,
+      convertedTools,
+      runId,
+      temperature,
+    })) as unknown as StreamReturn<Z>;
   }
 }

@@ -400,43 +400,6 @@ export class LLM extends MastraBase {
     ];
   }
 
-  async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
-    messages: string | string[] | CoreMessage[],
-    {
-      maxSteps = 5,
-      onStepFinish,
-      tools,
-      convertedTools,
-      runId,
-      output = 'text',
-      temperature,
-    }: LLMStreamOptions<Z> = {},
-  ): Promise<GenerateReturn<Z>> {
-    const msgs = this.convertToMessages(messages);
-
-    if (output === 'text') {
-      return (await this.__text({
-        messages: msgs,
-        onStepFinish,
-        maxSteps,
-        tools,
-        convertedTools,
-        runId,
-        temperature,
-      })) as unknown as GenerateReturn<Z>;
-    }
-
-    return (await this.__textObject({
-      messages: msgs,
-      structuredOutput: output,
-      onStepFinish,
-      maxSteps,
-      tools,
-      convertedTools,
-      runId,
-    })) as unknown as GenerateReturn<Z>;
-  }
-
   async stream<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
     messages: string | string[] | CoreMessage[],
     {
@@ -494,77 +457,6 @@ export class LLM extends MastraBase {
       headers: model?.headers,
       fetch: model?.fetch,
     };
-  }
-
-  async __stream({
-    messages,
-    onStepFinish,
-    onFinish,
-    maxSteps = 5,
-    tools,
-    runId,
-    convertedTools,
-    temperature,
-  }: LLMInnerStreamOptions) {
-    const model = this.#model;
-    this.log(LogLevel.DEBUG, `Streaming text with ${messages.length} messages`, { runId });
-    let modelToPass;
-    if ('name' in model) {
-      modelToPass = this.__getNamedModel();
-    } else {
-      modelToPass = model;
-    }
-
-    const params = await this.getParams({
-      tools: convertedTools || this.convertTools(tools),
-      model: modelToPass,
-    });
-
-    const argsForExecute = {
-      temperature,
-      model: params.modelDef,
-      tools: {
-        ...params.toolsConverted,
-        ...params.answerTool,
-      },
-      toolChoice: params.toolChoice,
-      maxSteps,
-      onStepFinish: async (props: any) => {
-        this.logger.debug('[LLM] - Step Change:', {
-          text: props?.text,
-          toolCalls: props?.toolCalls,
-          toolResults: props?.toolResults,
-          finishReason: props?.finishReason,
-          usage: props?.usage,
-        });
-
-        onStepFinish?.(JSON.stringify(props, null, 2));
-        if (
-          props?.response?.headers?.['x-ratelimit-remaining-tokens'] &&
-          parseInt(props?.response?.headers?.['x-ratelimit-remaining-tokens'], 10) < 2000
-        ) {
-          this.logger.warn('Rate limit approaching, waiting 10 seconds', { runId });
-          await delay(10 * 1000);
-        }
-      },
-      onFinish: async (props: any) => {
-        this.logger.debug('[LLM] - On Finish:', {
-          text: props?.text,
-          toolCalls: props?.toolCalls,
-          toolResults: props?.toolResults,
-          finishReason: props?.finishReason,
-          usage: props?.usage,
-        });
-
-        onFinish?.(JSON.stringify(props, null, 2));
-      },
-    };
-
-    return await streamText({
-      messages,
-      ...argsForExecute,
-      experimental_telemetry: this.experimental_telemetry,
-    });
   }
 
   async __streamObject<T>({

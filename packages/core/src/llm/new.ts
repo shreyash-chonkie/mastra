@@ -6,7 +6,13 @@ import { MastraPrimitives } from '../action';
 import { MastraBase } from '../base';
 import { RegisteredLogger } from '../logger';
 
-import { GenerateReturn, GenerateTextInputOptions, LLMStreamOptions, LLMTextObjectOptions } from './types';
+import {
+  GenerateReturn,
+  GenerateTextInputOptions,
+  LLMStreamOptions,
+  LLMTextObjectOptions,
+  StreamReturn,
+} from './types';
 
 export class MastraLLM extends MastraBase {
   #mastra?: MastraPrimitives;
@@ -59,5 +65,8 @@ export class MastraLLM extends MastraBase {
 
   __textObject<T>(input: LLMTextObjectOptions<T>) {}
 
-  stream() {}
+  stream<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
+    messages: string | string[] | CoreMessage[],
+    options: LLMStreamOptions<Z> = {},
+  ) {}
 }

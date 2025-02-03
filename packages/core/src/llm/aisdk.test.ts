@@ -1,22 +1,18 @@
-import { CoreMessage, LanguageModel, simulateReadableStream, Tool } from 'ai';
+import { CoreMessage } from 'ai';
 import { JSONSchema7 } from 'json-schema';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod';
 
-import { MockLanguageModelV1 } from 'ai/test';
-
-import { MastraPrimitives } from '../action';
-import { ToolsInput } from '../agent/types';
-import { LogLevel } from '../logger';
 import { createTool } from '../tools';
 
-import { AISDK } from './aisdk';
 import { MockProvider } from './providers/mock';
 
 describe('AISDK', () => {
   const mockMastra = {
     logger: {
       debug: vi.fn(),
+      warn: vi.fn(),
+      info: vi.fn(),
     } as any,
   };
 
@@ -313,6 +309,113 @@ describe('AISDK', () => {
     });
   });
 
+  describe('__stream', () => {
+    it('should stream text with correct parameters', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+
+      const res = await aisdkText.__stream({
+        messages,
+        tools: mockTools,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      for await (const chunk of res.textStream) {
+        // Write each chunk without a newline to create a continuous stream
+        process.stdout.write(chunk);
+      }
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should handle tool conversion', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+
+      await aisdkText.__stream({
+        messages,
+        tools: mockTools,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should handle pre-converted tools', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const convertedTools = aisdkText.convertTools(mockTools);
+
+      await aisdkText.__stream({
+        messages,
+        convertedTools,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should handle callbacks', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      await aisdkText.__stream({
+        messages,
+        onStepFinish,
+        onFinish,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should log debug messages', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const runId = 'test-run';
+
+      await aisdkText.__stream({
+        messages,
+        runId,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+
+      expect(mockMastra.logger.debug).toHaveBeenCalledWith(
+        '[LLM] - Streaming text',
+        expect.objectContaining({
+          runId,
+          messages: expect.any(Array),
+          maxSteps: 5,
+        }),
+      );
+    });
+
+    it('should handle step change logging', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const runId = 'test-run';
+      const mockStepData = {
+        text: 'Custom text response',
+        toolCalls: [],
+        toolResults: [],
+        finishReason: 'stop',
+        usage: { promptTokens: 10, completionTokens: 20 },
+      };
+
+      await aisdkText.__stream({
+        messages,
+        runId,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+  });
+
   describe('__textObject', () => {
     it('should generate structured output with Zod schema', async () => {
       const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
@@ -383,6 +486,145 @@ describe('AISDK', () => {
       });
 
       expect(mockMastra.logger.debug).toHaveBeenCalledWith('[LLM] - Generating a text object', expect.any(Object));
+    });
+  });
+
+  describe('__streamObject', () => {
+    it('should stream object with Zod schema', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const schema = z.object({
+        content: z.string(),
+      });
+
+      await aisdkObject.__streamObject({
+        messages,
+        tools: mockTools,
+        structuredOutput: schema,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should handle array type schemas', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const arraySchema = z.object({ content: z.array(z.string()) });
+
+      await aisdkObject.__streamObject({
+        messages,
+        structuredOutput: arraySchema,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should handle JSON schema input', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const jsonSchema = {
+        type: 'object',
+        properties: {
+          content: { type: 'string' },
+        },
+        required: ['content'],
+      } as JSONSchema7;
+
+      await aisdkObject.__streamObject({
+        messages,
+        structuredOutput: jsonSchema,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should handle callbacks', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const schema = z.object({
+        content: z.string(),
+      });
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      await aisdkObject.__streamObject({
+        messages,
+        structuredOutput: schema,
+        onStepFinish,
+        onFinish,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should log debug messages', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const schema = z.object({
+        content: z.string(),
+      });
+      const runId = 'test-run';
+
+      await aisdkObject.__streamObject({
+        messages,
+        structuredOutput: schema,
+        runId,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should handle pre-converted tools', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const schema = z.object({
+        content: z.string(),
+      });
+      const convertedTools = aisdkObject.convertTools(mockTools);
+
+      await aisdkObject.__streamObject({
+        messages,
+        structuredOutput: schema,
+        convertedTools,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
+    });
+
+    it('should handle rate limiting', async () => {
+      const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
+      const schema = z.object({
+        content: z.string(),
+      });
+      const runId = 'test-run';
+      const mockStepData = {
+        text: 'Custom text response',
+        toolCalls: [],
+        toolResults: [],
+        finishReason: 'stop',
+        usage: { promptTokens: 10, completionTokens: 20 },
+        response: {
+          headers: {
+            'x-ratelimit-remaining-tokens': '1500',
+          },
+        },
+      };
+
+      await aisdkObject.__streamObject({
+        messages,
+        structuredOutput: schema,
+        runId,
+        temperature: 0.7,
+        maxSteps: 5,
+      });
+
+      expect(streamSpy).toHaveBeenCalled();
     });
   });
 });

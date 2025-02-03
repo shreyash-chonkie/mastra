@@ -44,8 +44,9 @@ export class MockProvider extends AISDK {
           spyStream(props);
         }
 
+        const text = typeof mockText === 'string' ? mockText : JSON.stringify(mockText);
         // Split the mock text into chunks for streaming
-        const chunks = mockText.split(' ').map(word => ({
+        const chunks = text.split(' ').map(word => ({
           type: 'text-delta' as const,
           textDelta: word + ' ',
         }));
