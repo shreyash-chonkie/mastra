@@ -12,7 +12,9 @@ export type OpenAIModel =
   | 'o1'
   | 'o1-mini'
   | 'o1-preview'
-  | string;
+  | 'o1-preview-mini'
+  | 'o3-mini'
+  | (string & {});
 
 export class OpenAI extends AISDK {
   constructor({

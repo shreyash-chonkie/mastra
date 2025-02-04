@@ -5,8 +5,7 @@ import { z } from 'zod';
 // Load environment variables
 import 'dotenv/config';
 
-import { Logger, createLogger } from '../../../logger';
-import { Mastra } from '../../../mastra';
+import { Logger } from '../../../logger';
 import { createTool } from '../../../tools';
 
 import { OpenAI } from './openai';
@@ -21,13 +20,6 @@ const calculatorTool = createTool({
   execute: async ({ context }) => {
     return { result: context.a + context.a };
   },
-});
-
-const mastra = new Mastra({
-  logger: createLogger({
-    name: 'CONSOLE',
-    level: 'info',
-  }),
 });
 
 describe('LLM Class Integration Tests', () => {
