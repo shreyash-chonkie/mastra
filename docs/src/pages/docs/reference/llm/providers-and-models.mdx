@@ -65,6 +65,7 @@ After creating the instance, you can use it like any other model in Mastra.
 
 ```typescript copy showLineNumbers lines={9-14, 27} filename="src/mastra/index.ts"
 import { Mastra, type ModelConfig } from "@mastra/core";
+import { ModelRouter } from "@mastra/core/llm/router";
 import { createOllama } from "ollama-ai-provider";
 
 const ollama = createOllama({
@@ -73,7 +74,7 @@ const ollama = createOllama({
   apiKey: process.env.OLLAMA_API_KEY,
 });
 
-const ollamaLLM = new AISDK({
+const ollamaLLM = new ModelRouter({
   model: ollama.chat("gemma"), // The model instance created by the Ollama provider
 })
 
