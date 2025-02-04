@@ -693,3 +693,15 @@ export type GenerateTextInputOptions = {
   toolChoice?: 'required' | 'auto';
   onStepFinish?: (step: string) => void;
 };
+
+export type GenerateStreamInputOptions = {
+  messages: CoreMessage[];
+  onFinish?: (step: string) => void;
+  maxSteps?: number;
+  tools?: ToolsInput;
+  toolChoice?: 'required' | 'auto';
+  convertedTools?: Record<string, CT>;
+  runId?: string;
+  temperature?: number;
+  onStepFinish?: (step: string) => void;
+};

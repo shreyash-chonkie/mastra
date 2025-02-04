@@ -2,8 +2,6 @@ import { z } from 'zod';
 
 import { Agent } from '../agent';
 import { MastraEngine } from '../engine';
-import { LLM } from '../llm';
-import { ModelConfig } from '../llm/types';
 import { Logger } from '../logger';
 import { MastraMemory } from '../memory';
 import { MastraStorage } from '../storage';
@@ -21,7 +19,6 @@ export type MastraPrimitives = {
   tts?: Record<string, MastraTTS>;
   vectors?: Record<string, MastraVector>;
   memory?: MastraMemory;
-  llm?: (model: ModelConfig) => LLM;
 };
 export interface IExecutionContext<
   TSchemaIn extends z.ZodSchema | undefined = undefined,

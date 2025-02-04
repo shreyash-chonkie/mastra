@@ -3,10 +3,10 @@ import { createXai } from '@ai-sdk/xai';
 
 import { AISDK } from '../aisdk';
 
-export class XAI extends AISDK {
+export class Grok extends AISDK {
   constructor({
     name = 'grok-beta',
-    apiKey = process.env.XAI_API_KEY ?? '',
+    apiKey = process.env.GROQ_API_KEY ?? '',
     baseURL = 'https://api.x.ai/v1',
     settings,
   }: {

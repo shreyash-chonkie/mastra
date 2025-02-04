@@ -15,10 +15,12 @@ import { z, ZodSchema } from 'zod';
 import { MastraPrimitives } from '../../action';
 import { ToolsInput } from '../../agent/types';
 import { delay } from '../../utils';
-import { MastraLLM } from '../new';
+import { MastraLLM } from '../base';
 import {
   GenerateReturn,
   GenerateTextInputOptions,
+  LLMInnerStreamOptions,
+  LLMStreamObjectOptions,
   LLMStreamOptions,
   LLMTextObjectOptions,
   StreamReturn,
@@ -207,16 +209,7 @@ export class AISDK extends MastraLLM {
     convertedTools,
     runId,
     temperature,
-  }: {
-    messages: CoreMessage[];
-    onStepFinish?: (step: string) => void;
-    onFinish?: (step: string) => void;
-    maxSteps?: number;
-    tools?: ToolsInput;
-    convertedTools?: Record<string, Tool>;
-    runId?: string;
-    temperature?: number;
-  }) {
+  }: LLMInnerStreamOptions) {
     const model = this.#model;
     this.logger.debug(`[LLM] - Streaming text`, {
       runId,
@@ -285,17 +278,7 @@ export class AISDK extends MastraLLM {
     structuredOutput,
     runId,
     temperature,
-  }: {
-    messages: CoreMessage[];
-    onStepFinish?: (step: string) => void;
-    onFinish?: (step: string) => void;
-    maxSteps?: number;
-    tools?: ToolsInput;
-    convertedTools?: Record<string, Tool>;
-    structuredOutput: ZodSchema | JSONSchema7;
-    runId?: string;
-    temperature?: number;
-  }) {
+  }: LLMStreamObjectOptions<T>) {
     const model = this.#model;
     this.logger.debug(`[LLM] - Streaming structured output`, {
       runId,

@@ -1,4 +1,4 @@
-import { CoreMessage } from 'ai';
+import { CoreMessage, GenerateObjectResult, GenerateTextResult, StreamTextResult } from 'ai';
 import { JSONSchema7 } from 'json-schema';
 import { ZodSchema } from 'zod';
 
@@ -6,9 +6,16 @@ import { MastraPrimitives } from '../action';
 import { MastraBase } from '../base';
 import { RegisteredLogger } from '../logger';
 
-import { GenerateTextInputOptions, LLMStreamOptions, LLMTextObjectOptions } from './types';
+import {
+  GenerateTextInputOptions,
+  LLMInnerStreamOptions,
+  LLMStreamObjectOptions,
+  LLMStreamOptions,
+  LLMTextObjectOptions,
+} from './types';
 
 export class MastraLLM extends MastraBase {
+  // @ts-ignore
   #mastra?: MastraPrimitives;
 
   constructor({ name }: { name: string }) {
@@ -39,11 +46,6 @@ export class MastraLLM extends MastraBase {
     ];
   }
 
-  generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
-    messages: string | string[] | CoreMessage[],
-    options: LLMStreamOptions<Z> = {},
-  ) {}
-
   __registerPrimitives(p: MastraPrimitives) {
     if (p.telemetry) {
       this.__setTelemetry(p.telemetry);
@@ -56,14 +58,39 @@ export class MastraLLM extends MastraBase {
     this.#mastra = p;
   }
 
-  __text(input: GenerateTextInputOptions) {}
+  async __text(input: GenerateTextInputOptions): Promise<GenerateTextResult<any, any>> {
+    this.logger.debug(`[LLMs:${this.name}] Generating text.`, { input });
+    throw new Error('Method not implemented.');
+  }
 
-  __textObject<T>(input: LLMTextObjectOptions<T>) {}
+  async __textObject<T>(input: LLMTextObjectOptions<T>): Promise<GenerateObjectResult<T>> {
+    this.logger.debug(`[LLMs:${this.name}] Generating object.`, { input });
+    throw new Error('Method not implemented.');
+  }
 
-  __streamObject<T>(input: LLMTextObjectOptions<T>) {}
-
-  stream<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
+  async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
     messages: string | string[] | CoreMessage[],
     options: LLMStreamOptions<Z> = {},
-  ) {}
+  ) {
+    this.logger.debug(`[LLMs:${this.name}] Generating text.`, { messages, options });
+    throw new Error('Method not implemented.');
+  }
+
+  async __stream(input: LLMInnerStreamOptions): Promise<StreamTextResult<any, any>> {
+    this.logger.debug(`[LLMs:${this.name}] Streaming text.`, { input });
+    throw new Error('Method not implemented.');
+  }
+
+  async __streamObject<T>(input: LLMStreamObjectOptions<T>) {
+    this.logger.debug(`[LLMs:${this.name}] Streaming object.`, { input });
+    throw new Error('Method not implemented.');
+  }
+
+  async stream<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
+    messages: string | string[] | CoreMessage[],
+    options: LLMStreamOptions<Z> = {},
+  ) {
+    this.logger.debug(`[LLMs:${this.name}] Streaming text.`, { messages, options });
+    throw new Error('Method not implemented.');
+  }
 }

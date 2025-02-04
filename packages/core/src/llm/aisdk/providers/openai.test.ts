@@ -5,9 +5,11 @@ import { z } from 'zod';
 // Load environment variables
 import 'dotenv/config';
 
-import { Logger, createLogger } from '../logger';
-import { Mastra } from '../mastra';
-import { createTool } from '../tools';
+import { Logger, createLogger } from '../../../logger';
+import { Mastra } from '../../../mastra';
+import { createTool } from '../../../tools';
+
+import { OpenAI } from './openai';
 
 const calculatorTool = createTool({
   id: 'Calculator',
@@ -41,8 +43,7 @@ describe('LLM Class Integration Tests', () => {
     } as Logger;
   });
 
-  const llm = mastra.LLM({
-    provider: 'OPEN_AI',
+  const llm = new OpenAI({
     name: 'gpt-4o-mini',
   });
 
@@ -183,8 +184,7 @@ describe('LLM Class Integration Tests', () => {
   });
 
   describe('Tool Integration', () => {
-    const llm = mastra.LLM({
-      provider: 'OPEN_AI',
+    const llm = new OpenAI({
       name: 'gpt-4',
     });
 
@@ -199,16 +199,8 @@ describe('LLM Class Integration Tests', () => {
     }, 30000);
   });
 
-  describe.skip('createEmbedding', () => {
-    const llm = mastra.LLM({
-      provider: 'OPEN_AI',
-      name: 'gpt-3.5-turbo',
-    });
-  });
-
   describe('Error Handling', () => {
-    const llm = mastra.LLM({
-      provider: 'INVALID_PROVIDER' as any,
+    const llm = new OpenAI({
       name: 'invalid-model',
     });
 
@@ -227,8 +219,7 @@ describe('LLM Class Integration Tests', () => {
   });
 
   describe('Rate Limiting', () => {
-    const rateLimitLLM = mastra.LLM({
-      provider: 'OPEN_AI',
+    const rateLimitLLM = new OpenAI({
       name: 'gpt-3.5-turbo',
     });
 

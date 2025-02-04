@@ -18,8 +18,8 @@ import { MastraPrimitives } from '../action';
 import { MastraBase } from '../base';
 import { Metric } from '../eval';
 import { AvailableHooks, executeHook } from '../hooks';
-import { LLM } from '../llm';
-import { GenerateReturn, ModelConfig, StreamReturn } from '../llm/types';
+import { MastraLLM } from '../llm/base';
+import { GenerateReturn, StreamReturn } from '../llm/types';
 import { LogLevel, RegisteredLogger } from '../logger';
 import { MemoryConfig, StorageThreadType } from '../memory';
 import { InstrumentClass } from '../telemetry';
@@ -36,9 +36,8 @@ export class Agent<
   TMetrics extends Record<string, Metric> = Record<string, Metric>,
 > extends MastraBase {
   public name: string;
-  readonly llm: LLM;
   readonly instructions: string;
-  readonly model: ModelConfig;
+  readonly model: MastraLLM;
   #mastra?: MastraPrimitives;
   tools: TTools;
   metrics: TMetrics;
@@ -48,8 +47,6 @@ export class Agent<
 
     this.name = config.name;
     this.instructions = config.instructions;
-
-    this.llm = new LLM({ model: config.model });
 
     this.model = config.model;
 
@@ -79,7 +76,7 @@ export class Agent<
       this.__setLogger(p.logger);
     }
 
-    this.llm.__registerPrimitives(p);
+    this.model.__registerPrimitives(p);
 
     this.#mastra = p;
 
@@ -96,7 +93,7 @@ export class Agent<
   }
 
   async generateTitleFromUserMessage({ message }: { message: CoreUserMessage }) {
-    const { object } = await this.llm.__textObject<{ title: string }>({
+    const { object } = await this.model.__textObject<{ title: string }>({
       messages: [
         {
           role: 'system',
@@ -215,7 +212,7 @@ export class Agent<
         let context;
 
         try {
-          context = await this.llm.__textObject<{ usesContext: boolean; startDate: Date; endDate: Date }>({
+          context = await this.model.__textObject<{ usesContext: boolean; startDate: Date; endDate: Date }>({
             messages: contextCallMessages,
             structuredOutput: z.object({
               usesContext: z.boolean(),
@@ -726,7 +723,7 @@ export class Agent<
     const { threadId, messageObjects, convertedTools } = await before();
 
     if (output === 'text') {
-      const result = await this.llm.__text({
+      const result = await this.model.__text({
         messages: messageObjects,
         tools: this.tools,
         convertedTools,
@@ -743,7 +740,7 @@ export class Agent<
       return result as unknown as GenerateReturn<Z>;
     }
 
-    const result = await this.llm.__textObject({
+    const result = await this.model.__textObject({
       messages: messageObjects,
       tools: this.tools,
       structuredOutput: output,
@@ -816,7 +813,7 @@ export class Agent<
       this.logger.debug(`Starting agent ${this.name} llm stream call`, {
         runId,
       });
-      return this.llm.__stream({
+      return this.model.__stream({
         messages: messageObjects,
         temperature,
         tools: this.tools,
@@ -843,7 +840,7 @@ export class Agent<
     this.logger.debug(`Starting agent ${this.name} llm streamObject call`, {
       runId,
     });
-    return this.llm.__streamObject({
+    return this.model.__streamObject({
       messages: messageObjects,
       tools: this.tools,
       temperature,

@@ -1,31 +1,34 @@
-import { OpenAIChatSettings } from '@ai-sdk/openai/internal';
+import { createDeepSeek } from '@ai-sdk/deepseek';
 
 import { AISDK } from '../aisdk';
 
-import { openaiCompat } from './openai-compat';
+function deepseek({
+  name = 'deepseek-chat',
+  apiKey = process.env.DEEPSEEK_API_KEY || '',
+  baseURL = 'https://api.deepseek.com/v1',
+}: {
+  name?: string;
+  apiKey?: string;
+  baseURL?: string;
+} = {}) {
+  const deepseekModel = createDeepSeek({
+    baseURL,
+    apiKey,
+  });
 
-export class Deepseek extends AISDK {
+  return deepseekModel(name);
+}
+
+export class DeepSeek extends AISDK {
   constructor({
     name,
     apiKey,
     baseURL,
-    fetch,
-    settings,
   }: {
-    fetch?: typeof globalThis.fetch;
-    baseURL: string;
-    name: string;
+    name?: string;
     apiKey?: string;
-    settings?: OpenAIChatSettings;
-  }) {
-    super({
-      model: openaiCompat({
-        baseURL,
-        modelName: name,
-        apiKey: apiKey || process.env.DEEPSEEK_API_KEY,
-        fetch,
-        settings,
-      }),
-    });
+    baseURL?: string;
+  } = {}) {
+    super({ model: deepseek({ name, apiKey, baseURL }) });
   }
 }

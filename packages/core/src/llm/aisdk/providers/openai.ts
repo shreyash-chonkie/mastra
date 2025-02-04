@@ -3,11 +3,7 @@ import { OpenAIChatSettings } from '@ai-sdk/openai/internal';
 
 import { AISDK } from '../aisdk';
 
-export function openai({
-  name,
-  apiKey,
-  settings,
-}: { name?: string; apiKey?: string; settings?: OpenAIChatSettings } = {}) {
+function openai({ name, apiKey, settings }: { name?: string; apiKey?: string; settings?: OpenAIChatSettings } = {}) {
   const openai = createOpenAI({
     apiKey: apiKey || process.env.OPENAI_API_KEY,
   });

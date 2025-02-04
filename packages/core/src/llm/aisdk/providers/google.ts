@@ -3,7 +3,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { GoogleGenerativeAISettings } from '../../types';
 import { AISDK } from '../aisdk';
 
-export function gemini({
+function gemini({
   name,
   apiKey,
   settings,

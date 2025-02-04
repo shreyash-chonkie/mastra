@@ -3,8 +3,6 @@ import 'dotenv/config';
 import { Agent } from '../agent';
 import { MastraDeployer } from '../deployer';
 import { MastraEngine } from '../engine';
-import { LLM } from '../llm';
-import { ModelConfig } from '../llm/types';
 import { LogLevel, Logger, createLogger, noopLogger } from '../logger';
 import { MastraMemory } from '../memory';
 import { MastraStorage } from '../storage';
@@ -206,7 +204,6 @@ export class Mastra<
           agents: this.agents,
           tts: this.tts,
           vectors: this.vectors,
-          llm: this.LLM,
         });
 
         // @ts-ignore
@@ -216,22 +213,6 @@ export class Mastra<
 
     this.logger = logger;
     this.setLogger({ logger });
-  }
-
-  LLM(modelConfig: ModelConfig) {
-    const llm = new LLM({
-      model: modelConfig,
-    });
-
-    if (this.telemetry) {
-      llm.__setTelemetry(this.telemetry);
-    }
-
-    if (this.getLogger) {
-      llm.__setLogger(this.getLogger());
-    }
-
-    return llm;
   }
 
   public getAgent<TAgentName extends keyof TAgents>(name: TAgentName): TAgents[TAgentName] {

@@ -3,7 +3,8 @@ import type { ZodSchema } from 'zod';
 
 import type { MastraPrimitives } from '../action';
 import type { Metric } from '../eval';
-import type { CoreMessage, ModelConfig, OutputType } from '../llm/types';
+import { MastraLLM } from '../llm/base';
+import type { CoreMessage, OutputType } from '../llm/types';
 import { MemoryConfig } from '../memory';
 import type { ToolAction } from '../tools';
 
@@ -17,7 +18,7 @@ export interface AgentConfig<
 > {
   name: string;
   instructions: string;
-  model: ModelConfig;
+  model: MastraLLM;
   tools?: TTools;
   mastra?: MastraPrimitives;
   metrics?: TMetrics;
