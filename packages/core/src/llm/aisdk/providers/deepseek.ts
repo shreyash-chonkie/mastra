@@ -2,33 +2,23 @@ import { createDeepSeek } from '@ai-sdk/deepseek';
 
 import { AISDK } from '../aisdk';
 
-function deepseek({
-  name = 'deepseek-chat',
-  apiKey = process.env.DEEPSEEK_API_KEY || '',
-  baseURL = 'https://api.deepseek.com/v1',
-}: {
-  name?: string;
-  apiKey?: string;
-  baseURL?: string;
-} = {}) {
-  const deepseekModel = createDeepSeek({
-    baseURL,
-    apiKey,
-  });
-
-  return deepseekModel(name);
-}
+export type DeepseekModel = 'deepseek-chat' | 'deepseek-reasoner' | (string & {});
 
 export class DeepSeek extends AISDK {
   constructor({
-    name,
-    apiKey,
-    baseURL,
+    name = 'deepseek-chat',
+    apiKey = process.env.DEEPSEEK_API_KEY || '',
+    baseURL = 'https://api.deepseek.com/v1',
   }: {
     name?: string;
     apiKey?: string;
     baseURL?: string;
   } = {}) {
-    super({ model: deepseek({ name, apiKey, baseURL }) });
+    const deepseekModel = createDeepSeek({
+      baseURL,
+      apiKey,
+    });
+
+    super({ model: deepseekModel(name) });
   }
 }

@@ -3,10 +3,12 @@ import { createXai } from '@ai-sdk/xai';
 
 import { AISDK } from '../aisdk';
 
+export type XGrokModel = 'grok-beta' | 'grok-vision-beta' | 'grok-2-1212' | 'grok-2-vision-1212' | (string & {});
+
 export class Grok extends AISDK {
   constructor({
     name = 'grok-beta',
-    apiKey = process.env.GROQ_API_KEY ?? '',
+    apiKey = process.env.XAI_API_KEY ?? '',
     baseURL = 'https://api.x.ai/v1',
     settings,
   }: {

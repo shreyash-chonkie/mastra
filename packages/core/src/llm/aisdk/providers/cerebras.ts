@@ -2,33 +2,22 @@ import { createCerebras } from '@ai-sdk/cerebras';
 
 import { AISDK } from '../aisdk';
 
-function cerebras({
-  name = 'llama3.1-8b',
-  apiKey = process.env.CEREBRAS_API_KEY || '',
-  baseURL = 'https://api.cerebras.ai/v1',
-}: {
-  name?: string;
-  apiKey?: string;
-  baseURL?: string;
-} = {}) {
-  const cerebrasModel = createCerebras({
-    baseURL,
-    apiKey,
-  });
-
-  return cerebrasModel(name);
-}
+export type CerebrasModel = 'llama3.1-8b' | 'llama3.1-70b' | 'llama3.3-70b' | (string & {});
 
 export class Cerebras extends AISDK {
   constructor({
-    name,
-    apiKey,
-    baseURL,
+    name = 'llama3.1-8b',
+    apiKey = process.env.CEREBRAS_API_KEY || '',
+    baseURL = 'https://api.cerebras.ai/v1',
   }: {
-    name?: string;
+    name?: CerebrasModel;
     apiKey?: string;
     baseURL?: string;
   } = {}) {
-    super({ model: cerebras({ name, apiKey, baseURL }) });
+    const cerebrasModel = createCerebras({
+      baseURL,
+      apiKey,
+    });
+    super({ model: cerebrasModel(name) });
   }
 }

@@ -2,33 +2,29 @@ import { createMistral } from '@ai-sdk/mistral';
 
 import { AISDK } from '../aisdk';
 
-function mistral({
-  name = 'pixtral-large-latest',
-  apiKey = process.env.MISTRAL_API_KEY || '',
-  baseURL = 'https://api.mistral.ai/v1',
-}: {
-  name?: string;
-  apiKey?: string;
-  baseURL?: string;
-} = {}) {
-  const mistralModel = createMistral({
-    baseURL,
-    apiKey,
-  });
-
-  return mistralModel(name);
-}
+export type MistralModel =
+  | 'pixtral-large-latest'
+  | 'mistral-large-latest'
+  | 'mistral-small-latest'
+  | 'ministral-3b-latest'
+  | 'ministral-8b-latest'
+  | 'pixtral-12b-2409'
+  | (string & {});
 
 export class Mistral extends AISDK {
   constructor({
-    name,
-    apiKey,
-    baseURL,
+    name = 'pixtral-large-latest',
+    apiKey = process.env.MISTRAL_API_KEY || '',
+    baseURL = 'https://api.mistral.ai/v1',
   }: {
-    name?: string;
+    name?: MistralModel;
     apiKey?: string;
     baseURL?: string;
   } = {}) {
-    super({ model: mistral({ name, apiKey, baseURL }) });
+    const mistralModel = createMistral({
+      baseURL,
+      apiKey,
+    });
+    super({ model: mistralModel(name) });
   }
 }

@@ -1,4 +1,5 @@
 import { createGroq } from '@ai-sdk/groq';
+import { extractReasoningMiddleware, wrapLanguageModel } from 'ai';
 
 import { AISDK } from '../aisdk';
 
@@ -15,7 +16,7 @@ export class Groq extends AISDK {
     apiKey = process.env.GROQ_API_KEY || '',
     baseURL = 'https://api.groq.com/openai/v1',
   }: {
-    name?: string;
+    name?: GroqModel;
     apiKey?: string;
     baseURL?: string;
   } = {}) {
@@ -25,5 +26,28 @@ export class Groq extends AISDK {
     });
 
     super({ model: groqModel(name) });
+  }
+}
+export class GroqReasoning extends AISDK {
+  constructor({
+    name = 'deepseek-r1-distill-llama-70b',
+    apiKey = process.env.GROQ_API_KEY || '',
+    baseURL = 'https://api.groq.com/openai/v1',
+  }: {
+    name?: 'deepseek-r1-distill-llama-70b';
+    apiKey?: string;
+    baseURL?: string;
+  } = {}) {
+    const groqModel = createGroq({
+      baseURL,
+      apiKey,
+    });
+
+    const enhancedModel = wrapLanguageModel({
+      model: groqModel(name),
+      middleware: extractReasoningMiddleware({ tagName: 'think' }),
+    });
+
+    super({ model: enhancedModel });
   }
 }
