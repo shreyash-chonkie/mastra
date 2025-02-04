@@ -28,7 +28,8 @@ export type OpenAIModel =
   | 'gpt-4o-mini'
   | 'o1'
   | 'o1-mini'
-  | 'o1-preview';
+  | 'o1-preview'
+  | string;
 
 export type CoreMessage = AiCoreMessage;
 
