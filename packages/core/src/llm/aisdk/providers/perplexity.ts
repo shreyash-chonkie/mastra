@@ -2,22 +2,17 @@ import { createPerplexity } from '@ai-sdk/perplexity';
 
 import { AISDK } from '../aisdk';
 
-function perplexity({
-  name = 'sonar-pro',
-  apiKey = process.env.PERPLEXITY_API_KEY || '',
-  baseURL = 'https://api.perplexity.ai',
-}: {
-  name?: string;
-  apiKey?: string;
-  baseURL?: string;
-} = {}) {
-  const perplexityModel = createPerplexity({
-    baseURL,
-    apiKey,
-  });
-
-  return perplexityModel(name);
-}
+export type PerplexityModel =
+  | 'llama-3.1-sonar-small-128k-online'
+  | 'llama-3.1-sonar-large-128k-online'
+  | 'llama-3.1-sonar-huge-128k-online'
+  | 'llama-3.1-sonar-small-128k-chat'
+  | 'llama-3.1-sonar-large-128k-chat'
+  | 'llama-3.1-8b-instruct'
+  | 'llama-3.1-70b-instruct'
+  | 'sonar'
+  | 'sonar-pro'
+  | (string & {});
 
 export class Perplexity extends AISDK {
   constructor({
@@ -25,10 +20,15 @@ export class Perplexity extends AISDK {
     apiKey,
     baseURL,
   }: {
-    name?: string;
+    name?: PerplexityModel;
     apiKey?: string;
     baseURL?: string;
   } = {}) {
-    super({ model: perplexity({ name, apiKey, baseURL }) });
+    const perplexityModel = createPerplexity({
+      baseURL,
+      apiKey,
+    });
+
+    super({ model: perplexityModel(name || 'sonar') });
   }
 }

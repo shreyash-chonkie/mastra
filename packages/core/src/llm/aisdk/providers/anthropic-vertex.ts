@@ -2,6 +2,13 @@ import { createAnthropicVertex } from 'anthropic-vertex-ai';
 
 import { AISDK } from '../aisdk';
 
+export type AnthropicVertexModel =
+  | 'claude-3-5-sonnet@20240620'
+  | 'claude-3-opus@20240229'
+  | 'claude-3-sonnet@20240229'
+  | 'claude-3-haiku@20240307'
+  | (string & {});
+
 export class AnthropicVertex extends AISDK {
   constructor({
     name = 'claude-3-5-sonnet@20240620',
@@ -9,7 +16,7 @@ export class AnthropicVertex extends AISDK {
     projectId = process.env.GOOGLE_VERTEX_PROJECT_ID,
     apiKey = process.env.ANTHROPIC_API_KEY ?? '',
   }: {
-    name?: string;
+    name?: AnthropicVertexModel;
     region?: string;
     projectId?: string;
     apiKey?: string;

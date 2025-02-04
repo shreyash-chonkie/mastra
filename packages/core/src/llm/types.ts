@@ -20,17 +20,6 @@ import { ToolsInput } from '../agent/types';
 import { Run } from '../run/types';
 import { CoreTool } from '../tools/types';
 
-export type OpenAIModel =
-  | 'gpt-4'
-  | 'gpt-4-turbo'
-  | 'gpt-3.5-turbo'
-  | 'gpt-4o'
-  | 'gpt-4o-mini'
-  | 'o1'
-  | 'o1-mini'
-  | 'o1-preview'
-  | string;
-
 export type CoreMessage = AiCoreMessage;
 
 export type CoreSystemMessage = AiCoreSystemMessage;
@@ -44,36 +33,6 @@ export type CoreToolMessage = AiCoreToolMessage;
 export type EmbedResult<T> = AiEmbedResult<T>;
 
 export type EmbedManyResult<T> = AiEmbedManyResult<T>;
-
-export type OpenAIConfig = {
-  provider: 'OPEN_AI';
-  name: OpenAIModel | (string & {});
-  toolChoice?: 'auto' | 'required';
-  apiKey?: string;
-  baseURL?: string;
-  headers?: Record<string, string>;
-  fetch?: typeof globalThis.fetch;
-};
-
-export type GoogleModel =
-  | 'gemini-1.5-pro-latest'
-  | 'gemini-1.5-pro'
-  | 'gemini-1.5-flash-latest'
-  | 'gemini-1.5-flash'
-  | 'gemini-2.0-flash-exp-latest'
-  | 'gemini-2.0-flash-thinking-exp-1219'
-  | 'gemini-exp-1206';
-
-export type GoogleConfig = {
-  provider: 'GOOGLE';
-  name: GoogleModel | (string & {});
-  toolChoice?: 'auto' | 'required';
-  apiKey?: string;
-  baseURL?: string;
-  headers?: Record<string, string>;
-  fetch?: typeof globalThis.fetch;
-};
-
 export interface GoogleGenerativeAISettings {
   /**
   Optional.
@@ -108,24 +67,6 @@ export interface GoogleGenerativeAISettings {
   }>;
 }
 
-export type AnthropicModel =
-  | 'claude-3-5-sonnet-20241022'
-  | 'claude-3-5-sonnet-20240620'
-  | 'claude-3-5-haiku-20241022'
-  | 'claude-3-opus-20240229'
-  | 'claude-3-sonnet-20240229'
-  | 'claude-3-haiku-20240307';
-
-export type AnthropicConfig = {
-  provider: 'ANTHROPIC';
-  name: AnthropicModel | (string & {});
-  toolChoice?: 'auto' | 'required';
-  apiKey?: string;
-  baseURL?: string;
-  headers?: Record<string, string>;
-  fetch?: typeof globalThis.fetch;
-};
-
 export type GroqModel =
   | 'llama3-groq-70b-8192-tool-use-preview'
   | 'llama3-groq-8b-8192-tool-use-preview'
@@ -135,27 +76,6 @@ export type GroqModel =
 export type GroqConfig = {
   provider: 'GROQ';
   name: GroqModel | (string & {});
-  apiKey?: string;
-  toolChoice?: 'auto' | 'required';
-  baseURL?: string;
-  headers?: Record<string, string>;
-  fetch?: typeof globalThis.fetch;
-};
-
-export type PerplexityModel =
-  | 'llama-3.1-sonar-small-128k-online'
-  | 'llama-3.1-sonar-large-128k-online'
-  | 'llama-3.1-sonar-huge-128k-online'
-  | 'llama-3.1-sonar-small-128k-chat'
-  | 'llama-3.1-sonar-large-128k-chat'
-  | 'llama-3.1-8b-instruct'
-  | 'llama-3.1-70b-instruct'
-  | 'sonar'
-  | 'sonar-pro';
-
-export type PerplexityConfig = {
-  provider: 'PERPLEXITY';
-  name: PerplexityModel | (string & {});
   apiKey?: string;
   toolChoice?: 'auto' | 'required';
   baseURL?: string;
@@ -507,19 +427,6 @@ export type CohereConfig = {
   fetch?: typeof globalThis.fetch;
 };
 
-export type AzureModel = 'gpt-35-turbo-instruct';
-
-export type AzureConfig = {
-  provider: 'AZURE';
-  name: AzureModel | (string & {});
-  apiKey?: string;
-  toolChoice?: 'auto' | 'required';
-  headers?: Record<string, string>;
-  apiVersion?: string;
-  baseURL?: string;
-  fetch?: typeof globalThis.fetch;
-};
-
 export type DeepseekModel = 'deepseek-chat' | 'deepseek-reasoner';
 
 export type DeepseekConfig = {
@@ -532,63 +439,8 @@ export type DeepseekConfig = {
   fetch?: typeof globalThis.fetch;
 };
 
-export type AmazonModel =
-  | 'amazon-titan-tg1-large'
-  | 'amazon-titan-text-express-v1'
-  | 'anthropic-claude-3-5-sonnet-20241022-v2:0'
-  | 'anthropic-claude-3-5-sonnet-20240620-v1:0'
-  | 'anthropic-claude-3-5-haiku-20241022-v1:0'
-  | 'anthropic-claude-3-opus-20240229-v1:0'
-  | 'anthropic-claude-3-sonnet-20240229-v1:0'
-  | 'anthropic-claude-3-haiku-20240307-v1:0'
-  | 'anthropic-claude-v2:1'
-  | 'cohere-command-r-v1:0'
-  | 'cohere-command-r-plus-v1:0'
-  | 'meta-llama2-13b-chat-v1'
-  | 'meta-llama2-70b-chat-v1'
-  | 'meta-llama3-8b-instruct-v1:0'
-  | 'meta-llama3-70b-instruct-v1:0'
-  | 'meta-llama3-1-8b-instruct-v1:0'
-  | 'meta-llama3-1-70b-instruct-v1:0'
-  | 'meta-llama3-1-405b-instruct-v1:0'
-  | 'meta-llama3-2-1b-instruct-v1:0'
-  | 'meta-llama3-2-3b-instruct-v1:0'
-  | 'meta-llama3-2-11b-instruct-v1:0'
-  | 'meta-llama3-2-90b-instruct-v1:0'
-  | 'mistral-mistral-7b-instruct-v0:2'
-  | 'mistral-mixtral-8x7b-instruct-v0:1'
-  | 'mistral-mistral-large-2402-v1:0'
-  | 'mistral-mistral-small-2402-v1:0';
-
-export type AmazonConfig = {
-  provider: 'AMAZON';
-  name: AmazonModel | (string & {});
-  apiKey?: string;
-  toolChoice?: 'auto' | 'required';
-  baseURL?: string;
-  headers?: Record<string, string>;
-  fetch?: typeof globalThis.fetch;
-};
-
-export type AnthropicVertexModel =
-  | 'claude-3-5-sonnet@20240620'
-  | 'claude-3-opus@20240229'
-  | 'claude-3-sonnet@20240229'
-  | 'claude-3-haiku@20240307';
-
-export type AnthropicVertexConfig = {
-  provider: 'ANTHROPIC_VERTEX';
-  name: AnthropicVertexModel | (string & {});
-  apiKey?: string;
-  toolChoice?: 'auto' | 'required';
-  baseURL?: string;
-  headers?: Record<string, string>;
-  fetch?: typeof globalThis.fetch;
-};
-
 type BuiltInModelConfig =
   | OpenAIConfig
-  | AnthropicConfig
   | GroqConfig
   | GoogleConfig
   | PerplexityConfig
@@ -599,9 +451,6 @@ type BuiltInModelConfig =
   | MistralConfig
   | XGrokConfig
   | CohereConfig
-  | AzureConfig
-  | AmazonConfig
-  | AnthropicVertexConfig
   | DeepseekConfig;
 
 export type ModelConfig = BuiltInModelConfig | CustomModelConfig;

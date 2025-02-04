@@ -3,24 +3,29 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { GoogleGenerativeAISettings } from '../../types';
 import { AISDK } from '../aisdk';
 
-function gemini({
-  name,
-  apiKey,
-  settings,
-}: { name?: string; apiKey?: string; settings?: GoogleGenerativeAISettings } = {}) {
-  const google = createGoogleGenerativeAI({
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-    apiKey: apiKey || process.env.GOOGLE_GENERATIVE_AI_API_KEY || '',
-  });
-  return google(name || 'gemini-1.5-pro-latest', settings);
-}
+export type GoogleModel =
+  | 'gemini-1.5-pro-latest'
+  | 'gemini-1.5-pro'
+  | 'gemini-1.5-flash-latest'
+  | 'gemini-1.5-flash'
+  | 'gemini-2.0-flash-exp-latest'
+  | 'gemini-2.0-flash-thinking-exp-1219'
+  | 'gemini-exp-1206'
+  | (string & {});
 
 export class Gemini extends AISDK {
   constructor({
-    name,
-    apiKey,
+    name = 'gemini-1.5-pro-latest',
+    apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || '',
     settings,
-  }: { name?: string; apiKey?: string; settings?: GoogleGenerativeAISettings } = {}) {
-    super({ model: gemini({ name, apiKey, settings }) });
+  }: { name?: GoogleModel; apiKey?: string; settings?: GoogleGenerativeAISettings } = {}) {
+    const google = createGoogleGenerativeAI({
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      apiKey,
+    });
+
+    const gemini = google(name, settings);
+
+    super({ model: gemini });
   }
 }

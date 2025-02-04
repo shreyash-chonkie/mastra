@@ -4,6 +4,8 @@ import { extractReasoningMiddleware, wrapLanguageModel } from 'ai';
 
 import { AISDK } from '../aisdk';
 
+export type AzureModel = 'gpt-35-turbo-instruct' | (string & {});
+
 export class Azure extends AISDK {
   constructor({
     name = 'gpt-35-turbo-instruct',
@@ -15,7 +17,7 @@ export class Azure extends AISDK {
     fetch,
     settings,
   }: {
-    name?: string;
+    name?: AzureModel;
     resourceName?: string;
     apiKey?: string;
     apiVersion?: string;
@@ -48,7 +50,7 @@ export class AzureReasoning extends AISDK {
     fetch,
     settings,
   }: {
-    name?: string;
+    name?: AzureModel;
     resourceName?: string;
     apiKey?: string;
     apiVersion?: string;
