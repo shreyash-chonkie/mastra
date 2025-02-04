@@ -1,5 +1,4 @@
 import { createMistral } from '@ai-sdk/mistral';
-
 import { AISDK } from '../aisdk';
 
 export type MistralModel =

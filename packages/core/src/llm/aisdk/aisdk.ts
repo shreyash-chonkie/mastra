@@ -18,7 +18,7 @@ import { delay } from '../../utils';
 import { MastraLLM } from '../base';
 import {
   GenerateReturn,
-  GenerateTextInputOptions,
+  LLMTextOptions,
   LLMInnerStreamOptions,
   LLMStreamObjectOptions,
   LLMStreamOptions,
@@ -84,7 +84,7 @@ export class AISDK extends MastraLLM {
     temperature,
     toolChoice = 'auto',
     onStepFinish,
-  }: GenerateTextInputOptions) {
+  }: LLMTextOptions) {
     const model = this.#model;
 
     this.logger.debug(`[LLM] - Generating text`, {

@@ -37,6 +37,7 @@ export async function writeAgentSample(llmProvider: LLMProvider, destPath: strin
 
       ${addExampleTool ? 'Use the weatherTool to fetch current weather data.' : ''}
 `;
+
   const content = `
 import { Agent } from '@mastra/core/agent';
 ${addExampleTool ? `import { weatherTool } from '../tools';` : ''}

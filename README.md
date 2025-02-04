@@ -60,15 +60,14 @@ Then, add this code to `src/index.ts`:
 
 ```typescript
 import { Agent } from '@mastra/core/agent';
+import { OpenAI } from '@mastra/core/llm/openai';
 
 async function main() {
   const agent = new Agent({
     name: 'story-writer',
-    model: {
-      provider: 'OPEN_AI',
+    model: new OpenAI({
       name: 'gpt-4o',
-      toolChoice: 'auto',
-    },
+    }),
     instructions: `You are a helpful assistant who writes creative stories.`,
     tools: {},
   });
