@@ -1,7 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { OpenAIChatSettings } from '@ai-sdk/openai/internal';
 
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type OpenAIModel =
   | 'gpt-4'
@@ -16,7 +16,7 @@ export type OpenAIModel =
   | 'o3-mini'
   | (string & {});
 
-export class OpenAI extends AISDK {
+export class OpenAI extends ModelRouter {
   constructor({
     name,
     apiKey,

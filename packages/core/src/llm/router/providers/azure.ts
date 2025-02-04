@@ -2,11 +2,11 @@ import { createAzure } from '@ai-sdk/azure';
 import { OpenAIChatSettings } from '@ai-sdk/openai/internal';
 import { extractReasoningMiddleware, wrapLanguageModel } from 'ai';
 
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type AzureModel = 'gpt-35-turbo-instruct' | (string & {});
 
-export class Azure extends AISDK {
+export class Azure extends ModelRouter {
   constructor({
     name = 'gpt-35-turbo-instruct',
     resourceName = process.env.AZURE_RESOURCE_NAME || '',
@@ -39,7 +39,7 @@ export class Azure extends AISDK {
   }
 }
 
-export class AzureReasoning extends AISDK {
+export class AzureReasoning extends ModelRouter {
   constructor({
     name = 'gpt-35-turbo-instruct',
     resourceName = process.env.AZURE_RESOURCE_NAME || '',

@@ -7,7 +7,7 @@ import { createTool } from '../../tools';
 
 import { MockProvider } from './providers/mock';
 
-describe('AISDK', () => {
+describe('ModelRouter', () => {
   const mockMastra = {
     logger: {
       debug: vi.fn(),

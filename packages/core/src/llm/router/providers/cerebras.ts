@@ -1,10 +1,10 @@
 import { createCerebras } from '@ai-sdk/cerebras';
 
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type CerebrasModel = 'llama3.1-8b' | 'llama3.1-70b' | 'llama3.3-70b' | (string & {});
 
-export class Cerebras extends AISDK {
+export class Cerebras extends ModelRouter {
   constructor({
     name = 'llama3.1-8b',
     apiKey = process.env.CEREBRAS_API_KEY || '',

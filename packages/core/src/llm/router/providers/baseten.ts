@@ -1,7 +1,5 @@
 import { OpenAIChatSettings } from '@ai-sdk/openai/internal';
-
-import { AISDK } from '../aisdk';
-
+import { ModelRouter } from '../router';
 import { openaiCompat } from './openai-compat';
 
 export type BasetenModel =
@@ -36,7 +34,7 @@ export type BasetenModel =
   | 'mixtral-8x22b'
   | (string & {});
 
-export class BaseTen extends AISDK {
+export class BaseTen extends ModelRouter {
   constructor({
     name = 'llama-3.1-70b-instruct',
     apiKey = process.env.BASETEN_API_KEY || '',

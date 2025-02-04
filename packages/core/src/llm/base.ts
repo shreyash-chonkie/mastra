@@ -1,4 +1,4 @@
-import { CoreMessage, GenerateObjectResult, GenerateTextResult, StreamTextResult } from 'ai';
+import { CoreMessage, DeepPartial, GenerateObjectResult, GenerateTextResult, StreamObjectResult, StreamTextResult } from 'ai';
 import { JSONSchema7 } from 'json-schema';
 import { ZodSchema } from 'zod';
 
@@ -7,11 +7,13 @@ import { MastraBase } from '../base';
 import { RegisteredLogger } from '../logger';
 
 import {
+    GenerateReturn,
     LLMInnerStreamOptions,
     LLMStreamObjectOptions,
     LLMStreamOptions,
     LLMTextObjectOptions,
     LLMTextOptions,
+    StreamReturn,
 } from './types';
 
 export class MastraLLM extends MastraBase {
@@ -71,7 +73,7 @@ export class MastraLLM extends MastraBase {
     async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
         messages: string | string[] | CoreMessage[],
         options: LLMStreamOptions<Z> = {},
-    ) {
+    ): Promise<GenerateReturn<Z>> {
         this.logger.debug(`[LLMs:${this.name}] Generating text.`, { messages, options });
         throw new Error('Method not implemented.');
     }
@@ -81,7 +83,7 @@ export class MastraLLM extends MastraBase {
         throw new Error('Method not implemented.');
     }
 
-    async __streamObject<T>(input: LLMStreamObjectOptions<T>) {
+    async __streamObject<T>(input: LLMStreamObjectOptions<T>): Promise<StreamObjectResult<DeepPartial<T>, T, never>> {
         this.logger.debug(`[LLMs:${this.name}] Streaming object.`, { input });
         throw new Error('Method not implemented.');
     }
@@ -89,7 +91,7 @@ export class MastraLLM extends MastraBase {
     async stream<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
         messages: string | string[] | CoreMessage[],
         options: LLMStreamOptions<Z> = {},
-    ) {
+    ): Promise<StreamReturn<Z>> {
         this.logger.debug(`[LLMs:${this.name}] Streaming text.`, { messages, options });
         throw new Error('Method not implemented.');
     }

@@ -19,13 +19,15 @@ Example format:
 For example, this long code block:
 
 ```typescript
+import { Agent } from "@mastra/core/agent";
+import { OpenAI } from "@mastra/core/llm/openai";
+import { Anthropic } from "@mastra/core/llm/anthropic";
+
 const copywriterAgent = new Agent({
   name: "Copywriter",
   instructions: "You are a copywriter agent that writes blog post copy.",
-  model: {
-    provider: "ANTHROPIC",
+  model: new Anthropic({
     name: "claude-3-5-sonnet-20241022",
-    toolChoice: "required",
   },
 });
 
@@ -48,10 +50,9 @@ const copywriterStep = new Step({
 const editorAgent = new Agent({
   name: "Editor",
   instructions: "You are an editor agent that edits blog post copy.",
-  model: {
-    provider: "OPEN_AI",
+  model: new OpenAI({
     name: "gpt-4o-mini",
-  },
+  }),
 });
 
 const editorStep = new Step({
@@ -93,17 +94,16 @@ Could be split into:
 
 First, set up the copywriter agent:
 
-```typescript
+````typescript
+import { Anthropic } from "@mastra/core/llm/anthropic";
+
 const copywriterAgent = new Agent({
   name: "Copywriter",
   instructions: "You are a copywriter agent that writes blog post copy.",
-  model: {
-    provider: "ANTHROPIC",
+  model: new Anthropic({
     name: "claude-3-5-sonnet-20241022",
-    toolChoice: "required",
-  },
+  }),
 });
-```
 
 Create a step to execute the copywriter's task:
 
@@ -123,7 +123,7 @@ const copywriterStep = new Step({
     };
   },
 });
-```
+````
 
 And so on...
 

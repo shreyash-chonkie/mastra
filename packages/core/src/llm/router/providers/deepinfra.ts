@@ -1,6 +1,6 @@
 import { createDeepInfra } from '@ai-sdk/deepinfra';
 
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type DeepInfraModel =
   | 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
@@ -24,7 +24,7 @@ export type DeepInfraModel =
   | 'microsoft/WizardLM-2-8x22B'
   | (string & {});
 
-export class DeepInfra extends AISDK {
+export class DeepInfra extends ModelRouter {
   constructor({
     name = 'meta-llama/Meta-Llama-3.1-70B-Instruct',
     apiKey = process.env.DEEPINFRA_API_KEY || '',

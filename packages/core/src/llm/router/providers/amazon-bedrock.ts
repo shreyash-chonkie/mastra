@@ -1,6 +1,6 @@
 import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
 
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type AmazonModel =
   | 'amazon-titan-tg1-large'
@@ -31,7 +31,7 @@ export type AmazonModel =
   | 'mistral-mistral-small-2402-v1:0'
   | (string & {});
 
-export class AmazonBedrock extends AISDK {
+export class AmazonBedrock extends ModelRouter {
   constructor({
     name = 'amazon-titan-tg1-large',
     region = process.env.AWS_REGION || '',

@@ -2,9 +2,9 @@ import { simulateReadableStream } from 'ai';
 
 import { MockLanguageModelV1 } from 'ai/test';
 
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
-export class MockProvider extends AISDK {
+export class MockProvider extends ModelRouter {
     constructor({
         spyGenerate,
         spyStream,

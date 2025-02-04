@@ -70,18 +70,12 @@ import { createOllama } from "ollama-ai-provider";
 const ollama = createOllama({
   // optional settings, e.g.
   baseURL: "https://api.ollama.com",
+  apiKey: process.env.OLLAMA_API_KEY,
 });
 
-const modelConfig: ModelConfig = {
+const ollamaLLM = new AISDK({
   model: ollama.chat("gemma"), // The model instance created by the Ollama provider
-  apiKey: process.env.OLLAMA_API_KEY,
-  provider: "Ollama",
-  toolChoice: "auto", // Controls how the model handles tool/function calling
-};
-
-const mastra = new Mastra({});
-
-const llm = mastra.llm;
+})
 
 const response = await llm.generate(
   [

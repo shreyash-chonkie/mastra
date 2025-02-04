@@ -1,7 +1,7 @@
 import { createFireworks } from '@ai-sdk/fireworks';
 import { extractReasoningMiddleware, wrapLanguageModel } from 'ai';
 
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type FireworksModel =
     | 'accounts/fireworks/models/deepseek-v3'
@@ -16,14 +16,14 @@ export type FireworksModel =
     | 'accounts/fireworks/models/yi-large'
     | (string & {});
 
-export class Fireworks extends AISDK {
+export class Fireworks extends ModelRouter {
     constructor({ name, apiKey = process.env.FIREWORKS_API_KEY || '' }: { name: FireworksModel; apiKey?: string }) {
         const fireworksModel = createFireworks({ apiKey });
         super({ model: fireworksModel(name) });
     }
 }
 
-export class FireworksReasoning extends AISDK {
+export class FireworksReasoning extends ModelRouter {
     constructor({
         name,
         apiKey = process.env.FIREWORKS_API_KEY || '',

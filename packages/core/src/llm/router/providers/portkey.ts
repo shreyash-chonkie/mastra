@@ -1,8 +1,7 @@
 import { createPortkey } from '@portkey-ai/vercel-provider';
+import { ModelRouter } from '../router';
 
-import { AISDK } from '../aisdk';
-
-export class Portkey extends AISDK {
+export class Portkey extends ModelRouter {
     constructor({
         portkeyApiKey,
         portkeyConfig,

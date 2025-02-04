@@ -1,7 +1,7 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { OpenAIChatSettings } from '@ai-sdk/openai/internal';
 
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export function openaiCompat({
   baseURL,
@@ -24,7 +24,7 @@ export function openaiCompat({
   return client(modelName, settings);
 }
 
-export class OpenaiCompat extends AISDK {
+export class OpenaiCompat extends ModelRouter {
   constructor({
     name,
     apiKey,

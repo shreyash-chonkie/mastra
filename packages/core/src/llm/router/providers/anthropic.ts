@@ -1,6 +1,6 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type AnthropicModel =
   | 'claude-3-5-sonnet-20241022'
@@ -11,7 +11,7 @@ export type AnthropicModel =
   | 'claude-3-haiku-20240307'
   | (string & {});
 
-export class Anthropic extends AISDK {
+export class Anthropic extends ModelRouter {
   constructor({ name, apiKey }: { name?: AnthropicModel; apiKey?: string }) {
     const anthropicModel = createAnthropic({
       apiKey: apiKey || process.env.ANTHROPIC_API_KEY,

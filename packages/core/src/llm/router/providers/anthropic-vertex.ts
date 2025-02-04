@@ -1,6 +1,6 @@
 import { createAnthropicVertex } from 'anthropic-vertex-ai';
 
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type AnthropicVertexModel =
   | 'claude-3-5-sonnet@20240620'
@@ -9,7 +9,7 @@ export type AnthropicVertexModel =
   | 'claude-3-haiku@20240307'
   | (string & {});
 
-export class AnthropicVertex extends AISDK {
+export class AnthropicVertex extends ModelRouter {
   constructor({
     name = 'claude-3-5-sonnet@20240620',
     region = process.env.GOOGLE_VERTEX_REGION,

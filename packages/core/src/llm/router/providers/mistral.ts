@@ -1,5 +1,5 @@
 import { createMistral } from '@ai-sdk/mistral';
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type MistralModel =
   | 'pixtral-large-latest'
@@ -10,7 +10,7 @@ export type MistralModel =
   | 'pixtral-12b-2409'
   | (string & {});
 
-export class Mistral extends AISDK {
+export class Mistral extends ModelRouter {
   constructor({
     name = 'pixtral-large-latest',
     apiKey = process.env.MISTRAL_API_KEY || '',

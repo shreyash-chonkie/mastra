@@ -1,10 +1,10 @@
 import { createDeepSeek } from '@ai-sdk/deepseek';
 
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type DeepseekModel = 'deepseek-chat' | 'deepseek-reasoner' | (string & {});
 
-export class DeepSeek extends AISDK {
+export class DeepSeek extends ModelRouter {
     constructor({
         name = 'deepseek-chat',
         apiKey = process.env.DEEPSEEK_API_KEY || '',

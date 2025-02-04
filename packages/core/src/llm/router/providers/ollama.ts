@@ -1,9 +1,9 @@
 import { createOllama } from 'ollama-ai-provider';
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type OllamaModel = string & {};
 
-export class OllamaAI extends AISDK {
+export class OllamaAI extends ModelRouter {
   constructor({ name, baseURL, headers, fetch }: {
     name: OllamaModel;
     baseURL: string

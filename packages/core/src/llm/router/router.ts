@@ -26,7 +26,7 @@ import {
   StreamReturn,
 } from '../types';
 
-export class AISDK extends MastraLLM {
+export class ModelRouter extends MastraLLM {
   #model: LanguageModel;
   #mastra?: MastraPrimitives;
 
@@ -343,7 +343,7 @@ export class AISDK extends MastraLLM {
       schema = jsonSchema(structuredOutput as JSONSchema7) as Schema<T>;
     }
 
-    return await streamObject({
+    return streamObject({
       messages,
       ...argsForExecute,
       output: output as any,
@@ -401,7 +401,7 @@ export class AISDK extends MastraLLM {
       output = 'text',
       temperature,
     }: LLMStreamOptions<Z> = {},
-  ): Promise<StreamReturn<Z>> {
+  ) {
     const msgs = this.convertToMessages(messages);
 
     if (output === 'text') {

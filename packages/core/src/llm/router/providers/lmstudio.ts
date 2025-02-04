@@ -1,4 +1,4 @@
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 import { openaiCompat } from './openai-compat';
 
 export type LMStudioModel =
@@ -40,7 +40,7 @@ export type LMStudioModel =
   | 'deepseek-coder-v2-lite'
   | (string & {});
 
-export class LMStudio extends AISDK {
+export class LMStudio extends ModelRouter {
   constructor({ name, baseURL }: { name: LMStudioModel; baseURL: string }) {
     super({ model: openaiCompat({ modelName: name, baseURL }) });
   }

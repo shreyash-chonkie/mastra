@@ -1,7 +1,7 @@
 import { createGroq } from '@ai-sdk/groq';
 import { extractReasoningMiddleware, wrapLanguageModel } from 'ai';
 
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type GroqModel =
   | 'llama3-groq-70b-8192-tool-use-preview'
@@ -10,7 +10,7 @@ export type GroqModel =
   | 'gemma-7b-it'
   | (string & {});
 
-export class Groq extends AISDK {
+export class Groq extends ModelRouter {
   constructor({
     name = 'gemma2-9b-it',
     apiKey = process.env.GROQ_API_KEY || '',
@@ -28,7 +28,7 @@ export class Groq extends AISDK {
     super({ model: groqModel(name) });
   }
 }
-export class GroqReasoning extends AISDK {
+export class GroqReasoning extends ModelRouter {
   constructor({
     name = 'deepseek-r1-distill-llama-70b',
     apiKey = process.env.GROQ_API_KEY || '',

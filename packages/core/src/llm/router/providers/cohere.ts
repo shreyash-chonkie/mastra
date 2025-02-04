@@ -1,10 +1,10 @@
 import { createCohere } from '@ai-sdk/cohere';
 
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type CohereModel = 'command-r-plus' | (string & {});
 
-export class Cohere extends AISDK {
+export class Cohere extends ModelRouter {
   constructor({
     name = 'command-r-plus',
     apiKey = process.env.COHERE_API_KEY || '',

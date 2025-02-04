@@ -1,10 +1,9 @@
 import { createPerplexity } from '@ai-sdk/perplexity';
-
-import { AISDK } from '../aisdk';
+import { ModelRouter } from '../router';
 
 export type PerplexityModel = 'sonar' | 'sonar-pro' | (string & {});
 
-export class Perplexity extends AISDK {
+export class Perplexity extends ModelRouter {
   constructor({
     name,
     apiKey,
