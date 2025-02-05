@@ -1,4 +1,5 @@
-import { Metric, type ModelConfig } from '@mastra/core';
+import { Metric } from '@mastra/core';
+import type { MastraLLMBase } from '@mastra/core/llm';
 
 import { type MetricResultWithReason } from '../types';
 import { roundToTwoDecimals } from '../utils';
@@ -15,9 +16,9 @@ export class ContextualRecallMetric extends Metric {
   private scale: number;
   private context: string[];
 
-  constructor(model: ModelConfig, { scale = 1, context }: ContextualRecallMetricOptions) {
+  constructor(llm: MastraLLMBase, { scale = 1, context }: ContextualRecallMetricOptions) {
     super();
-    this.judge = new ContextualRecallJudge(model);
+    this.judge = new ContextualRecallJudge(llm);
     this.scale = scale;
     this.context = context;
   }

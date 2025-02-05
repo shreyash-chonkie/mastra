@@ -1,4 +1,5 @@
-import { Metric, type ModelConfig } from '@mastra/core';
+import { Metric } from '@mastra/core';
+import type { MastraLLMBase } from '@mastra/core/llm';
 
 import { type MetricResultWithReason } from '../types';
 import { roundToTwoDecimals } from '../utils';
@@ -15,9 +16,9 @@ export class ContextPositionMetric extends Metric {
   private scale: number;
   private context: string[];
 
-  constructor(model: ModelConfig, { scale = 1, context }: ContextPositionMetricOptions) {
+  constructor(llm: MastraLLMBase, { scale = 1, context }: ContextPositionMetricOptions) {
     super();
-    this.judge = new ContextPositionJudge(model);
+    this.judge = new ContextPositionJudge(llm);
     this.scale = scale;
     this.context = context;
   }
