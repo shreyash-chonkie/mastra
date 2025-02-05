@@ -6,7 +6,7 @@ The `Memory` class provides a robust system for managing conversation history an
 
 ```typescript
 import { Memory } from "@mastra/memory";
-import { PostgresStorage } from "@mastra/storage-pg";
+import { PostgresStorage } from "@mastra/store-pg";
 
 const memory = new Memory({
   storage: new PostgresStorage({
