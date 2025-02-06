@@ -11,7 +11,6 @@
 '@mastra/deployer-vercel': patch
 '@mastra/loggers': patch
 '@mastra/vector-pg': patch
-'@mastra/dane': patch
 '@mastra/mcp': patch
 ---
 

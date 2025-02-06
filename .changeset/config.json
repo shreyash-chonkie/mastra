@@ -14,6 +14,10 @@
     "@mastra/playground",
     "examples-*",
     "*-with-*",
-    "!@mastra/dane"
+    "docs",
+    "workflow-*",
+    "*-integration-tests",
+    "*-examples",
+    "*-test*"
   ]
 }

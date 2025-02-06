@@ -1,6 +1,7 @@
 ---
-'@mastra/dane': patch
 'mastra': patch
 ---
 
 Publishing
+
+Add support for streaming responses from OpenAI
