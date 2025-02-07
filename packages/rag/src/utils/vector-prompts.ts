@@ -3,13 +3,43 @@
  * These prompts help users construct valid filters for each vector store.
  */
 
-export const ASTRA_PROMPT = `When querying Astra, you can ONLY use the operators listed below. Any other operators will be rejected.
+const CONSTRUCTION_RULES = `
 Important: Don't explain how to construct the filter - use the specified operators and fields to search the content and return relevant results.
-If a user tries to give an explicit operator that is not supported, reject the filter entirely and let them know that the operator is not supported.
+Do not make up your own operators, and ensure the filter you construct is valid.
+Critical: Never display or explain filter structure in responses.
 
+Critical: Always verify an operator is actually unsupported before rejecting it. Check the following:
+1. Is the operator itself supported and follows the rules of the vector store?
+2. Is it being used correctly in this context? (e.g. array operators for array fields only)
+For valid operators and structures, proceed with the search without explanation.
+
+Only reject and provide suggestions when:
+1. An explicitly unsupported operator is used
+2. The filter structure is invalid (this requires checking the rules of the vector store and making a determination)
+3. A valid operator is used with an incompatible field type
+
+If a user tries to give an explicit operator that is not supported, reject the filter entirely and let them know that the operator is not supported.
+Important: Don't reject valid filters - only provide explanations and suggestions when the query actually contains unsupported operators or invalid structure.
+Important: Don't just display a filter - help users improve their queries to find what they're looking for.
+
+When a query is invalid (unsupported operator or incorrect structure):
+1. Explain why their specific query doesn't work in plain language
+2. If an operator is not being used with the current field type, explain that
+3. Suggest improvements by rephrasing their original request
+4. Provide an example of how to rephrase their request
+5. Avoid discussing filter syntax or structure
+6. Use the same language/terms as the user's original query
+
+Example of handling an invalid operator:
+"The operator '$between' isn't supported. Try using '$gt' and '$lt' instead: 'find sections where nested.id is greater than 2 and less than 5'"
+
+Remember: The goal is to help users refine their queries to get the information they need, not just point out what's wrong.
+`;
+
+const BASIC_COMPARISON_OPERATORS = `
 Basic Comparison Operators:
 - $eq: Exact match (default when using field: value)
-  Example: { "category": "electronics" }
+  Example: { "category": "electronics" } or { "category": { "$eq": "electronics" } }
 - $ne: Not equal
   Example: { "category": { "$ne": "electronics" } }
 - $gt: Greater than
@@ -20,14 +50,34 @@ Basic Comparison Operators:
   Example: { "price": { "$lt": 100 } }
 - $lte: Less than or equal
   Example: { "price": { "$lte": 100 } }
+`;
 
-Array Operators:
+const IN_NIN_OPERATORS = `
 - $in: Match any value in array
   Example: { "category": { "$in": ["electronics", "books"] } }
 - $nin: Does not match any value in array
   Example: { "category": { "$nin": ["electronics", "books"] } }
+`;
+
+const ALL_OPERATOR = `
 - $all: Match all values in array
   Example: { "tags": { "$all": ["premium", "sale"] } }
+`;
+
+const ELEMENT_OPERATORS = `
+Element Operators:
+- $exists: Check if field exists
+  Example: { "rating": { "$exists": true } }
+`;
+
+export const ASTRA_PROMPT = `When querying Astra, you can ONLY use the operators listed below. Any other operators will be rejected.
+${CONSTRUCTION_RULES}
+
+${BASIC_COMPARISON_OPERATORS}
+
+Array Operators:
+${IN_NIN_OPERATORS}
+${ALL_OPERATOR}
 
 Logical Operators:
 - $and: Logical AND (can be implicit or explicit)
@@ -38,9 +88,7 @@ Logical Operators:
 - $not: Logical NOT
   Example: { "$not": { "category": "electronics" } }
 
-Element Operators:
-- $exists: Check if field exists
-  Example: { "rating": { "$exists": true } }
+${ELEMENT_OPERATORS}
 
 Special Operators:
 - $size: Array length check
@@ -92,28 +140,12 @@ Example Complex Query:
 }`;
 
 export const CHROMA_PROMPT = `When querying Chroma, you can ONLY use the operators listed below. Any other operators will be rejected.
-Important: Don't explain how to construct the filter - use the specified operators and fields to search the content and return relevant results.
-If a user tries to give an explicit operator that is not supported, reject the filter entirely and let them know that the operator is not supported.
+${CONSTRUCTION_RULES}
 
-Basic Comparison Operators:
-- $eq: Exact match (default when using field: value)
-  Example: { "category": "electronics" }
-- $ne: Not equal
-  Example: { "category": { "$ne": "electronics" } }
-- $gt: Greater than
-  Example: { "price": { "$gt": 100 } }
-- $gte: Greater than or equal
-  Example: { "price": { "$gte": 100 } }
-- $lt: Less than
-  Example: { "price": { "$lt": 100 } }
-- $lte: Less than or equal
-  Example: { "price": { "$lte": 100 } }
+${BASIC_COMPARISON_OPERATORS}
 
 Array Operators:
-- $in: Match any value in array
-  Example: { "category": { "$in": ["electronics", "books"] } }
-- $nin: Does not match any value in array
-  Example: { "category": { "$nin": ["electronics", "books"] } }
+${IN_NIN_OPERATORS}
 
 Logical Operators:
 - $and: Logical AND
@@ -160,30 +192,13 @@ Example Complex Query:
 }`;
 
 export const LIBSQL_PROMPT = `When querying LibSQL Vector, you can ONLY use the operators listed below. Any other operators will be rejected.
-Important: Don't explain how to construct the filter - use the specified operators and fields to search the content and return relevant results.
-If a user tries to give an explicit operator that is not supported, reject the filter entirely and let them know that the operator is not supported.
+${CONSTRUCTION_RULES}
 
-Basic Comparison Operators:
-- $eq: Exact match (default when using field: value)
-  Example: { "category": "electronics" }
-- $ne: Not equal
-  Example: { "category": { "$ne": "electronics" } }
-- $gt: Greater than
-  Example: { "price": { "$gt": 100 } }
-- $gte: Greater than or equal
-  Example: { "price": { "$gte": 100 } }
-- $lt: Less than
-  Example: { "price": { "$lt": 100 } }
-- $lte: Less than or equal
-  Example: { "price": { "$lte": 100 } }
+${BASIC_COMPARISON_OPERATORS}
 
 Array Operators:
-- $in: Match any value in array
-  Example: { "category": { "$in": ["electronics", "books"] } }
-- $nin: Does not match any value in array
-  Example: { "category": { "$nin": ["electronics", "books"] } }
-- $all: Match all values in array
-  Example: { "tags": { "$all": ["premium", "sale"] } }
+${IN_NIN_OPERATORS}
+${ALL_OPERATOR}
 - $elemMatch: Match array elements that meet all specified conditions
   Example: { "items": { "$elemMatch": { "price": { "$gt": 100 } } } }
 - $contains: Check if array contains value
@@ -199,9 +214,7 @@ Logical Operators:
 - $nor: Logical NOR
   Example: { "$nor": [{ "price": { "$lt": 50 } }, { "category": "books" }] }
 
-Element Operators:
-- $exists: Check if field exists
-  Example: { "rating": { "$exists": true } }
+${ELEMENT_OPERATORS}
 
 Special Operators:
 - $size: Array length check
@@ -258,30 +271,13 @@ Example Complex Query:
 }`;
 
 export const PGVECTOR_PROMPT = `When querying PG Vector, you can ONLY use the operators listed below. Any other operators will be rejected.
-Important: Don't explain how to construct the filter - use the specified operators and fields to search the content and return relevant results.
-If a user tries to give an explicit operator that is not supported, reject the filter entirely and let them know that the operator is not supported.
+${CONSTRUCTION_RULES}
 
-Basic Comparison Operators:
-- $eq: Exact match (default when using field: value)
-  Example: { "category": "electronics" }
-- $ne: Not equal
-  Example: { "category": { "$ne": "electronics" } }
-- $gt: Greater than
-  Example: { "price": { "$gt": 100 } }
-- $gte: Greater than or equal
-  Example: { "price": { "$gte": 100 } }
-- $lt: Less than
-  Example: { "price": { "$lt": 100 } }
-- $lte: Less than or equal
-  Example: { "price": { "$lte": 100 } }
+${BASIC_COMPARISON_OPERATORS}
 
 Array Operators:
-- $in: Match any value in array
-  Example: { "category": { "$in": ["electronics", "books"] } }
-- $nin: Does not match any value in array
-  Example: { "category": { "$nin": ["electronics", "books"] } }
-- $all: Match all values in array
-  Example: { "tags": { "$all": ["premium", "sale"] } }
+${IN_NIN_OPERATORS}
+${ALL_OPERATOR}
 - $elemMatch: Match array elements that meet all specified conditions
   Example: { "items": { "$elemMatch": { "price": { "$gt": 100 } } } }
 - $contains: Check if array contains value
@@ -297,9 +293,7 @@ Logical Operators:
 - $nor: Logical NOR
   Example: { "$nor": [{ "price": { "$lt": 50 } }, { "category": "books" }] }
 
-Element Operators:
-- $exists: Check if field exists
-  Example: { "rating": { "$exists": true } }
+${ELEMENT_OPERATORS}
 
 Special Operators:
 - $size: Array length check
@@ -359,30 +353,13 @@ Example Complex Query:
 }`;
 
 export const PINECONE_PROMPT = `When querying Pinecone, you can ONLY use the operators listed below. Any other operators will be rejected.
-Important: Don't explain how to construct the filter - use the specified operators and fields to search the content and return relevant results.
-If a user tries to give an explicit operator that is not supported, reject the filter entirely and let them know that the operator is not supported.
+${CONSTRUCTION_RULES}
 
-Basic Comparison Operators:
-- $eq: Exact match (default when using field: value)
-  Example: { "category": "electronics" }
-- $ne: Not equal
-  Example: { "category": { "$ne": "electronics" } }
-- $gt: Greater than
-  Example: { "price": { "$gt": 100 } }
-- $gte: Greater than or equal
-  Example: { "price": { "$gte": 100 } }
-- $lt: Less than
-  Example: { "price": { "$lt": 100 } }
-- $lte: Less than or equal
-  Example: { "price": { "$lte": 100 } }
+${BASIC_COMPARISON_OPERATORS}
 
 Array Operators:
-- $in: Match any value in array
-  Example: { "category": { "$in": ["electronics", "books"] } }
-- $nin: Does not match any value in array
-  Example: { "category": { "$nin": ["electronics", "books"] } }
-- $all: Match all values in array
-  Example: { "tags": { "$all": ["premium", "sale"] } }
+${IN_NIN_OPERATORS}
+${ALL_OPERATOR}
 
 Logical Operators:
 - $and: Logical AND (can be implicit or explicit)
@@ -391,9 +368,7 @@ Logical Operators:
 - $or: Logical OR
   Example: { "$or": [{ "price": { "$lt": 50 } }, { "category": "books" }] }
 
-Element Operators:
-- $exists: Check if field exists
-  Example: { "rating": { "$exists": true } }
+${ELEMENT_OPERATORS}
 
 Restrictions:
 - Regex patterns are not supported
@@ -436,28 +411,12 @@ Example Complex Query:
 }`;
 
 export const QDRANT_PROMPT = `When querying Qdrant, you can ONLY use the operators listed below. Any other operators will be rejected.
-Important: Don't explain how to construct the filter - use the specified operators and fields to search the content and return relevant results.
-If a user tries to give an explicit operator that is not supported, reject the filter entirely and let them know that the operator is not supported.
+${CONSTRUCTION_RULES}
 
-Basic Comparison Operators:
-- $eq: Exact match (default when using field: value)
-  Example: { "category": "electronics" }
-- $ne: Not equal
-  Example: { "category": { "$ne": "electronics" } }
-- $gt: Greater than
-  Example: { "price": { "$gt": 100 } }
-- $gte: Greater than or equal
-  Example: { "price": { "$gte": 100 } }
-- $lt: Less than
-  Example: { "price": { "$lt": 100 } }
-- $lte: Less than or equal
-  Example: { "price": { "$lte": 100 } }
+${BASIC_COMPARISON_OPERATORS}
 
 Array Operators:
-- $in: Match any value in array
-  Example: { "category": { "$in": ["electronics", "books"] } }
-- $nin: Does not match any value in array
-  Example: { "category": { "$nin": ["electronics", "books"] } }
+${IN_NIN_OPERATORS}
 
 Logical Operators:
 - $and: Logical AND (implicit when using multiple conditions)
@@ -467,9 +426,7 @@ Logical Operators:
 - $not: Logical NOT
   Example: { "$not": { "category": "electronics" } }
 
-Element Operators:
-- $exists: Check if field exists
-  Example: { "rating": { "$exists": true } }
+${ELEMENT_OPERATORS}
 
 Special Operators:
 - $regex: Pattern matching
@@ -583,28 +540,12 @@ Example Complex Query:
 }`;
 
 export const UPSTASH_PROMPT = `When querying Upstash Vector, you can ONLY use the operators listed below. Any other operators will be rejected.
-Important: Don't explain how to construct the filter - use the specified operators and fields to search the content and return relevant results.
-If a user tries to give an explicit operator that is not supported, reject the filter entirely and let them know that the operator is not supported.
+${CONSTRUCTION_RULES}
 
-Basic Comparison Operators:
-- $eq: Exact match (default when using field: value)
-  Example: { "category": "electronics" } or { "category": { "$eq": "electronics" } }
-- $ne: Not equal
-  Example: { "category": { "$ne": "electronics" } }
-- $gt: Greater than
-  Example: { "price": { "$gt": 100 } }
-- $gte: Greater than or equal
-  Example: { "price": { "$gte": 100 } }
-- $lt: Less than
-  Example: { "price": { "$lt": 100 } }
-- $lte: Less than or equal
-  Example: { "price": { "$lte": 100 } }
+${BASIC_COMPARISON_OPERATORS}
 
 Array Operators:
-- $in: Match any value in array
-  Example: { "category": { "$in": ["electronics", "books"] } }
-- $nin: Does not match any value in array
-  Example: { "category": { "$nin": ["electronics", "books"] } }
+${IN_NIN_OPERATORS}
 - $all: Matches all values in array
   Example: { "tags": { "$all": ["premium", "new"] } }
 
@@ -618,9 +559,7 @@ Logical Operators:
 - $nor: Logical NOR
   Example: { "$nor": [{ "price": { "$lt": 50 } }, { "category": "books" }] }
 
-Element Operators:
-- $exists: Check if field exists
-  Example: { "rating": { "$exists": true } }
+${ELEMENT_OPERATORS}
 
 Special Operators:
 - $regex: Pattern matching using glob syntax (only as operator, not direct RegExp)
@@ -676,28 +615,12 @@ Example Complex Query:
 }`;
 
 export const VECTORIZE_PROMPT = `When querying Vectorize, you can ONLY use the operators listed below. Any other operators will be rejected.
-Important: Don't explain how to construct the filter - use the specified operators and fields to search the content and return relevant results.
-If a user tries to give an explicit operator that is not supported, reject the filter entirely and let them know that the operator is not supported.
+${CONSTRUCTION_RULES}
 
-Basic Comparison Operators:
-- $eq: Exact match (default when using field: value)
-  Example: { "category": "electronics" }
-- $ne: Not equal
-  Example: { "category": { "$ne": "electronics" } }
-- $gt: Greater than
-  Example: { "price": { "$gt": 100 } }
-- $gte: Greater than or equal
-  Example: { "price": { "$gte": 100 } }
-- $lt: Less than
-  Example: { "price": { "$lt": 100 } }
-- $lte: Less than or equal
-  Example: { "price": { "$lte": 100 } }
+${BASIC_COMPARISON_OPERATORS}
 
 Array Operators:
-- $in: Match any value in array
-  Example: { "category": { "$in": ["electronics", "books"] } }
-- $nin: Does not match any value in array
-  Example: { "category": { "$nin": ["electronics", "books"] } }
+${IN_NIN_OPERATORS}
 
 Restrictions:
 - Regex patterns are not supported
