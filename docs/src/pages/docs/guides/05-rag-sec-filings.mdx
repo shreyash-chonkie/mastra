@@ -37,7 +37,7 @@ OPENAI_API_KEY=<your-openai-api-key>
 
 Create a new TypeScript file for our RAG implementation:
 
-```ts copy filename="src/nvidia-rag.ts"
+```ts copy filename="src/rag-sec-filings.ts"
 import { Mastra, ChunkConfig, EmbeddingConfig, SearchConfig } from "@mastra/core";
 import fetch from "node-fetch";
 
@@ -63,7 +63,7 @@ async function fetchDocument(url: string): Promise<string> {
 
 Now let's chunk the document into manageable pieces:
 
-```ts copy filename="src/nvidia-rag.ts"
+```ts copy filename="src/rag-sec-filings.ts"
 async function chunkDocument(text: string) {
   const chunkConfig: ChunkConfig = {
     text,
@@ -82,7 +82,7 @@ async function chunkDocument(text: string) {
 
 Create embeddings for each chunk:
 
-```ts copy filename="src/nvidia-rag.ts"
+```ts copy filename="src/rag-sec-filings.ts"
 async function createEmbeddings(chunks: string[]) {
   const embeddingConfig: EmbeddingConfig = {
     texts: chunks,
@@ -99,7 +99,7 @@ async function createEmbeddings(chunks: string[]) {
 
 Set up the semantic search functionality:
 
-```ts copy filename="src/nvidia-rag.ts"
+```ts copy filename="src/rag-sec-filings.ts"
 async function searchDocument(query: string, chunks: string[], embeddings: number[][]) {
   // Create embedding for the query
   const queryEmbedding = await mastra.embed({
@@ -125,7 +125,7 @@ async function searchDocument(query: string, chunks: string[], embeddings: numbe
 
 Create a function to answer questions using the retrieved context:
 
-```ts copy filename="src/nvidia-rag.ts"
+```ts copy filename="src/rag-sec-filings.ts"
 async function answerQuestion(question: string, context: string) {
   const llm = mastra.llm({
     provider: "OPEN_AI",
@@ -152,7 +152,7 @@ async function answerQuestion(question: string, context: string) {
 
 Here's how to use all the components together:
 
-```ts copy filename="src/nvidia-rag.ts"
+```ts copy filename="src/rag-sec-filings.ts"
 async function main() {
   try {
     // 1. Fetch and preprocess the document
@@ -193,7 +193,7 @@ main();
 Execute the code:
 
 ```bash copy
-npx bun src/nvidia-rag.ts
+npx bun src/rag-sec-filings.ts
 ```
 
 </Steps>
