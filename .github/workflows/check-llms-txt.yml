@@ -1,0 +1,62 @@
+name: Check llms.txt is up to date
+
+on:
+  pull_request:
+    paths:
+      - 'docs/src/pages/**/*.mdx'  # Only run when MDX files change
+      - 'docs/src/scripts/build-cursor-context.ts'  # Or when the build script changes
+
+jobs:
+  check-llms-txt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9.7.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate temporary llms.txt
+        working-directory: docs
+        run: |
+          # Create a temp directory for the new file
+          mkdir -p temp_public
+          # Generate to the temp directory
+          ORIGINAL_PUBLIC_DIR=public
+          export PUBLIC_DIR=temp_public
+          pnpm tsx src/scripts/build-cursor-context.ts src/pages
+
+      - name: Compare files
+        working-directory: docs
+        run: |
+          cmp -s public/llms.txt temp_public/llms.txt || (
+            echo "::error::❌ llms.txt is out of date and needs to be regenerated"
+            echo ""
+            echo "To fix this, run these commands from the root of the repository:"
+            echo "  cd docs"
+            echo "  pnpm tsx src/scripts/build-cursor-context.ts src/pages"
+            echo ""
+            echo "This error usually means:"
+            echo "1. You've modified MDX files but haven't regenerated llms.txt"
+            echo "2. Or someone else modified MDX files in a previous PR without regenerating llms.txt"
+            echo ""
+            echo "Complete fix steps:"
+            echo "1. Run the commands above in your terminal"
+            echo "2. Stage the changes: git add docs/public/llms.txt"
+            echo "3. Commit the file: git commit -m 'chore: regenerate llms.txt'"
+            echo "4. Push the changes to your PR branch"
+            exit 1
+          )
+          
+          # Clean up temp directory
+          rm -rf temp_public

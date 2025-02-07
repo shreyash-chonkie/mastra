@@ -8,7 +8,7 @@ async function concatenateMDXDocs(
 ): Promise<void> {
   const allContent: string[] = [];
   const processedFiles: string[] = [];
-  const outputDir = path.join(process.cwd(), "public");
+  const outputDir = path.join(process.cwd(), process.env.PUBLIC_DIR || "public");
 
   async function processDirectory(dirPath: string): Promise<void> {
     try {
