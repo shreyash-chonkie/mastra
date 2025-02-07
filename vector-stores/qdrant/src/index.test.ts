@@ -388,11 +388,12 @@ describe('QdrantVector', () => {
         await qdrant.upsert(testCollectionName, [vector], [metadata]);
 
         const filter = {
-          $datetime: {
-            key: 'created_at',
-            range: {
-              gt: new Date(now.getTime() - 1000), // 1 second before
-              lt: new Date(now.getTime() + 1000), // 1 second after
+          created_at: {
+            $datetime: {
+              range: {
+                gt: new Date(now.getTime() - 1000), // 1 second before
+                lt: new Date(now.getTime() + 1000), // 1 second after
+              },
             },
           },
         };
@@ -406,6 +407,43 @@ describe('QdrantVector', () => {
     });
 
     describe('Special Cases', () => {
+      it('handles regex patterns in queries', async () => {
+        const results = await qdrant.query(testCollectionName, [1, 0, 0], 10, {
+          name: { $regex: 'item' },
+        });
+        expect(results.length).toBe(4);
+      });
+
+      it('handles array operators in queries', async () => {
+        const results = await qdrant.query(testCollectionName, [1, 0, 0], 10, {
+          tags: { $in: ['electronics', 'books'] },
+        });
+        expect(results.length).toBe(3);
+      });
+
+      it('handles nested array queries', async () => {
+        const results = await qdrant.query(testCollectionName, [1, 0, 0], 10, {
+          'stock.locations[]': {
+            $nested: {
+              warehouse: 'A',
+              count: { $gt: 20 },
+            },
+          },
+        });
+        expect(results.length).toBe(2);
+      });
+
+      it('handles collection-wide operators', async () => {
+        // First get some actual IDs from our collection
+        const searchResults = await qdrant.query(testCollectionName, [1, 0, 0], 2);
+        const ids = searchResults.map(r => r.id);
+
+        const results = await qdrant.query(testCollectionName, [1, 0, 0], 10, {
+          $hasId: ids,
+          $hasVector: '', // Use the default vector name
+        });
+        expect(results.length).toBe(2);
+      });
       it('should handle nested paths', async () => {
         const filter = {
           'details.color': 'red',
@@ -627,11 +665,15 @@ describe('QdrantVector', () => {
 
     it('should handle empty object filter', async () => {
       const results = await qdrant.query(testCollectionName, [1, 0, 0], 10, {});
+      const results2 = await qdrant.query(testCollectionName, [1, 0, 0], 10);
+      expect(results).toEqual(results2);
       expect(results.length).toBeGreaterThan(0);
     });
 
-    it('should reject null filter', async () => {
+    it('should handle null filter', async () => {
       const results = await qdrant.query(testCollectionName, [1, 0, 0], 10, null as any);
+      const results2 = await qdrant.query(testCollectionName, [1, 0, 0], 10);
+      expect(results).toEqual(results2);
       expect(results.length).toBeGreaterThan(0);
     });
   });

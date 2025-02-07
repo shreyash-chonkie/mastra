@@ -1,5 +1,78 @@
 # mastra
 
+## 0.2.0-alpha.144
+
+### Patch Changes
+
+- Updated dependencies [d7d465a]
+- Updated dependencies [d7d465a]
+- Updated dependencies [2017553]
+- Updated dependencies [a10b7a3]
+- Updated dependencies [16e5b04]
+  - @mastra/core@0.2.0-alpha.91
+  - @mastra/deployer@0.1.0-alpha.37
+
+## 0.2.0-alpha.143
+
+### Patch Changes
+
+- 82a6d53: better create-mastra tsconfig, better error for mastra server agent stream
+- Updated dependencies [8151f44]
+- Updated dependencies [e897f1c]
+- Updated dependencies [82a6d53]
+- Updated dependencies [3700be1]
+  - @mastra/core@0.2.0-alpha.90
+  - @mastra/deployer@0.1.0-alpha.36
+
+## 0.2.0-alpha.142
+
+### Patch Changes
+
+- Updated dependencies [27275c9]
+  - @mastra/core@0.2.0-alpha.89
+  - @mastra/deployer@0.1.0-alpha.35
+
+## 0.2.0-alpha.141
+
+### Patch Changes
+
+- 323e09e: Use 4o-mini in starter example
+- Updated dependencies [ab01c53]
+- Updated dependencies [ccbc581]
+  - @mastra/deployer@0.1.0-alpha.34
+  - @mastra/core@0.2.0-alpha.88
+
+## 0.2.0-alpha.140
+
+### Patch Changes
+
+- c16b6a1: Fix loading env files in dev
+
+## 0.2.0-alpha.139
+
+### Patch Changes
+
+- Updated dependencies [7365b6c]
+  - @mastra/core@0.2.0-alpha.87
+  - @mastra/deployer@0.1.0-alpha.33
+
+## 0.2.0-alpha.138
+
+### Minor Changes
+
+- 5916f9d: Update deps from fixed to ^
+
+### Patch Changes
+
+- Updated dependencies [6fa4bd2]
+- Updated dependencies [5916f9d]
+- Updated dependencies [e2e76de]
+- Updated dependencies [7f24c29]
+- Updated dependencies [67637ba]
+- Updated dependencies [04f3171]
+  - @mastra/core@0.2.0-alpha.86
+  - @mastra/deployer@0.1.0-alpha.32
+
 ## 0.1.57-alpha.137
 
 ### Patch Changes

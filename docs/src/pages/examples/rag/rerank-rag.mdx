@@ -36,7 +36,8 @@ POSTGRES_CONNECTION_STRING=your_connection_string_here
 Then, import the necessary dependencies:
 
 ```typescript copy showLineNumbers filename="src/mastra/index.ts"
-import { Mastra, Agent } from "@mastra/core";
+import { Mastra } from "@mastra/core";
+import { Agent } from "@mastra/core/agent";
 import { PgVector } from "@mastra/vector-pg";
 import { embedMany, MDocument, createVectorQueryTool } from "@mastra/rag";
 ```
@@ -54,7 +55,6 @@ const vectorQueryTool = createVectorQueryTool({
     model: "text-embedding-3-small",
     maxRetries: 3,
   },
-  topK: 5,
   reranker: {
     model: {
       provider: "OPEN_AI",

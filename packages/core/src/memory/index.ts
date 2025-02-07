@@ -10,8 +10,9 @@ import {
 } from 'ai';
 
 import { MastraBase } from '../base';
-import { EmbeddingOptions } from '../embeddings';
+import { MastraEmbedder } from '../embeddings/model/providers/embedder';
 import { MastraStorage, StorageGetMessagesArg } from '../storage';
+import { deepMerge } from '../utils';
 import { MastraVector } from '../vector';
 
 export type AiMessageType = AiMessage;
@@ -51,23 +52,18 @@ export type MemoryConfig = {
         topK: number;
         messageRange: number | { before: number; after: number };
       };
-  // TODO:
-  // injectWorkingMemory?: boolean;
+  workingMemory?: {
+    enabled: boolean;
+    template?: string;
+  };
 };
 
-export type SharedMemoryConfig =
-  | {
-      storage: MastraStorage;
-      options?: MemoryConfig;
-      vector?: MastraVector;
-      embedding?: EmbeddingOptions;
-    }
-  | {
-      storage: MastraStorage;
-      options?: MemoryConfig;
-      vector: MastraVector;
-      embedding: EmbeddingOptions;
-    };
+export type SharedMemoryConfig = {
+  storage: MastraStorage;
+  options?: MemoryConfig;
+  vector?: MastraVector;
+  embedder?: MastraEmbedder;
+};
 
 /**
  * Abstract Memory class that defines the interface for storing and retrieving
@@ -78,13 +74,11 @@ export abstract class MastraMemory extends MastraBase {
 
   storage: MastraStorage;
   vector?: MastraVector;
-  embedding?: EmbeddingOptions;
+  embedder?: MastraEmbedder;
 
   protected threadConfig: MemoryConfig = {
     lastMessages: 40,
     semanticRecall: false, // becomes true by default if a vector store is attached
-    // TODO:
-    // injectWorkingMemory: true
   };
 
   constructor(config: { name: string } & SharedMemoryConfig) {
@@ -94,27 +88,44 @@ export abstract class MastraMemory extends MastraBase {
       this.vector = config.vector;
       this.threadConfig.semanticRecall = true;
     }
-    if (`embedding` in config) {
-      this.embedding = config.embedding;
+    if (config.embedder) {
+      this.embedder = config.embedder;
     }
     if (config.options) {
       this.threadConfig = this.getMergedThreadConfig(config.options);
     }
   }
 
-  protected parseEmbeddingOptions() {
-    if (!this.embedding) {
-      throw new Error(`Cannot use vector features without setting new Memory({ embedding: { ... } })`);
-    }
-
-    return this.embedding;
+  /**
+   * Get a system message to inject into the conversation.
+   * This will be called before each conversation turn.
+   * Implementations can override this to inject custom system messages.
+   */
+  public async getSystemMessage(_input: { threadId: string; memoryConfig?: MemoryConfig }): Promise<string | null> {
+    return null;
   }
 
-  protected getMergedThreadConfig(config: MemoryConfig): MemoryConfig {
-    return {
-      ...this.threadConfig,
-      ...config,
-    };
+  protected getEmbedder() {
+    if (!this.embedder) {
+      throw new Error(`Cannot use vector features without setting new Memory({ embedder: embedderInstance })
+
+For example:
+
+new Memory({
+  storage,
+  vector,
+  embedder: new OpenAIEmbedder({ // <- this is required
+    model: "text-embedding-3-small",
+  })
+});
+`);
+    }
+
+    return this.embedder;
+  }
+
+  protected getMergedThreadConfig(config?: MemoryConfig): MemoryConfig {
+    return deepMerge(this.threadConfig, config || {});
   }
 
   abstract rememberMessages({
@@ -246,7 +257,13 @@ export abstract class MastraMemory extends MastraBase {
    * @param thread - The thread data to save
    * @returns Promise resolving to the saved thread
    */
-  abstract saveThread({ thread }: { thread: StorageThreadType }): Promise<StorageThreadType>;
+  abstract saveThread({
+    thread,
+    memoryConfig,
+  }: {
+    thread: StorageThreadType;
+    memoryConfig?: MemoryConfig;
+  }): Promise<StorageThreadType>;
 
   /**
    * Saves messages to a thread
@@ -282,22 +299,24 @@ export abstract class MastraMemory extends MastraBase {
     resourceId,
     title,
     metadata,
+    memoryConfig,
   }: {
     resourceId: string;
     threadId?: string;
     title?: string;
     metadata?: Record<string, unknown>;
+    memoryConfig?: MemoryConfig;
   }): Promise<StorageThreadType> {
     const thread: StorageThreadType = {
       id: threadId || this.generateId(),
-      title,
+      title: title || 'New Thread',
       resourceId,
       createdAt: new Date(),
       updatedAt: new Date(),
       metadata,
     };
 
-    return this.saveThread({ thread });
+    return this.saveThread({ thread, memoryConfig });
   }
 
   /**

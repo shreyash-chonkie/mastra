@@ -4,13 +4,13 @@ The `Memory` class provides a robust system for managing conversation history an
 
 ## Usage Example
 
-```typescript
+```typescript copy showLineNumbers
 import { Memory } from "@mastra/memory";
-import { PostgresStorage } from "@mastra/storage-pg";
+import { MastraStorageLibSql } from "@mastra/core/storage";
 
 const memory = new Memory({
-  storage: new PostgresStorage({
-    connectionString: process.env.DATABASE_URL,
+  storage: new MastraStorageLibSql({
+    url: ":memory:",
   }),
 });
 ```
@@ -32,9 +32,10 @@ const memory = new Memory({
       isOptional: true,
     },
     {
-      name: "embeddingOptions",
-      type: "EmbeddingOptions",
-      description: "Configuration for text embeddings",
+      name: "embedder",
+      type: "MastraEmbedder",
+      description:
+        "Embedder instance for vector embeddings (e.g., OpenAIEmbedder, CohereEmbedder)",
       isOptional: true,
     },
     {
@@ -53,50 +54,85 @@ const memory = new Memory({
     {
       name: "lastMessages",
       type: "number | false",
-      description: "Number of most recent messages to retrieve. Set to false to disable.",
+      description:
+        "Number of most recent messages to retrieve. Set to false to disable.",
       isOptional: true,
       defaultValue: "40",
     },
     {
-      name: "historySearch",
-      type: "boolean | object",
-      description: "Enable semantic search in message history. Automatically enabled when vector store is provided.",
+      name: "semanticRecall",
+      type: "boolean | SemanticRecallConfig",
+      description:
+        "Enable semantic search in message history. Automatically enabled when vector store is provided.",
       isOptional: true,
       defaultValue: "false (true if vector store provided)",
     },
     {
       name: "topK",
       type: "number",
-      description: "Number of similar messages to retrieve when using semantic search",
+      description:
+        "Number of similar messages to retrieve when using semantic search",
       isOptional: true,
       defaultValue: "2",
     },
     {
       name: "messageRange",
       type: "number | { before: number; after: number }",
-      description: "Range of messages to include around semantic search results",
+      description:
+        "Range of messages to include around semantic search results",
       isOptional: true,
-      defaultValue: "{ before: 2, after: 2 }",
+      defaultValue: "2",
+    },
+    {
+      name: "workingMemory",
+      type: "{ enabled: boolean; template: string }",
+      description:
+        "Configuration for working memory feature that allows persistent storage of user information across conversations",
+      isOptional: true,
+      defaultValue:
+        "{ enabled: false, template: '<user><first_name></first_name><last_name></last_name>...</user>' }",
     },
   ]}
 />
+
+### Working Memory
+
+The working memory feature allows agents to maintain persistent information across conversations. When enabled, the Memory class will automatically manage XML-based working memory updates through the conversation stream.
+
+If no template is provided, the Memory class uses a default template that includes fields for user details, preferences, goals, and other contextual information. See the [Agent Memory Guide](/docs/agents/agent-memory#working-memory) for detailed usage examples and best practices.
+
+### embedder
+
+The embedder instance to use for generating vector embeddings. This should be an instance of a class that implements the `MastraEmbedder` interface. See the [Embedder Reference](/docs/reference/embedder) for available embedders and their configuration options.
 
 ## Additional Notes
 
 ### Vector Search Configuration
 
-When using vector search capabilities, ensure you configure both the vector store and appropriate search options:
+When using vector search capabilities, ensure you configure both the vector store and appropriate search options. Here's an example (just using the in-memory store):
 
-```typescript
+```typescript copy showLineNumbers
+import { Memory } from "@mastra/memory";
+import { MastraStorageLibSql } from "@mastra/core/storage";
+import { LibSQLVector } from "@mastra/core/vector/libsql";
+
 const memory = new Memory({
-  storage: new PostgresStorage({ /* config */ }),
-  vector: new PineconeVector({ /* config */ }),
+  storage: new MastraStorageLibSql({
+    url: ":memory:",
+  }),
+  vector: new LibSQLVector({
+    url: ":memory:",
+  }),
+  embedder: new OpenAIEmbedder({
+    model: "text-embedding-3-small",
+    maxRetries: 3,
+  }),
   options: {
-    historySearch: {
+    semanticRecall: {
       topK: 5,
-      messageRange: { before: 2, after: 2 }
-    }
-  }
+      messageRange: 2,
+    },
+  },
 });
 ```
 

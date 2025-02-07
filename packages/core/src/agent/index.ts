@@ -19,6 +19,7 @@ import { MastraBase } from '../base';
 import { Metric } from '../eval';
 import { AvailableHooks, executeHook } from '../hooks';
 import { LLM } from '../llm';
+import { MastraLLMBase } from '../llm/model';
 import { GenerateReturn, ModelConfig, StreamReturn } from '../llm/types';
 import { LogLevel, RegisteredLogger } from '../logger';
 import { MastraMemory, MemoryConfig, StorageThreadType } from '../memory';
@@ -36,9 +37,10 @@ export class Agent<
   TMetrics extends Record<string, Metric> = Record<string, Metric>,
 > extends MastraBase {
   public name: string;
-  readonly llm: LLM;
+  // @ts-ignore
+  readonly llm: LLM | MastraLLMBase;
   readonly instructions: string;
-  readonly model: ModelConfig;
+  readonly model?: ModelConfig;
   #mastra?: MastraPrimitives;
   #memory?: MastraMemory;
   tools: TTools;
@@ -50,9 +52,16 @@ export class Agent<
     this.name = config.name;
     this.instructions = config.instructions;
 
-    this.llm = new LLM({ model: config.model });
+    if (!config.model && !config.llm) {
+      throw new Error('Either model or llm is required');
+    }
 
-    this.model = config.model;
+    if (config.llm) {
+      this.llm = config.llm;
+    } else if (config.model) {
+      this.model = config.model;
+      this.llm = new LLM({ model: config.model });
+    }
 
     this.tools = {} as TTools;
 
@@ -179,6 +188,7 @@ export class Agent<
           threadId,
           resourceId,
           title,
+          memoryConfig,
         });
       } else {
         thread = await memory.getThreadById({ threadId });
@@ -191,6 +201,7 @@ export class Agent<
             threadId,
             resourceId,
             title,
+            memoryConfig,
           });
         }
       }
@@ -275,9 +286,26 @@ export class Agent<
           runId,
         });
 
+        const memorySystemMessage =
+          memory && threadId ? await memory.getSystemMessage({ threadId, memoryConfig }) : null;
+
         return {
           threadId: thread.id,
-          messages: [...memoryMessages, ...newMessages],
+          messages: [
+            {
+              role: 'system',
+              content: `\n
+             Analyze this message to determine if the user is referring to a previous conversation with the LLM.
+             Specifically, identify if the user wants to reference specific information from that chat or if they want the LLM to use the previous chat messages as context for the current conversation.
+             Extract any date ranges mentioned in the user message that could help identify the previous chat.
+             Return dates in ISO format.
+             If no specific dates are mentioned but time periods are (like "last week" or "past month"), calculate the appropriate date range.
+             For the end date, return the date 1 day after the end of the time period.
+             Today's date is ${new Date().toISOString()} and the time is ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })} ${memorySystemMessage ? `\n\n${memorySystemMessage}` : ''}`,
+            } as any,
+            ...memoryMessages,
+            ...newMessages,
+          ],
         };
       }
 
@@ -293,10 +321,12 @@ export class Agent<
   async saveResponse({
     result,
     threadId,
+    resourceId,
     runId,
     memoryConfig,
   }: {
     runId: string;
+    resourceId: string;
     result: Record<string, any>;
     threadId: string;
     memoryConfig: MemoryConfig | undefined;
@@ -311,7 +341,15 @@ export class Agent<
         const memory = this.getMemory();
 
         if (memory) {
-          this.log(LogLevel.DEBUG, 'Saving response to memory', { threadId, runId });
+          this.logger.debug(
+            `[Agent:${this.name}] - Memory persistence: store=${this.#mastra?.memory?.constructor.name} threadId=${threadId}`,
+            {
+              runId,
+              resourceId,
+              threadId,
+              memoryStore: this.#mastra?.memory?.constructor.name,
+            },
+          );
 
           await memory.saveMessages({
             memoryConfig,
@@ -369,7 +407,7 @@ export class Agent<
         }
       }
     } catch (err) {
-      this.logger.error('Failed to save assistant response', {
+      this.logger.error(`[Agent:${this.name}] - Failed to save assistant response`, {
         error: err,
         runId: runId,
       });
@@ -451,10 +489,24 @@ export class Agent<
               // this.logger.debug(`Cache not found or not enabled, executing tool runId: ${runId}`, {
               //   runId,
               // });
-              return tool.execute({
-                context: args,
-                mastra: this.#mastra,
-              });
+
+              try {
+                this.logger.debug(`[Agent:${this.name}] - Executing tool ${k}`, {
+                  name: k,
+                  description: tool.description,
+                  args,
+                });
+                return tool.execute({
+                  context: args,
+                  mastra: this.#mastra,
+                });
+              } catch (err) {
+                this.logger.error(`[Agent:${this.name}] - Failed execution`, {
+                  error: err,
+                  runId: runId,
+                });
+                throw err;
+              }
             },
           };
         }
@@ -470,7 +522,9 @@ export class Agent<
     const toolsFromToolsets = Object.values(toolsets || {});
 
     if (toolsFromToolsets.length > 0) {
-      this.logger.debug(`Adding tools from toolsets ${Object.keys(toolsets || {}).join(', ')}`, { runId });
+      this.logger.debug(`[Agent:${this.name}] - Adding tools from toolsets ${Object.keys(toolsets || {}).join(', ')}`, {
+        runId,
+      });
       toolsFromToolsets.forEach(toolset => {
         Object.entries(toolset).forEach(([toolName, tool]) => {
           const toolObj = tool;
@@ -496,9 +550,23 @@ export class Agent<
               // this.logger.debug(`Cache not found or not enabled, executing tool runId: ${runId}`, {
               //   runId,
               // });
-              return toolObj.execute!({
-                context: args,
-              });
+
+              try {
+                this.logger.debug(`[Agent:${this.name}] - Executing tool ${toolName}`, {
+                  name: toolName,
+                  description: toolObj.description,
+                  args,
+                });
+                return toolObj.execute!({
+                  context: args,
+                });
+              } catch (err) {
+                this.logger.error(`[Agent:${this.name}] - Failed toolset execution`, {
+                  error: err,
+                  runId: runId,
+                });
+                throw err;
+              }
             },
           };
         });
@@ -569,6 +637,15 @@ export class Agent<
         let threadIdToUse = threadId;
 
         if (this.getMemory() && resourceId) {
+          this.logger.debug(
+            `[Agent:${this.name}] - Memory persistence enabled: store=${this.#mastra?.memory?.constructor.name}, resourceId=${resourceId}`,
+            {
+              runId,
+              resourceId,
+              threadId: threadIdToUse,
+              memoryStore: this.#mastra?.memory?.constructor.name,
+            },
+          );
           const preExecuteResult = await this.preExecute({
             resourceId,
             runId,
@@ -579,29 +656,28 @@ export class Agent<
 
           coreMessages = preExecuteResult.coreMessages;
           threadIdToUse = preExecuteResult.threadIdToUse;
-        } else {
-          this.logger.debug(
-            `[Agents:${this.name}] - No memory store or resourceid identifier found. Skipping memory persistence.`,
-            {
-              runId,
-            },
-          );
         }
 
         let convertedTools: Record<string, CoreTool> | undefined;
 
-        if (
-          (toolsets && Object.keys(toolsets || {}).length > 0) ||
-          (this.getMemory() && resourceId) ||
-          this.#mastra?.engine
-        ) {
+        if ((toolsets && Object.keys(toolsets || {}).length > 0) || (this.getMemory() && resourceId)) {
+          const reasons = [];
+          if (toolsets && Object.keys(toolsets || {}).length > 0) {
+            reasons.push(`toolsets present (${Object.keys(toolsets || {}).length} tools)`);
+          }
+          if (this.getMemory() && resourceId) {
+            reasons.push('memory and resourceId available');
+          }
+
+          this.logger.debug(`[Agent:${this.name}] - Enhancing tools: ${reasons.join(', ')}`, {
+            runId,
+            toolsets: toolsets ? Object.keys(toolsets) : undefined,
+            hasMemory: !!this.getMemory(),
+            hasResourceId: !!resourceId,
+          });
           convertedTools = this.convertTools({
             toolsets,
             threadId: threadIdToUse,
-            runId,
-          });
-        } else {
-          this.logger.debug(`Skipping tool conversion for agent ${this.name}`, {
             runId,
           });
         }
@@ -647,13 +723,10 @@ export class Agent<
         });
         if (this.getMemory() && resourceId) {
           try {
-            this.logger.debug(`Saving assistant message in memory for agent ${this.name}`, {
-              runId,
-              threadId,
-            });
             await this.saveResponse({
               result,
               threadId,
+              resourceId,
               memoryConfig,
               runId,
             });
@@ -665,14 +738,6 @@ export class Agent<
               threadId,
             });
           }
-        } else {
-          this.logger.debug(
-            `[Agents:${this.name}] - No memory store or resourceid identifier found. Skipping memory persistence.`,
-            {
-              runId,
-              threadId,
-            },
-          );
         }
 
         if (Object.keys(this.metrics || {}).length > 0) {

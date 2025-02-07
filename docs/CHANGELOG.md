@@ -1,5 +1,17 @@
 # docs
 
+## 0.0.1-alpha.1
+
+### Patch Changes
+
+- ab04ad9: Update imports in docs
+
+## 0.0.1-alpha.0
+
+### Patch Changes
+
+- a10b7a3: Implemented new filtering for vectorQueryTool and updated docs
+
 ## 0.1.1-alpha.25
 
 ### Patch Changes

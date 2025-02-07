@@ -1,5 +1,61 @@
 # @mastra/speech-openai
 
+## 0.1.0-alpha.16
+
+### Patch Changes
+
+- Updated dependencies [d7d465a]
+- Updated dependencies [d7d465a]
+- Updated dependencies [2017553]
+- Updated dependencies [a10b7a3]
+- Updated dependencies [16e5b04]
+  - @mastra/core@0.2.0-alpha.91
+
+## 0.1.0-alpha.15
+
+### Patch Changes
+
+- Updated dependencies [8151f44]
+- Updated dependencies [e897f1c]
+- Updated dependencies [3700be1]
+  - @mastra/core@0.2.0-alpha.90
+
+## 0.1.0-alpha.14
+
+### Patch Changes
+
+- Updated dependencies [27275c9]
+  - @mastra/core@0.2.0-alpha.89
+
+## 0.1.0-alpha.13
+
+### Patch Changes
+
+- Updated dependencies [ccbc581]
+  - @mastra/core@0.2.0-alpha.88
+
+## 0.1.0-alpha.12
+
+### Patch Changes
+
+- Updated dependencies [7365b6c]
+  - @mastra/core@0.2.0-alpha.87
+
+## 0.1.0-alpha.11
+
+### Minor Changes
+
+- 5916f9d: Update deps from fixed to ^
+
+### Patch Changes
+
+- Updated dependencies [6fa4bd2]
+- Updated dependencies [e2e76de]
+- Updated dependencies [7f24c29]
+- Updated dependencies [67637ba]
+- Updated dependencies [04f3171]
+  - @mastra/core@0.2.0-alpha.86
+
 ## 0.0.1-alpha.10
 
 ### Patch Changes

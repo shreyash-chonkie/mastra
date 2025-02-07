@@ -1,11 +1,12 @@
 ---
-title: "Reference: Qdrant | Vector Databases | RAG | Mastra Docs"
+title: "Reference: Qdrant Vector Store | Vector Databases | RAG | Mastra Docs"
 description: Documentation for integrating Qdrant with Mastra, a vector similarity search engine for managing vectors and payloads.
 ---
 
-# Qdrant
+# Qdrant Vector Store
 
-[Qdrant](https://qdrant.tech/) is a vector similarity search engine. It provides a production-ready service with a convenient API to store, search, and manage vectors with additional payload and extended filtering support.
+The QdrantVector class provides vector search using [Qdrant](https://qdrant.tech/), a vector similarity search engine. 
+It provides a production-ready service with a convenient API to store, search, and manage vectors with additional payload and extended filtering support.
 
 ## Constructor Options
 
@@ -45,7 +46,7 @@ description: Documentation for integrating Qdrant with Mastra, a vector similari
     {
       name: "dimension",
       type: "number",
-      description: "Vector dimension size",
+      description: "Vector dimension (must match your embedding model)",
     },
     {
       name: "metric",
@@ -73,10 +74,10 @@ description: Documentation for integrating Qdrant with Mastra, a vector similari
       description: "Metadata for each vector",
     },
     {
-      name: "namespace",
-      type: "string",
+      name: "ids",
+      type: "string[]",
       isOptional: true,
-      description: "Optional namespace for organization",
+      description: "Optional vector IDs (auto-generated if not provided)",
     },
   ]}
 />
@@ -86,7 +87,12 @@ description: Documentation for integrating Qdrant with Mastra, a vector similari
 <PropertiesTable
   content={[
     {
-      name: "vector",
+      name: "indexName",
+      type: "string",
+      description: "Name of the index to query",
+    },
+    {
+      name: "queryVector",
       type: "number[]",
       description: "Query vector to find similar vectors",
     },
@@ -102,6 +108,13 @@ description: Documentation for integrating Qdrant with Mastra, a vector similari
       type: "Record<string, any>",
       isOptional: true,
       description: "Metadata filters for the query",
+    },
+    {
+      name: "includeVector",
+      type: "boolean",
+      isOptional: true,
+      defaultValue: "false", 
+      description: "Whether to include vectors in the results",
     },
   ]}
 />
@@ -162,7 +175,7 @@ The store throws typed errors that can be caught:
 
 ```typescript copy
 try {
-  await store.query(queryVector);
+  await store.query("index_name", queryVector);
 } catch (error) {
   if (error instanceof VectorStoreError) {
     console.log(error.code); // 'connection_failed' | 'invalid_dimension' | etc

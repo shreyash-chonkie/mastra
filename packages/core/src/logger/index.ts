@@ -13,9 +13,9 @@ export const RegisteredLogger = {
   VECTOR: 'VECTOR',
   BUNDLER: 'BUNDLER',
   DEPLOYER: 'DEPLOYER',
-  ENGINE: 'ENGINE',
   MEMORY: 'MEMORY',
   STORAGE: 'STORAGE',
+  EMBEDDINGS: 'EMBEDDINGS',
 } as const;
 
 export type RegisteredLogger = (typeof RegisteredLogger)[keyof typeof RegisteredLogger];

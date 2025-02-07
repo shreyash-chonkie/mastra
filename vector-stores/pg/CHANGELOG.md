@@ -1,5 +1,64 @@
 # @mastra/vector-pg
 
+## 0.1.0-alpha.25
+
+### Patch Changes
+
+- a10b7a3: Implemented new filtering for vectorQueryTool and updated docs
+- Updated dependencies [d7d465a]
+- Updated dependencies [d7d465a]
+- Updated dependencies [2017553]
+- Updated dependencies [a10b7a3]
+- Updated dependencies [16e5b04]
+  - @mastra/core@0.2.0-alpha.91
+
+## 0.1.0-alpha.24
+
+### Patch Changes
+
+- Updated dependencies [8151f44]
+- Updated dependencies [e897f1c]
+- Updated dependencies [3700be1]
+  - @mastra/core@0.2.0-alpha.90
+
+## 0.1.0-alpha.23
+
+### Patch Changes
+
+- Updated dependencies [27275c9]
+  - @mastra/core@0.2.0-alpha.89
+
+## 0.1.0-alpha.22
+
+### Patch Changes
+
+- ccbc581: Updated operator validation and handling for all vector stores
+- Updated dependencies [ccbc581]
+  - @mastra/core@0.2.0-alpha.88
+
+## 0.1.0-alpha.21
+
+### Patch Changes
+
+- Updated dependencies [7365b6c]
+  - @mastra/core@0.2.0-alpha.87
+
+## 0.1.0-alpha.20
+
+### Minor Changes
+
+- 5916f9d: Update deps from fixed to ^
+
+### Patch Changes
+
+- 7f24c29: Add Chroma Filter translator and updated vector store tests
+- Updated dependencies [6fa4bd2]
+- Updated dependencies [e2e76de]
+- Updated dependencies [7f24c29]
+- Updated dependencies [67637ba]
+- Updated dependencies [04f3171]
+  - @mastra/core@0.2.0-alpha.86
+
 ## 0.0.1-alpha.19
 
 ### Patch Changes

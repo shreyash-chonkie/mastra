@@ -2,7 +2,6 @@ import 'dotenv/config';
 
 import { Agent } from '../agent';
 import { MastraDeployer } from '../deployer';
-import { MastraEngine } from '../engine';
 import { LLM } from '../llm';
 import { ModelConfig } from '../llm/types';
 import { LogLevel, Logger, createLogger, noopLogger } from '../logger';
@@ -31,14 +30,12 @@ export class Mastra<
   private telemetry?: Telemetry;
   private tts?: TTTS;
   private deployer?: MastraDeployer;
-  engine?: MastraEngine;
   storage?: MastraStorage;
   memory?: MastraMemory;
 
   constructor(config?: {
     memory?: MastraMemory;
     agents?: TAgents;
-    engine?: MastraEngine;
     storage?: MastraStorage;
     vectors?: TVectors;
     logger?: TLogger | false;
@@ -62,6 +59,7 @@ export class Mastra<
         logger = createLogger({ name: 'Mastra', level: levleOnEnv }) as unknown as TLogger;
       }
     }
+    this.logger = logger;
 
     /*
     Telemetry
@@ -80,20 +78,6 @@ export class Mastra<
           excludeMethods: ['__setTelemetry', '__getTelemetry'],
         });
         this.deployer.__setTelemetry(this.telemetry);
-      }
-    }
-
-    /*
-   Engine
-   */
-    if (config?.engine) {
-      if (this.telemetry) {
-        this.engine = this.telemetry.traceClass(config.engine, {
-          excludeMethods: ['__setTelemetry', '__getTelemetry'],
-        });
-        this.engine.__setTelemetry(this.telemetry);
-      } else {
-        this.engine = config.engine;
       }
     }
 
@@ -128,10 +112,6 @@ export class Mastra<
       });
 
       this.vectors = vectors as TVectors;
-    }
-
-    if (config?.engine) {
-      this.engine = config.engine;
     }
 
     if (config?.vectors) {
@@ -176,7 +156,6 @@ export class Mastra<
         agent.__registerPrimitives({
           logger: this.getLogger(),
           telemetry: this.telemetry,
-          engine: this.engine,
           storage: this.storage,
           memory: this.memory,
           agents: agents,
@@ -200,7 +179,6 @@ export class Mastra<
         workflow.__registerPrimitives({
           logger: this.getLogger(),
           telemetry: this.telemetry,
-          engine: this.engine,
           storage: this.storage,
           memory: this.memory,
           agents: this.agents,
@@ -213,8 +191,6 @@ export class Mastra<
         this.workflows[key] = workflow;
       });
     }
-
-    this.logger = logger;
     this.setLogger({ logger });
   }
 
@@ -328,10 +304,6 @@ export class Mastra<
       Object.keys(this.tts).forEach(key => {
         this.tts?.[key]?.__setLogger(this.logger);
       });
-    }
-
-    if (this.engine) {
-      this.engine.__setLogger(this.logger);
     }
 
     if (this.storage) {
