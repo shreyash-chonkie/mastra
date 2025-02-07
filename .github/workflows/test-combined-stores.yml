@@ -25,7 +25,7 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: mastra
         ports:
-          - 5434:5432
+          - 5435:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -57,3 +57,5 @@ jobs:
 
       - name: Run combined storage tests
         run: pnpm test:combined-stores
+        env:
+          POSTGRES_PORT: 5435
