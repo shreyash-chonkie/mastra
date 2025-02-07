@@ -11,9 +11,9 @@ npm install @mastra/upstash
 ## Vector Store Usage
 
 ```typescript
-import { UpstashVectorStore } from '@mastra/upstash';
+import { UpstashVector } from '@mastra/upstash';
 
-const vectorStore = new UpstashVectorStore({
+const vectorStore = new UpstashVector({
   // configuration options
 });
 ```
@@ -33,7 +33,7 @@ import { UpstashStore } from '@mastra/upstash';
 
 const store = new UpstashStore({
   url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 ```
 

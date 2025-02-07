@@ -16,5 +16,5 @@ If you were previously using either @mastra/vector-upstash or @mastra/store-upst
 
 1. Update your package.json to use @mastra/upstash instead
 2. Update your imports:
-   - Change `import { UpstashVectorStore } from '@mastra/vector-upstash'` to `import { UpstashVector } from '@mastra/upstash'`
-   - Change `import { UpstashStore } from '@mastra/store-upstash'` to `import { UpstashStorage } from '@mastra/upstash'`
+   - Change `import { UpstashVector } from '@mastra/vector-upstash'` to `import { UpstashVector } from '@mastra/upstash'`
+   - Change `import { UpstashStore } from '@mastra/store-upstash'` to `import { UpstashStore } from '@mastra/upstash'`
