@@ -33,6 +33,7 @@ import {
   updateThreadHandler,
 } from './handlers/memory.js';
 import { rootHandler } from './handlers/root.js';
+import { getTelemetryHandler } from './handlers/telemetry.js';
 import { executeAgentToolHandler, executeToolHandler, getToolByIdHandler, getToolsHandler } from './handlers/tools.js';
 import {
   upsertVectors,
@@ -541,6 +542,21 @@ export async function createHonoServer(
       },
     }),
     saveMessagesHandler,
+  );
+
+  // Telemetry routes
+  app.get(
+    '/api/telemetry',
+    describeRoute({
+      description: 'Get all traces',
+      tags: ['telemetry'],
+      responses: {
+        200: {
+          description: 'List of all traces (paged)',
+        },
+      },
+    }),
+    getTelemetryHandler,
   );
 
   // Workflow routes
