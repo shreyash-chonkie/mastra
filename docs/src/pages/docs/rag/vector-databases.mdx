@@ -1,9 +1,9 @@
 ---
-title: 'Storing Embeddings in A Vector Database | Mastra Docs'
+title: "Storing Embeddings in A Vector Database | Mastra Docs"
 description: Guide on vector storage options in Mastra, including embedded and dedicated vector databases for similarity search.
 ---
 
-import { Tabs } from 'nextra/components';
+import { Tabs } from "nextra/components";
 
 ## Storing Embeddings in A Vector Database
 
@@ -18,14 +18,14 @@ Best for teams already using PostgreSQL who want to minimize infrastructure comp
 <Tabs items={['Pg Vector', 'Pinecone', 'Qdrant', 'Chroma', 'Astra', 'LibSQL', 'Upstash', 'Cloudflare']}>
   <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { PgVector } from '@mastra/vector-pg';
+  import { PgVector } from '@mastra/pg';
 
-  const store = new PgVector(process.env.POSTGRES_CONNECTION_STRING)
-  await store.createIndex("my-collection", 1536);
-  await store.upsert(
-    "my-collection",
-    embeddings,
-    chunks.map(chunk => ({ text: chunk.text }))
+const store = new PgVector(process.env.POSTGRES_CONNECTION_STRING)
+await store.createIndex("my-collection", 1536);
+await store.upsert(
+"my-collection",
+embeddings,
+chunks.map(chunk => ({ text: chunk.text }))
 )
 
 ````
@@ -33,7 +33,7 @@ Best for teams already using PostgreSQL who want to minimize infrastructure comp
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { PineconeVector } from '@mastra/vector-pinecone'
+  import { PineconeVector } from '@mastra/pinecone'
 
   const store = new PineconeVector(process.env.PINECONE_API_KEY)
   await store.createIndex("my-collection", 1536);
@@ -46,7 +46,7 @@ Best for teams already using PostgreSQL who want to minimize infrastructure comp
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { QdrantVector } from '@mastra/vector-qdrant'
+  import { QdrantVector } from '@mastra/qdrant'
 
   const store = new QdrantVector({
     url: process.env.QDRANT_URL,
@@ -62,7 +62,7 @@ Best for teams already using PostgreSQL who want to minimize infrastructure comp
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { ChromaVector } from '@mastra/vector-chroma'
+  import { ChromaVector } from '@mastra/chroma'
 
   const store = new ChromaVector()
   await store.createIndex("my-collection", 1536);
@@ -75,7 +75,7 @@ Best for teams already using PostgreSQL who want to minimize infrastructure comp
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { AstraVector } from '@mastra/vector-astra'
+  import { AstraVector } from '@mastra/astra'
 
   const store = new AstraVector({
     token: process.env.ASTRA_DB_TOKEN,
@@ -92,9 +92,9 @@ Best for teams already using PostgreSQL who want to minimize infrastructure comp
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { LibSQLVector } from '@mastra/core/vector/libsql'
+  import { DefaultVectorDB } from '@mastra/core/storage'
 
-  const store = new LibSQLVector(process.env.DATABASE_URL)
+  const store = new DefaultVectorDB(process.env.DATABASE_URL)
   await store.createIndex("my-collection", 1536);
   await store.upsert(
     "my-collection",
@@ -105,7 +105,7 @@ Best for teams already using PostgreSQL who want to minimize infrastructure comp
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { UpstashVector } from '@mastra/vector-upstash'
+  import { UpstashVector } from '@mastra/upstash'
 
   const store = new UpstashVector({
     url: process.env.UPSTASH_URL,
@@ -121,7 +121,7 @@ Best for teams already using PostgreSQL who want to minimize infrastructure comp
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { CloudflareVector } from '@mastra/vector-vectorize'
+  import { CloudflareVector } from '@mastra/vectorize'
 
   const store = new CloudflareVector({
     accountId: process.env.CF_ACCOUNT_ID,
@@ -160,9 +160,9 @@ All vector stores support adding metadata to your vectors, which enables filteri
 ```ts showLineNumbers copy
 // Store embeddings with rich metadata
 await vectorStore.upsert(
-  'embeddings',
+  "embeddings",
   embeddings,
-  chunks.map(chunk => ({
+  chunks.map((chunk) => ({
     text: chunk.text,
     source: chunk.source,
     category: chunk.category,

@@ -1,5 +1,47 @@
 # mastra
 
+## 0.2.0-alpha.149
+
+### Patch Changes
+
+- Updated dependencies [0b96376]
+  - @mastra/deployer@0.1.0-alpha.41
+
+## 0.2.0-alpha.148
+
+### Patch Changes
+
+- Updated dependencies [8329f1a]
+  - @mastra/deployer@0.1.0-alpha.40
+
+## 0.2.0-alpha.147
+
+### Patch Changes
+
+- Updated dependencies [8ea426a]
+  - @mastra/deployer@0.1.0-alpha.39
+
+## 0.2.0-alpha.146
+
+### Patch Changes
+
+- b80ea8d: Fix bundling of server
+- Updated dependencies [b80ea8d]
+  - @mastra/deployer@0.1.0-alpha.34
+
+## 0.2.0-alpha.145
+
+### Minor Changes
+
+- 4d4f6b6: Update deployer
+
+### Patch Changes
+
+- 2f2f65e: Fix multipart location tool error with init example
+- Updated dependencies [4d4f6b6]
+  - @mastra/deployer@0.1.0-alpha.38
+  - @mastra/core@0.2.0-alpha.92
+
 ## 0.2.0-alpha.144
 
 ### Patch Changes

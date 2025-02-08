@@ -1,5 +1,5 @@
-import { Filter } from '@mastra/core/filter';
-import { IndexStats, QueryResult, MastraVector } from '@mastra/core/vector';
+import type { Filter } from '@mastra/core/filter';
+import { type IndexStats, type QueryResult, MastraVector } from '@mastra/core/vector';
 import pg from 'pg';
 
 import { PGFilterTranslator } from './filter';
@@ -280,3 +280,9 @@ export class PgVector extends MastraVector {
     await this.pool.end();
   }
 }
+
+// Throw deprecation error
+throw new Error(
+  '@mastra/vector-pg is deprecated. Please use @mastra/pg instead:\n' +
+  'import { PgVector } from \'@mastra/pg\';'
+);

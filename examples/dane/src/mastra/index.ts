@@ -1,6 +1,7 @@
-import { Mastra, MastraStorageLibSql } from '@mastra/core';
+import { Mastra } from '@mastra/core';
+import { DefaultStorage } from '@mastra/core/storage';
 import { Memory } from '@mastra/memory';
-import { UpstashStore } from '@mastra/store-upstash';
+import { UpstashStore } from '@mastra/upstash';
 
 import { dane, daneChangeLog, daneCommitMessage, daneIssueLabeler, daneLinkChecker } from './agents/index.js';
 import { daneNewContributor } from './agents/new-contributor.js';
@@ -22,7 +23,7 @@ export const mastra = new Mastra({
     daneChangeLog,
     daneNewContributor,
   },
-  storage: new MastraStorageLibSql({
+  storage: new DefaultStorage({
     config: {
       url: ':memory:',
     },

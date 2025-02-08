@@ -1,5 +1,40 @@
 # @mastra/deployer
 
+## 0.1.0-alpha.41
+
+### Patch Changes
+
+- 0b96376: fix pino of being null
+
+## 0.1.0-alpha.40
+
+### Patch Changes
+
+- 8329f1a: Add debug env
+
+## 0.1.0-alpha.39
+
+### Patch Changes
+
+- 8ea426a: Fix patch
+
+## 0.1.0-alpha.34
+
+### Patch Changes
+
+- b80ea8d: Fix bundling of server
+
+## 0.1.0-alpha.38
+
+### Minor Changes
+
+- 4d4f6b6: Update deployer
+
+### Patch Changes
+
+- Updated dependencies [4d4f6b6]
+  - @mastra/core@0.2.0-alpha.92
+
 ## 0.1.0-alpha.37
 
 ### Patch Changes

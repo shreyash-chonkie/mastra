@@ -1,5 +1,18 @@
 # @mastra/rag
 
+## 0.1.0-alpha.85
+
+### Patch Changes
+
+- b27bdb8: Swap jsdon for node-html-parser in rag
+
+## 0.1.0-alpha.84
+
+### Patch Changes
+
+- Updated dependencies [4d4f6b6]
+  - @mastra/core@0.2.0-alpha.92
+
 ## 0.1.0-alpha.83
 
 ### Patch Changes

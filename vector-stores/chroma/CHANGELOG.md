@@ -1,5 +1,24 @@
 # @mastra/vector-chroma
 
+## 0.1.0-alpha.27
+
+### Minor Changes
+
+- 684d5d1: Move Chroma package from `@mastra/vector-chroma` to `@mastra/chroma`.
+
+  - Move package to `stores/chroma`
+  - Reorganize source files into `src/vector`
+  - Add deprecation notice to old package
+  - Update documentation and examples
+  - No breaking changes in functionality
+
+## 0.1.0-alpha.26
+
+### Patch Changes
+
+- Updated dependencies [4d4f6b6]
+  - @mastra/core@0.2.0-alpha.92
+
 ## 0.1.0-alpha.25
 
 ### Patch Changes

@@ -1268,7 +1268,7 @@ export const mastra = new Mastra({
 Here's what a traced agent interaction looks like in [SigNoz](https://signoz.io):
 
 <img
-  src="/signoz-telemetry-demo.png"
+  src="/docs/signoz-telemetry-demo.png"
   alt="Agent interaction trace showing spans, LLM calls, and tool executions"
   style={{ maxWidth: "800px", width: "100%", margin: "8px 0" }}
   className="nextra-image rounded-md"
@@ -3579,7 +3579,7 @@ Best for teams already using PostgreSQL who want to minimize infrastructure comp
 </Tabs.Tab>
 <Tabs.Tab>
   ```ts filename="vector-store.ts" showLineNumbers copy
-  import { AstraVector } from '@mastra/vector-astra'
+  import { AstraVector } from '@mastra/astra'
 
   const store = new AstraVector({
     token: process.env.ASTRA_DB_TOKEN,
@@ -12824,9 +12824,9 @@ npm install @mastra/store-upstash
 ## Usage
 
 ```typescript copy showLineNumbers
-import { UpstashStorage } from "@mastra/store-upstash";
+import { UpstashStore } from "@mastra/store-upstash";
 
-const storage = new UpstashStorage({
+const storage = new UpstashStore({
   url: process.env.UPSTASH_URL,
   token: process.env.UPSTASH_TOKEN,
 });
@@ -20084,7 +20084,7 @@ import { GithubLink } from '../../../components/github-link';
 After generating embeddings, you need to store them in a vector database for similarity search. The `AstraVector` class provides methods to create collections and insert embeddings into DataStax Astra DB, a cloud-native vector database. This example shows how to store embeddings in Astra DB for later retrieval.
 
 ```tsx copy
-import { AstraVector } from '@mastra/vector-astra';
+import { AstraVector } from '@mastra/astra';
 import { MDocument, embed } from '@mastra/rag';
 
 const doc = MDocument.fromText('Your text content...');
@@ -20436,7 +20436,7 @@ import { GithubLink } from '../../../components/github-link';
 After generating embeddings, you need to store them in a vector database for similarity search. The `CloudflareVector` class provides methods to create collections and insert embeddings into Cloudflare Vectorize, a serverless vector database service. This example shows how to store embeddings in Vectorize for later retrieval.
 
 ```tsx copy
-import { CloudflareVector } from '@mastra/vector-vectorize';
+import { CloudflareVector } from '@mastra/vectorize';
 import { MDocument, embed } from '@mastra/rag';
 
 const doc = MDocument.fromText('Your text content...');
