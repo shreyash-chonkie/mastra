@@ -54,6 +54,8 @@ Agents are expected to be exported from `src/mastra/agents`.
   - Lists the registered agents found in your Mastra folder.
 • `POST /api/agents/:agentId/generate`
   - Sends a text-based prompt to the specified agent, returning the agent's response.
+• `POST /api/agents/:agentId/stream`
+  - Streams the agent's response in real-time, with support for both text and structured output.
 
 ### Tool Routes
 
@@ -77,6 +79,35 @@ Workflows are expected to be exported from `src/mastra/workflows` (or the config
 
 • `GET /openapi.json`
   - Returns an auto-generated OpenAPI specification for your project's endpoints.
+
+## Stream Response Format
+
+When using the streaming endpoint (`/api/agents/:agentId/stream`), the response is delivered as a series of chunks. Each chunk is prefixed with a number indicating its type:
+
+- `0:"content"` - Regular content from the agent
+- `3:"error_message"` - Error messages when something goes wrong
+
+The stream also includes additional metadata:
+- Usage information (e.g., token counts)
+- Reasoning details about the agent's decision-making process
+
+## Error Handling
+
+Errors in the development server are handled consistently across all endpoints:
+
+1. For non-streaming endpoints:
+   - Returns a standard HTTP error status code
+   - Includes an error message in the response body
+
+2. For streaming endpoints:
+   - Errors are sent as chunks prefixed with `3:` 
+   - The error message is included in quotes
+   - The stream is terminated after sending the error
+
+Example error response in stream:
+```
+3:"An error occurred: Invalid API key provided"
+```
 
 ## Additional Notes
 
