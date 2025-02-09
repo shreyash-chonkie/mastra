@@ -387,8 +387,6 @@ export class DefaultStorage extends MastraStorage {
     const limit = perPage;
     const offset = page * perPage;
 
-    console.dir({ limit, offset, scope });
-
     const args: (string | number)[] = [];
 
     let hasArgs = false;
@@ -405,11 +403,6 @@ export class DefaultStorage extends MastraStorage {
     }
 
     args.push(limit, offset);
-
-    console.log({
-      sql: `SELECT * FROM ${MastraStorage.TABLE_TRACES} ${hasArgs ? 'WHERE' : ''} ${name ? `name LIKE CONCAT(?, '%')` : ''} ${scope ? 'scope = ?' : ''} ORDER BY "createdAt" DESC LIMIT ? OFFSET ?`,
-      args,
-    });
 
     const result = await this.client.execute({
       sql: `SELECT * FROM ${MastraStorage.TABLE_TRACES} ${hasArgs ? 'WHERE' : ''} ${name ? `name LIKE CONCAT(?, '%')` : ''} ${scope ? 'scope = ?' : ''} ORDER BY "createdAt" DESC LIMIT ? OFFSET ?`,
