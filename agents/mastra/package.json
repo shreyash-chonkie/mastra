@@ -1,0 +1,46 @@
+{
+  "name": "@mastra/agent-mastra",
+  "version": "0.1.0",
+  "description": "A specialized AI agent for Mastra development",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "lint": "eslint src --ext .ts",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@mastra/core": "workspace:^",
+    "@ai-sdk/anthropic": "latest",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0"
+  },
+  "keywords": [
+    "mastra",
+    "agent",
+    "development",
+    "ai",
+    "claude"
+  ],
+  "author": "Mastra Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
