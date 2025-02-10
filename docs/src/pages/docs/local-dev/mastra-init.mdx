@@ -43,6 +43,12 @@ To initialize mastra in your project by following the interactive setup, run:
 mastra init
 ```
 
+The command will:
+1. Guide you through component selection and LLM provider choice
+2. Set up the necessary directory structure
+3. Install required dependencies, including the appropriate AI SDK package for your chosen LLM provider
+4. Create initial configuration files
+
 ### Set Up your API Key
 
 Add the API key for your configured LLM provider in your `.env` file.
@@ -59,6 +65,6 @@ If you prefer to run the command with flags (non-interactive mode) and include t
 mastra init --dir src/mastra --components agents,tools --llm openai --example
 ```
 
-This allows you to specify your preferences upfront without being prompted.
+This allows you to specify your preferences upfront without being prompted. The command will still automatically install the appropriate AI SDK package based on the specified LLM provider.
 
 - [Mastra Init reference](../reference/cli/init.mdx)
