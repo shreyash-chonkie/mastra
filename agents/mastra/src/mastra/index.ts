@@ -1,9 +1,11 @@
 import { Mastra } from '@mastra/core';
 
-import { agent } from './agents';
+import { promptBuilder } from './agents/prompt-builder';
+import { badAgent } from './agents/shitty-agent';
 
 export const mastra = new Mastra({
   agents: {
-    builder: agent,
+    builder: promptBuilder,
+    badAgent,
   },
 });

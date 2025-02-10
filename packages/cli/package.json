@@ -48,6 +48,8 @@
   ],
   "author": "",
   "dependencies": {
+    "@assistant-ui/react": "^0.7.68",
+    "@assistant-ui/react-markdown": "^0.7.0",
     "@clack/prompts": "^0.8.2",
     "@dagrejs/dagre": "^1.1.4",
     "@mastra/core": "workspace:^",
