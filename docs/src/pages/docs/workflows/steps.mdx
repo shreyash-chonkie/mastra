@@ -31,8 +31,8 @@ myWorkflow
       outputSchema: z.object({
         doubledValue: z.number(),
       }),
-      execute: async ({ context: { machineContext } }) => ({
-        doubledValue: machineContext.triggerData.inputValue * 2,
+      execute: async ({ context }) => ({
+        doubledValue: context.triggerData.inputValue * 2,
       }),
     }),
   )
@@ -42,8 +42,8 @@ myWorkflow
       outputSchema: z.object({
         incrementedValue: z.number(),
       }),
-      execute: async ({ context: { machineContext } }) => ({
-        incrementedValue: machineContext.stepResults.stepOne.payload.doubledValue + 1,
+      execute: async ({ context }) => ({
+        incrementedValue: context.steps.stepOne.payload.doubledValue + 1,
       }),
     }),
   );
@@ -63,8 +63,8 @@ const stepOne = new Step({
   outputSchema: z.object({
     doubledValue: z.number(),
   }),
-  execute: async ({ context: { machineContext } }) => ({
-    doubledValue: machineContext.triggerData.inputValue * 2,
+  execute: async ({ context }) => ({
+    doubledValue: context.triggerData.inputValue * 2,
   }),
 });
 
@@ -73,8 +73,8 @@ const stepTwo = new Step({
   outputSchema: z.object({
     incrementedValue: z.number(),
   }),
-  execute: async ({ context: { machineContext } }) => ({
-    incrementedValue: machineContext.stepResults.stepOne.payload.doubledValue + 1,
+  execute: async ({ context }) => ({
+    incrementedValue: context.steps.stepOne.payload.doubledValue + 1,
   }),
 });
 

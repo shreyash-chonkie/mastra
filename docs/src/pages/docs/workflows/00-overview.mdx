@@ -38,15 +38,15 @@ const myWorkflow = new Workflow({
 // 2. Create steps
 const stepOne = new Step({
   id: "stepOne",
-  execute: async ({ context: { machineContext } }) => ({
-    doubledValue: machineContext.triggerData.inputValue * 2
+  execute: async ({ context }) => ({
+    doubledValue: context.triggerData.inputValue * 2
   })
 });
 
 const stepTwo = new Step({
   id: "stepTwo",
-  execute: async ({ context: { machineContext } }) => ({
-    incrementedValue: machineContext.stepResults.stepOne.payload.doubledValue + 1
+  execute: async ({ context }) => ({
+    incrementedValue: context.steps.stepOne.payload.doubledValue + 1
   })
 });
 
