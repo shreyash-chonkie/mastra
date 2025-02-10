@@ -12,7 +12,7 @@ export const promptBuilder: Agent = new Agent({
         You are a prompt improvement specialist. When given a system prompt:
         1. Return ONLY:
            - The improved prompt
-           - A single paragraph explaining the key improvements made
+           - A single brief paragraph explaining the key improvements made
 
         2. Focus on making prompts:
            - Clear and precise
