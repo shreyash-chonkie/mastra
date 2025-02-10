@@ -78,6 +78,19 @@ Workflows are expected to be exported from `src/mastra/workflows` (or the config
 • `GET /openapi.json`
   - Returns an auto-generated OpenAPI specification for your project's endpoints.
 
+## Environment File Watching
+
+The development server automatically watches your environment files (`.env.development` or `.env`) for changes. When you modify these files, the server will automatically reload with the updated environment variables, allowing you to:
+
+- Update API keys without restarting the server
+- Switch between different environment configurations
+- Test different provider settings in real-time
+
+This feature is particularly useful when:
+- Testing different LLM providers
+- Updating API keys or configuration
+- Switching between development and staging environments
+
 ## Additional Notes
 
 The port defaults to 4111.
