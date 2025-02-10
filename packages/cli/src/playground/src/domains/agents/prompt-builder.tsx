@@ -93,9 +93,39 @@ export function PromptBuilder({ agentId, instructions }: PromptBuilderProps) {
     }
   };
 
+  const setInstructions = async (content: string) => {
+    const response = await fetch(`http://localhost:4111/api/agents/${agentId}/instructions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        instructions: content,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update agent instructions');
+    }
+  };
+
+  const reset = () => {
+    if (!instructions) return;
+    setNextPrompt(instructions);
+    setNextExplanation('');
+    setActiveVersion(null);
+    setInstructions(instructions).catch(error => {
+      console.error('Failed to reset instructions:', error);
+    });
+  };
+
   const setVersionActive = async (versionId: string) => {
     setIsUpdating(true);
     try {
+      const version = versions.find(v => v.id === versionId);
+      if (!version) return;
+
+      // Update UI state
       setActiveVersion(versionId);
       setVersions(prev =>
         prev.map(v => ({
@@ -103,12 +133,11 @@ export function PromptBuilder({ agentId, instructions }: PromptBuilderProps) {
           isActive: v.id === versionId,
         })),
       );
+      setNextPrompt(version.content);
+      setNextExplanation(version.explanation || '');
 
-      const version = versions.find(v => v.id === versionId);
-      if (version) {
-        setNextPrompt(version.content);
-        setNextExplanation(version.explanation || '');
-      }
+      // Update agent instructions
+      await setInstructions(version.content);
     } catch (error) {
       console.error('Failed to set active version:', error);
     } finally {
@@ -196,13 +225,7 @@ export function PromptBuilder({ agentId, instructions }: PromptBuilderProps) {
                   <BookmarkPlus className="h-4 w-4" />
                   {isSaving ? 'Saving...' : 'Save Version'}
                 </Button>
-                <Button
-                  onClick={() => {
-                    setNextPrompt('');
-                    setNextExplanation('');
-                  }}
-                  variant="outline"
-                >
+                <Button onClick={reset} variant="outline">
                   Reset
                 </Button>
               </>
@@ -212,11 +235,11 @@ export function PromptBuilder({ agentId, instructions }: PromptBuilderProps) {
 
         {versions.length > 0 && (
           <div className="border-t">
-            <div className="px-3 py-2 border-b bg-mastra-bg-2">
+            <div className="px-3 py-2 border-b bg-mastra-bg-2 sticky top-0 z-10">
               <h3 className="text-xs font-medium text-mastra-el-4">Saved Versions</h3>
             </div>
-            <div className="max-h-[200px] overflow-y-auto">
-              <div className="divide-y">
+            <div className="max-h-[120px] overflow-y-auto">
+              <div className="divide-y divide-mastra-bg-3">
                 {versions.map(version => (
                   <div
                     key={version.id}
@@ -226,7 +249,9 @@ export function PromptBuilder({ agentId, instructions }: PromptBuilderProps) {
                     onClick={() => setVersionActive(version.id)}
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="text-mastra-el-3 truncate">{new Date(version.timestamp).toLocaleString()}</span>
+                      <span className="text-mastra-el-3 truncate flex-1">
+                        {new Date(version.timestamp).toLocaleString()}
+                      </span>
                       {version.id === activeVersion && (
                         <span className="text-green-500 flex-shrink-0">
                           <Check className="h-3 w-3" />
@@ -239,7 +264,7 @@ export function PromptBuilder({ agentId, instructions }: PromptBuilderProps) {
                         e.stopPropagation();
                         deleteVersion(version.id);
                       }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-mastra-bg-4 rounded"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-mastra-bg-4 rounded ml-2"
                     >
                       <Trash2 className="h-3 w-3 text-red-500" />
                     </button>

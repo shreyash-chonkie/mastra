@@ -17,6 +17,7 @@ import {
   getAgentsHandler,
   getEvalsByAgentIdHandler,
   getLiveEvalsByAgentIdHandler,
+  setAgentInstructionsHandler,
   streamGenerateHandler,
 } from './handlers/agents.js';
 import { handleClientsRefresh, handleTriggerClientsRefresh } from './handlers/client.js';
@@ -290,6 +291,37 @@ export async function createHonoServer(
       },
     }),
     streamGenerateHandler,
+  );
+
+  app.post(
+    '/api/agents/:agentId/instructions',
+    describeRoute({
+      description: 'Set agent instructions',
+      tags: ['agents'],
+      parameters: [
+        {
+          name: 'agentId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                instructions: { type: 'string' },
+              },
+              required: ['instructions'],
+            },
+          },
+        },
+      },
+    }),
+    setAgentInstructionsHandler,
   );
 
   app.post(

@@ -35,8 +35,8 @@ export class Agent<
   TMetrics extends Record<string, Metric> = Record<string, Metric>,
 > extends MastraBase {
   public name: string;
+  public instructions: string;
   readonly llm: MastraLLMBase;
-  readonly instructions: string;
   readonly model?: LanguageModelV1;
   #mastra?: MastraPrimitives;
   #memory?: MastraMemory;
@@ -81,6 +81,10 @@ export class Agent<
   }
   public getMemory(): MastraMemory | undefined {
     return this.#memory ?? this.#mastra?.memory;
+  }
+
+  public setInstructions(i: string) {
+    this.instructions = i;
   }
 
   __registerPrimitives(p: MastraPrimitives) {

@@ -168,3 +168,31 @@ export async function streamGenerateHandler(c: Context): Promise<Response | unde
     return handleError(error, 'Error streaming from agent');
   }
 }
+
+export async function setAgentInstructionsHandler(c: Context) {
+  try {
+    const agentId = c.req.param('agentId');
+    const { instructions } = await c.req.json();
+
+    if (!agentId || !instructions) {
+      return c.json({ error: 'Missing required fields' }, 400);
+    }
+
+    const mastra: Mastra = c.get('mastra');
+    const agent = mastra.getAgent(agentId);
+    if (!agent) {
+      return c.json({ error: 'Agent not found' }, 404);
+    }
+
+    agent.setInstructions(instructions);
+
+    return c.json(
+      {
+        instructions,
+      },
+      200,
+    );
+  } catch (error) {
+    return handleError(error, 'Error setting agent instructions');
+  }
+}
