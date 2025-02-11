@@ -3,7 +3,7 @@ import { Terminal, BookmarkPlus, Check, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { z } from 'zod';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 const client = new MastraClient({
@@ -21,6 +21,7 @@ interface PromptVersion {
 interface PromptBuilderProps {
   agentId: string;
   instructions?: string;
+  evals?: any[];
 }
 
 function ClickToCopy({ content }: { content: string }) {
@@ -46,14 +47,29 @@ function ClickToCopy({ content }: { content: string }) {
   );
 }
 
-export function PromptBuilder({ agentId, instructions }: PromptBuilderProps) {
+export function PromptBuilder({ agentId, instructions, evals }: PromptBuilderProps) {
   const [nextPrompt, setNextPrompt] = useState('');
   const [nextExplanation, setNextExplanation] = useState('');
   const [isImproving, setIsImproving] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [versions, setVersions] = useState<PromptVersion[]>(() => {
     const saved = localStorage.getItem(`prompt-versions-${agentId}`);
-    return saved ? JSON.parse(saved) : [];
+    const savedVersions = saved ? JSON.parse(saved) : [];
+
+    if (instructions && !savedVersions.some((v: PromptVersion) => v.id === 'original')) {
+      return [
+        {
+          id: 'original',
+          content: instructions,
+          timestamp: new Date(0), // This ensures it appears first
+          isActive: false,
+          explanation: 'Original Instructions',
+        },
+        ...savedVersions,
+      ];
+    }
+
+    return savedVersions;
   });
   const [isSaving, setIsSaving] = useState(false);
   const [activeVersion, setActiveVersion] = useState<string>(() => {
@@ -191,13 +207,42 @@ export function PromptBuilder({ agentId, instructions }: PromptBuilderProps) {
             <Button
               onClick={async () => {
                 setIsImproving(true);
+
+                const BUILDER_PROMPT = `
+                  Please improve this system prompt. Here is the current prompt:
+                  ${nextPrompt || instructions}
+
+                  ${
+                    evals?.length
+                      ? `
+                  Here are the evaluation results for this prompt:
+                  ${evals
+                    .map(
+                      evalObj => `
+                  - ${evalObj.meta.metricName}: Score ${evalObj.result.score}
+                    Input: ${evalObj.input || 'N/A'}
+                    Reason: ${evalObj.result.info?.reason || 'N/A'}
+                  `,
+                    )
+                    .join('\n')}
+                  `
+                      : ''
+                  }
+
+                  Please provide:
+                  1. An improved version of the prompt
+                  2. A brief explanation of the changes you made and why they will help improve performance
+                `;
+
+                console.log(BUILDER_PROMPT);
+
                 try {
                   const a = client.getAgent('builder');
                   const response = await a.generate({
                     messages: [
                       {
                         role: 'user',
-                        content: `Iterate and improve this prompt:${nextPrompt || instructions}`,
+                        content: BUILDER_PROMPT,
                       },
                     ],
                     output: z.object({
@@ -250,7 +295,9 @@ export function PromptBuilder({ agentId, instructions }: PromptBuilderProps) {
                   >
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <span className="text-mastra-el-3 truncate flex-1">
-                        {new Date(version.timestamp).toLocaleString()}
+                        {version.id === 'original'
+                          ? 'Original Instructions'
+                          : new Date(version.timestamp).toLocaleString()}
                       </span>
                       {version.id === activeVersion && (
                         <span className="text-green-500 flex-shrink-0">
@@ -264,7 +311,7 @@ export function PromptBuilder({ agentId, instructions }: PromptBuilderProps) {
                         e.stopPropagation();
                         deleteVersion(version.id);
                       }}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-mastra-bg-4 rounded ml-2"
+                      className={`${version.id === 'original' ? 'hidden' : 'opacity-0 group-hover:opacity-100'} transition-opacity p-1 hover:bg-mastra-bg-4 rounded ml-2`}
                     >
                       <Trash2 className="h-3 w-3 text-red-500" />
                     </button>
