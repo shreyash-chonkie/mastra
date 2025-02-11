@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@mastra/core": "workspace:^",
+    "@mastra/evals": "workspace:^",
     "@ai-sdk/anthropic": "latest",
     "zod": "^3.22.0"
   },

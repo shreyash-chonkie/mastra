@@ -10,19 +10,19 @@
     ".": {
       "import": {
         "types": "./dist/index.d.ts",
-        "default": "./dist/evals.esm.js"
+        "default": "./dist/index.js"
       }
     },
     "./nlp": {
       "import": {
         "types": "./dist/metrics/nlp/index.d.ts",
-        "default": "./dist/nlp.esm.js"
+        "default": "./dist/metrics/nlp/index.js"
       }
     },
     "./llm": {
       "import": {
         "types": "./dist/metrics/llm/index.d.ts",
-        "default": "./dist/llm.esm.js"
+        "default": "./dist/metrics/llm/index.js"
       }
     },
     "./package.json": "./package.json"

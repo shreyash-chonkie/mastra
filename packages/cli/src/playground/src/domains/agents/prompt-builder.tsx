@@ -192,7 +192,7 @@ export function PromptBuilder({ agentId, instructions }: PromptBuilderProps) {
               onClick={async () => {
                 setIsImproving(true);
                 try {
-                  const a = client.getAgent(agentId);
+                  const a = client.getAgent('builder');
                   const response = await a.generate({
                     messages: [
                       {

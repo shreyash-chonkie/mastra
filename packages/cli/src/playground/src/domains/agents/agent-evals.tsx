@@ -114,7 +114,6 @@ function EvalTable({
         <TableRow className="border-gray-6 border-b-[0.1px] text-[0.8125rem]">
           <TableHead className="w-[50px]"></TableHead>
           <TableHead className="w-[300px] text-mastra-el-3">Metric</TableHead>
-          <TableHead className="w-[600px] text-mastra-el-3" />
           <TableHead className="w-[200px] text-mastra-el-3">Average Score</TableHead>
           <TableHead className="text-mastra-el-3">Total Evaluations</TableHead>
         </TableRow>
@@ -166,6 +165,7 @@ function EvalTable({
                     <TableCell className="w-[50px]"></TableCell>
                     <TableCell className="w-[300px] pl-8">Timestamp</TableCell>
                     <TableCell className="w-[600px] pl-8">Input</TableCell>
+                    <TableCell className="w-[200px] pl-8">Reason</TableCell>
                     <TableCell className="w-[200px]">Score</TableCell>
                     {showTestName && <TableCell>Test Name</TableCell>}
                   </TableRow>
@@ -176,6 +176,7 @@ function EvalTable({
                         {new Date(evaluation.meta.timestamp).toLocaleString()}
                       </TableCell>
                       <TableCell className="w-[600px] text-mastra-el-4">{evaluation.input}</TableCell>
+                      <TableCell className="w-[200px] text-mastra-el-4">{evaluation.result.info.reason}</TableCell>
                       <TableCell className="w-[200px] text-mastra-el-4">{evaluation.result.score}</TableCell>
                       {showTestName && <TableCell className="text-mastra-el-4">{evaluation.meta.testName}</TableCell>}
                     </TableRow>

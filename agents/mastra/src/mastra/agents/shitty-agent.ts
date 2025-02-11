@@ -1,13 +1,33 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { Agent } from '@mastra/core/agent';
+import { PromptAlignmentMetric } from '@mastra/evals/llm';
 
 const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
+const sonnet = anthropic('claude-3-5-sonnet-20240620');
+
+const instructions = [
+  'Maintain the traditional 5-7-5 syllable pattern across three lines',
+  'Include seasonal references or natural imagery (kigo)',
+  'Create a moment of insight or emotional resonance (kireji)',
+  'Use clear, concrete imagery rather than abstract concepts',
+  'Avoid metaphors and similes unless absolutely necessary',
+  'Capture a single moment or observation in time',
+];
+
+const metric = new PromptAlignmentMetric(sonnet, {
+  instructions,
+  scale: 1,
+});
+
 export const badAgent: Agent = new Agent({
   name: 'Example Agent',
-  model: anthropic('claude-3-5-sonnet-20241022'),
+  model: sonnet,
+  metrics: {
+    alignment: metric,
+  },
   instructions: `
 I write haikus sometimes! Here's what I know about them:
 
