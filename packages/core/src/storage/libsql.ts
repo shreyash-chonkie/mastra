@@ -11,17 +11,21 @@ export * from '../vector/libsql/index';
 export interface LibSQLConfig {
   url: string;
   authToken?: string;
+  syncUrl?: string;
 }
 
 export class DefaultStorage extends MastraStorage {
   private client: Client;
+  private isEmbeddedReplica: boolean;
 
   constructor({ config }: { config: LibSQLConfig }) {
     super({ name: `MastraStorageLibSql` });
 
+    this.isEmbeddedReplica = !!config.syncUrl && config.syncUrl !== config.url;
     this.client = createClient({
       url: this.rewriteDbUrl(config.url),
       authToken: config.authToken,
+      syncUrl: config.syncUrl,
     });
   }
 
@@ -376,6 +380,18 @@ export class DefaultStorage extends MastraStorage {
       await tx.rollback();
       throw error;
     }
+  }
+
+  async sync(): Promise<void> {
+    if (!this.isEmbeddedReplica) {
+      this.logger.warn('Syncing is only supported for embedded replicas');
+      return;
+    }
+
+    this.logger.info('Syncing local embedded replica from remote database');
+    const resp = await this.client.sync();
+    this.logger.info('Total frames' + resp?.frame_no);
+    this.logger.info('Frames synced: ' + resp?.frames_synced);
   }
 }
 
