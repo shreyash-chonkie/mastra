@@ -390,8 +390,7 @@ export class DefaultStorage extends MastraStorage {
 
     this.logger.info('Syncing local embedded replica from remote database');
     const resp = await this.client.sync();
-    this.logger.info('Total frames' + resp?.frame_no);
-    this.logger.info('Frames synced: ' + resp?.frames_synced);
+    this.logger.info('Frames synced (synced/total): ' + resp?.frames_synced + '/' + resp?.frame_no);
   }
 }
 
