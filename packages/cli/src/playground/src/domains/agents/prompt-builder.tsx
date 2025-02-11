@@ -204,7 +204,7 @@ export function PromptBuilder({ agentId, instructions, evals }: PromptBuilderPro
 
           <Accordion type="single" collapsible defaultValue="comments">
             <AccordionItem value="comments">
-              <AccordionTrigger className="px-3">Additional Comments</AccordionTrigger>
+              <AccordionTrigger className="px-3 text-sm">Additional Comments</AccordionTrigger>
               <AccordionContent>
                 <div className="px-3 pb-3">
                   <textarea
@@ -301,7 +301,7 @@ export function PromptBuilder({ agentId, instructions, evals }: PromptBuilderPro
 
             {versions.length > 0 && (
               <AccordionItem value="versions">
-                <AccordionTrigger className="px-3">Saved Versions</AccordionTrigger>
+                <AccordionTrigger className="px-3 text-sm">Saved Versions</AccordionTrigger>
                 <AccordionContent>
                   <div className="max-h-[200px] overflow-y-auto">
                     <div className="divide-y divide-mastra-bg-3">
