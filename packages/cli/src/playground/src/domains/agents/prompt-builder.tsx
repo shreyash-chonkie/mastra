@@ -3,6 +3,7 @@ import { Terminal, BookmarkPlus, Check, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { z } from 'zod';
 
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
@@ -77,6 +78,7 @@ export function PromptBuilder({ agentId, instructions, evals }: PromptBuilderPro
     return saved || '';
   });
   const [isVersionsPanelOpen, setIsVersionsPanelOpen] = useState(false);
+  const [userComments, setUserComments] = useState('');
 
   // Persist versions whenever they change
   useEffect(() => {
@@ -188,11 +190,8 @@ export function PromptBuilder({ agentId, instructions, evals }: PromptBuilderPro
               <div className="max-h-[400px] overflow-y-auto">
                 <ClickToCopy content={nextPrompt} />
                 {nextExplanation && (
-                  <div className="border-t bg-mastra-bg-2">
-                    <div className="px-3 py-3 text-xs text-mastra-el-3">
-                      <h3 className="font-medium mb-2 text-mastra-el-4">Changes Made:</h3>
-                      <pre className="whitespace-pre-wrap font-sans">{nextExplanation}</pre>
-                    </div>
+                  <div className="p-4 bg-mastra-bg-3">
+                    <ClickToCopy content={nextExplanation} />
                   </div>
                 )}
               </div>
@@ -203,12 +202,23 @@ export function PromptBuilder({ agentId, instructions, evals }: PromptBuilderPro
             </div>
           )}
 
-          <div className="flex gap-2 justify-end p-3 border-t">
-            <Button
-              onClick={async () => {
-                setIsImproving(true);
+          <Accordion type="single" collapsible defaultValue="comments">
+            <AccordionItem value="comments">
+              <AccordionTrigger className="px-3">Additional Comments</AccordionTrigger>
+              <AccordionContent>
+                <div className="px-3 pb-3">
+                  <textarea
+                    value={userComments}
+                    onChange={e => setUserComments(e.target.value)}
+                    placeholder="Add any specific concerns or areas you'd like the AI to focus on..."
+                    className="w-full h-18 p-2 text-sm bg-mastra-bg-3 border border-mastra-bg-4 rounded text-mastra-el-2 placeholder:text-mastra-el-4 focus:outline-none focus:ring-1 focus:ring-mastra-accent"
+                  />
+                  <div className="flex gap-2 justify-end mt-3">
+                    <Button
+                      onClick={async () => {
+                        setIsImproving(true);
 
-                const BUILDER_PROMPT = `
+                        const BUILDER_PROMPT = `
                   Please improve this system prompt. Here is the current prompt:
                   ${nextPrompt || instructions}
 
@@ -228,99 +238,114 @@ export function PromptBuilder({ agentId, instructions, evals }: PromptBuilderPro
                   `
                       : ''
                   }
+                  
+                  ${
+                    userComments
+                      ? `
+                  Additional comments from the user:
+                  ${userComments}
+                  `
+                      : ''
+                  }
 
                   Please provide:
                   1. An improved version of the prompt
                   2. A brief explanation of the changes you made and why they will help improve performance
                 `;
 
-                console.log(BUILDER_PROMPT);
+                        console.log(BUILDER_PROMPT);
 
-                try {
-                  const a = client.getAgent('builder');
-                  const response = await a.generate({
-                    messages: [
-                      {
-                        role: 'user',
-                        content: BUILDER_PROMPT,
-                      },
-                    ],
-                    output: z.object({
-                      prompt: z.string(),
-                      explanation: z.string(),
-                    }),
-                  });
+                        try {
+                          const a = client.getAgent('builder');
+                          const response = await a.generate({
+                            messages: [
+                              {
+                                role: 'user',
+                                content: BUILDER_PROMPT,
+                              },
+                            ],
+                            output: z.object({
+                              prompt: z.string(),
+                              explanation: z.string(),
+                            }),
+                          });
 
-                  setNextPrompt(response.object.prompt);
-                  setNextExplanation(response.object.explanation);
-                } catch (error) {
-                  console.error(error);
-                } finally {
-                  setIsImproving(false);
-                }
-              }}
-              disabled={isImproving}
-            >
-              {isImproving ? 'Improving...' : 'Improve'}
-            </Button>
-
-            {nextPrompt && (
-              <>
-                <Button onClick={saveVersion} disabled={isSaving} variant="secondary" className="gap-2">
-                  <BookmarkPlus className="h-4 w-4" />
-                  {isSaving ? 'Saving...' : 'Save Version'}
-                </Button>
-                <Button onClick={reset} variant="outline">
-                  Reset
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {versions.length > 0 && (
-          <div className="border-t">
-            <div className="px-3 py-2 border-b bg-mastra-bg-2 sticky top-0 z-10">
-              <h3 className="text-xs font-medium text-mastra-el-4">Saved Versions</h3>
-            </div>
-            <div className="max-h-[120px] overflow-y-auto">
-              <div className="divide-y divide-mastra-bg-3">
-                {versions.map(version => (
-                  <div
-                    key={version.id}
-                    className={`group flex items-center justify-between text-xs px-3 py-2 hover:bg-mastra-bg-3 cursor-pointer ${
-                      version.id === activeVersion ? 'bg-mastra-bg-2' : ''
-                    }`}
-                    onClick={() => setVersionActive(version.id)}
-                  >
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="text-mastra-el-3 truncate flex-1">
-                        {version.id === 'original'
-                          ? 'Original Instructions'
-                          : new Date(version.timestamp).toLocaleString()}
-                      </span>
-                      {version.id === activeVersion && (
-                        <span className="text-green-500 flex-shrink-0">
-                          <Check className="h-3 w-3" />
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      title="Delete Version"
-                      onClick={e => {
-                        e.stopPropagation();
-                        deleteVersion(version.id);
+                          setNextPrompt(response.object.prompt);
+                          setNextExplanation(response.object.explanation);
+                        } catch (error) {
+                          console.error(error);
+                        } finally {
+                          setIsImproving(false);
+                        }
                       }}
-                      className={`${version.id === 'original' ? 'hidden' : 'opacity-0 group-hover:opacity-100'} transition-opacity p-1 hover:bg-mastra-bg-4 rounded ml-2`}
+                      disabled={isImproving}
                     >
-                      <Trash2 className="h-3 w-3 text-red-500" />
-                    </button>
+                      {isImproving ? 'Improving...' : 'Improve'}
+                    </Button>
+
+                    {nextPrompt && (
+                      <>
+                        <Button onClick={saveVersion} disabled={isSaving} variant="secondary" className="gap-2">
+                          <BookmarkPlus className="h-4 w-4" />
+                          {isSaving ? 'Saving...' : 'Save Version'}
+                        </Button>
+                        <Button onClick={reset} variant="outline">
+                          Reset
+                        </Button>
+                      </>
+                    )}
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {versions.length > 0 && (
+              <AccordionItem value="versions">
+                <AccordionTrigger className="px-3">Saved Versions</AccordionTrigger>
+                <AccordionContent>
+                  <div className="max-h-[200px] overflow-y-auto">
+                    <div className="divide-y divide-mastra-bg-3">
+                      {versions.map(version => (
+                        <div
+                          key={version.id}
+                          className={`group flex items-center justify-between text-xs px-3 py-2 hover:bg-mastra-bg-3 cursor-pointer ${
+                            version.id === activeVersion ? 'bg-mastra-bg-2' : ''
+                          }`}
+                          onClick={() => setVersionActive(version.id)}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <span className="text-mastra-el-3 truncate flex-1">
+                              {version.id === 'original'
+                                ? 'Original Instructions'
+                                : new Date(version.timestamp).toLocaleString()}
+                            </span>
+                            {version.id === activeVersion && (
+                              <span className="text-green-500 flex-shrink-0">
+                                <Check className="h-3 w-3" />
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            title="Delete Version"
+                            onClick={e => {
+                              e.stopPropagation();
+                              deleteVersion(version.id);
+                            }}
+                            className={`${
+                              version.id === 'original' ? 'hidden' : 'opacity-0 group-hover:opacity-100'
+                            } transition-opacity p-1 hover:bg-mastra-bg-4 rounded ml-2`}
+                          >
+                            <Trash2 className="h-3 w-3 text-red-500" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            )}
+          </Accordion>
+        </div>
       </div>
     </section>
   );
