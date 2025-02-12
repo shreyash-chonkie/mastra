@@ -1,25 +1,11 @@
-import { Terminal, Copy, Check, Wand2, ChevronRight, MessageSquare, Trash2, Play, MoreHorizontal } from 'lucide-react';
-import { useState, useEffect } from 'react';
-
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog } from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 import { useAgent } from '@/hooks/use-agents';
 
-interface PromptVersion {
-  content: string;
-  timestamp: Date;
-  analysis?: string;
-  status: 'original' | 'draft' | 'published' | 'active';
-}
+import { CurrentInstructions } from './components/current-instructions';
+import { VersionHistory } from './components/version-history';
+import { usePromptEnhancer } from './hooks/use-prompt-enhancer';
+import { usePromptVersions } from './hooks/use-prompt-versions';
 
 interface AgentPromptEnhancerProps {
   agentId: string;
@@ -27,411 +13,68 @@ interface AgentPromptEnhancerProps {
 
 export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
   const { agent } = useAgent(agentId);
-  const [isEnhancing, setIsEnhancing] = useState(false);
-  const [copiedVersions, setCopiedVersions] = useState<Record<number, boolean>>({});
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [enhancedPrompt, setEnhancedPrompt] = useState('');
-  const [explanation, setExplanation] = useState('');
-  const [versions, setVersions] = useState<PromptVersion[]>([]);
-  const [expandedVersion, setExpandedVersion] = useState<number | null>(null);
-  const [expandedAnalysis, setExpandedAnalysis] = useState<number | null>(null);
-  const [versionToDelete, setVersionToDelete] = useState<number | null>(null);
-  const [showCommentInput, setShowCommentInput] = useState(false);
-  const [userComment, setUserComment] = useState('');
 
-  // Load versions from local storage on mount
-  useEffect(() => {
-    const storedVersions = localStorage.getItem(`agent-${agentId}-versions`);
-    if (storedVersions) {
-      const parsedVersions = JSON.parse(storedVersions);
-      // Convert string dates back to Date objects and set active version
-      const updatedVersions = parsedVersions.map((v: any) => ({
-        ...v,
-        timestamp: new Date(v.timestamp),
-        // Set the version matching current instructions as active
-        status: v.content === agent?.instructions ? 'active' : v.status === 'active' ? 'published' : v.status,
-      }));
-      setVersions(updatedVersions);
-    } else if (agent?.instructions) {
-      const initialVersions = [
-        {
-          content: agent.instructions,
-          timestamp: new Date(),
-          analysis: 'Original instructions',
-          status: 'original' as const,
-        },
-      ];
-      setVersions(initialVersions);
-      localStorage.setItem(`agent-${agentId}-versions`, JSON.stringify(initialVersions));
-    }
-  }, [agent?.instructions, agentId]);
+  const {
+    versions,
+    isUpdating,
+    versionToDelete,
+    setVersions,
+    setVersionToDelete,
+    deleteVersion,
+    toggleExpand,
+    toggleAnalysis,
+  } = usePromptVersions(agentId, agent?.instructions);
 
-  // Save versions to local storage whenever they change
-  useEffect(() => {
-    if (versions.length > 0) {
-      localStorage.setItem(`agent-${agentId}-versions`, JSON.stringify(versions));
-    }
-  }, [versions, agentId]);
-
-  const copyToClipboard = async (text: string, versionIndex: number) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedVersions(prev => ({ ...prev, [versionIndex]: true }));
-      setTimeout(() => {
-        setCopiedVersions(prev => ({ ...prev, [versionIndex]: false }));
-      }, 2000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
-  };
-
-  const enhancePrompt = async () => {
-    if (!agent?.instructions) return;
-
-    setIsEnhancing(true);
-    try {
-      const response = await fetch(`http://localhost:4111/api/agents/${agentId}/instructions/enhance`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          instructions: agent.instructions,
-          comment: userComment,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to enhance prompt');
-      }
-
-      const data = await response.json();
-      setEnhancedPrompt(data.new_prompt);
-      setExplanation(data.explanation);
-
-      const newVersion = {
-        content: data.new_prompt,
-        timestamp: new Date(),
-        analysis: data.explanation,
-        status: 'draft' as const,
-      };
+  const {
+    enhancedPrompt,
+    explanation,
+    isEnhancing,
+    userComment,
+    showCommentInput,
+    enhancePrompt,
+    setUserComment,
+    setShowCommentInput,
+    clearEnhancement,
+    applyChanges,
+  } = usePromptEnhancer({
+    agentId,
+    instructions: agent?.instructions,
+    onVersionCreate: newVersion => {
       setVersions(prev => [...prev, newVersion]);
-
-      // Auto-expand the new version
-      setExpandedVersion(versions.length);
-
-      // Clear the comment
-      setUserComment('');
-      setShowCommentInput(false);
-    } catch (error) {
-      console.error('Failed to enhance prompt:', error);
-    } finally {
-      setIsEnhancing(false);
-    }
-  };
-
-  const applyChanges = async () => {
-    if (!enhancedPrompt) return;
-
-    const draftIndex = versions.findIndex(v => v.status === 'draft');
-    if (draftIndex === -1) {
-      // If no draft exists, create a new version
-      const newVersion: PromptVersion = {
-        content: enhancedPrompt,
-        timestamp: new Date(),
-        analysis: explanation,
-        status: 'published' as const,
-      };
-
-      setVersions(prev => [...prev, newVersion]);
-    } else {
-      // Update existing draft version
-      setVersions(prev =>
-        prev.map((version, index) =>
-          index === draftIndex
-            ? { ...version, content: enhancedPrompt, analysis: explanation, status: 'published' as const }
-            : version,
-        ),
-      );
-    }
-
-    // Clear the draft state
-    setEnhancedPrompt('');
-    setExplanation('');
-  };
-
-  const setVersionActive = async (version: PromptVersion, index: number) => {
-    setIsUpdating(true);
-    try {
-      const response = await fetch(`http://localhost:4111/api/agents/${agentId}/instructions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          instructions: version.content,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update instructions');
+      // Auto-expand the new version if it's a draft
+      if (newVersion.status === 'draft') {
+        toggleExpand(versions.length);
       }
-
-      // Update version statuses
-      setVersions(prev =>
-        prev.map((v, i) => ({
-          ...v,
-          status: i === index ? 'active' : v.status === 'active' ? 'published' : v.status,
-        })),
-      );
-
-      // Clear any draft state
-      setEnhancedPrompt('');
-      setExplanation('');
-    } catch (error) {
-      console.error('Failed to set version as active:', error);
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const deleteVersion = (indexToDelete: number) => {
-    // Don't allow deleting the original version
-    if (indexToDelete === 0) return;
-
-    setVersions(prev => {
-      const newVersions = prev.filter((_, index) => index !== indexToDelete);
-      // If we're deleting the currently expanded version, collapse it
-      if (expandedVersion === indexToDelete) {
-        setExpandedVersion(null);
-      }
-      if (expandedAnalysis === indexToDelete) {
-        setExpandedAnalysis(null);
-      }
-      return newVersions;
-    });
-
-    // If we're deleting the latest version and it was a draft
-    if (indexToDelete === versions.length - 1 && enhancedPrompt) {
-      setEnhancedPrompt('');
-      setExplanation('');
-    }
-
-    // Reset the version to delete
-    setVersionToDelete(null);
-  };
+    },
+  });
 
   return (
     <div className="grid p-4 h-full">
       <div className="space-y-2">
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <div>
-              <h3 className="text-sm font-medium text-mastra-el-5">Current Instructions</h3>
-            </div>
+        <CurrentInstructions
+          instructions={agent?.instructions}
+          enhancedPrompt={enhancedPrompt}
+          isEnhancing={isEnhancing}
+          showCommentInput={showCommentInput}
+          userComment={userComment}
+          onEnhance={enhancePrompt}
+          onCancel={clearEnhancement}
+          onSave={applyChanges}
+          onCommentToggle={() => setShowCommentInput(!showCommentInput)}
+          onCommentChange={setUserComment}
+        />
 
-            <Button
-              variant="default"
-              size="sm"
-              onClick={enhancePrompt}
-              disabled={isEnhancing || !agent?.instructions}
-              className="bg-[#6366F1] hover:bg-[#6366F1]/90 text-white font-medium"
-            >
-              {isEnhancing ? (
-                <>
-                  <Terminal className="mr-2 h-3 w-3 animate-spin" />
-                  Enhancing...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="mr-2 h-3 w-3" />
-                  Enhance
-                </>
-              )}
-            </Button>
-          </div>
-
-          <ScrollArea className="h-[180px] rounded-md border bg-mastra-bg-2">
-            <div className="p-2">
-              <pre className="text-xs whitespace-pre-wrap font-mono">
-                {enhancedPrompt || agent?.instructions?.trim()}
-              </pre>
-              {enhancedPrompt && (
-                <div className="mt-1.5">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500">
-                    Draft - Save changes to apply
-                  </span>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-
-          <div className="flex items-center justify-between mt-1.5">
-            {enhancedPrompt && (
-              <div className="flex space-x-1.5">
-                <Button variant="outline" onClick={() => setEnhancedPrompt('')}>
-                  Cancel
-                </Button>
-                <Button onClick={applyChanges} disabled={!enhancedPrompt}>
-                  Save
-                </Button>
-              </div>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowCommentInput(!showCommentInput)}
-              className="text-mastra-el-4 hover:text-mastra-el-5"
-            >
-              <MessageSquare className="h-3 w-3 mr-1" />
-              {showCommentInput ? 'Hide Comment' : 'Add Comment'}
-            </Button>
-          </div>
-
-          {showCommentInput && (
-            <div className="mt-1.5 bg-mastra-bg-1/50 p-2 rounded-lg border border-mastra-bg-3 shadow-sm">
-              <textarea
-                value={userComment}
-                onChange={e => setUserComment(e.target.value)}
-                placeholder="Add your comments or requirements for enhancing the prompt..."
-                className="w-full h-16 px-3 py-2 text-xs rounded-md bg-mastra-bg-2 border border-mastra-bg-3 text-mastra-el-5 placeholder:text-mastra-el-3 focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30 focus:border-[#6366F1] transition-all"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Version History */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <div>
-              <h3 className="text-sm font-medium text-mastra-el-5">Version History</h3>
-              <p className="text-xs text-mastra-el-3">Previous versions of the instructions</p>
-            </div>
-          </div>
-          <div className="space-y-1">
-            {versions.map((version, index) => (
-              <div
-                key={index}
-                className={`rounded-md border ${expandedVersion === index ? 'border-mastra-purple/30' : 'border-mastra-bg-3'} bg-mastra-bg-2`}
-              >
-                <div
-                  className="p-2 flex items-center justify-between cursor-pointer hover:bg-mastra-bg-3/50"
-                  onClick={() => setExpandedVersion(expandedVersion === index ? null : index)}
-                >
-                  <div className="flex items-center space-x-2">
-                    <ChevronRight
-                      className={`h-3 w-3 transition-transform ${expandedVersion === index ? 'rotate-90 text-mastra-purple' : ''}`}
-                    />
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <p className="text-xs font-medium text-mastra-el-4">Version {index + 1}</p>
-                        {version.status === 'active' && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-500">
-                            Active
-                          </span>
-                        )}
-                        {version.status === 'original' && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-500">
-                            Original
-                          </span>
-                        )}
-                        {version.status === 'draft' && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500">
-                            Draft
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-mastra-el-3">{version.timestamp.toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    {version.analysis && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 hover:bg-mastra-bg-3 relative group"
-                        onClick={e => {
-                          e.stopPropagation();
-                          setExpandedAnalysis(expandedAnalysis === index ? null : index);
-                        }}
-                      >
-                        <MessageSquare
-                          className={`h-3 w-3 ${expandedAnalysis === index ? 'text-mastra-purple' : ''}`}
-                        />
-                        <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-mastra-bg-3 rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                          {expandedAnalysis === index ? 'Hide explanation' : 'View explanation'}
-                        </span>
-                      </Button>
-                    )}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger>
-                        <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-mastra-bg-3 relative group">
-                          <MoreHorizontal className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem
-                          onClick={e => {
-                            e.stopPropagation();
-                            copyToClipboard(version.content, index);
-                          }}
-                        >
-                          {copiedVersions[index] ? (
-                            <Check className="h-3 w-3 text-green-500" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                          {copiedVersions[index] ? 'Copied!' : 'Copy to clipboard'}
-                        </DropdownMenuItem>
-                        {version.status !== 'active' && version.status !== 'draft' && (
-                          <DropdownMenuItem
-                            onClick={e => {
-                              e.stopPropagation();
-                              setVersionActive(version, index);
-                            }}
-                            disabled={isUpdating}
-                          >
-                            <Play className="h-3 w-3" />
-                            Set as active
-                          </DropdownMenuItem>
-                        )}
-                        {index !== 0 &&
-                          version.status !== 'active' && ( // Don't show delete button for original or active version
-                            <DropdownMenuItem
-                              onClick={e => {
-                                e.stopPropagation();
-                                setVersionToDelete(index);
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3 text-red-400 hover:text-red-500" />
-                              Delete
-                            </DropdownMenuItem>
-                          )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-                {(expandedVersion === index || expandedAnalysis === index) && (
-                  <div className="px-2 pb-2 space-y-2">
-                    {expandedAnalysis === index && version.analysis && (
-                      <Alert className="py-1.5 bg-transparent border-none">
-                        <AlertDescription className="text-[10px] text-mastra-el-4">{version.analysis}</AlertDescription>
-                      </Alert>
-                    )}
-                    {expandedVersion === index && (
-                      <ScrollArea className="h-[150px] rounded-md border border-mastra-bg-3">
-                        <div className="p-2">
-                          <pre className="text-xs whitespace-pre-wrap font-mono">{version.content}</pre>
-                        </div>
-                      </ScrollArea>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <VersionHistory
+          versions={versions}
+          isUpdating={isUpdating}
+          copiedVersions={{}}
+          onToggleAnalysis={toggleAnalysis}
+          onCopy={async () => {}}
+          onSetActive={async () => {}}
+          onDelete={setVersionToDelete}
+        />
       </div>
+
       <AlertDialog open={versionToDelete !== null} onOpenChange={() => setVersionToDelete(null)}>
         <AlertDialog.Content>
           <AlertDialog.Header>
