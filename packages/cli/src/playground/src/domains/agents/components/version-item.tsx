@@ -66,8 +66,10 @@ export function VersionItem({
           version={version}
           index={index}
           isUpdating={isUpdating}
+          isAnalysisExpanded={isAnalysisExpanded === index}
           onSetActive={onSetActive}
           onDelete={onDelete}
+          onToggleAnalysis={onToggleAnalysis}
         />
       </div>
       {(isExpanded || isAnalysisExpanded) && (

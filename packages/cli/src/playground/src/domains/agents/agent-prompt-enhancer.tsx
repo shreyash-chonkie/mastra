@@ -14,20 +14,13 @@ interface AgentPromptEnhancerProps {
 export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
   const { agent } = useAgent(agentId);
 
-  const {
-    versions,
-    isUpdating,
-    versionToDelete,
-    setVersions,
-    setVersionToDelete,
-    deleteVersion,
-    toggleExpand,
-    toggleAnalysis,
-  } = usePromptVersions(agentId, agent?.instructions);
+  const { versions, isUpdating, versionToDelete, setVersions, setVersionToDelete, deleteVersion } = usePromptVersions(
+    agentId,
+    agent?.instructions,
+  );
 
   const {
     enhancedPrompt,
-    explanation,
     isEnhancing,
     userComment,
     showCommentInput,
@@ -41,10 +34,6 @@ export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
     instructions: agent?.instructions,
     onVersionCreate: newVersion => {
       setVersions(prev => [...prev, newVersion]);
-      // Auto-expand the new version if it's a draft
-      if (newVersion.status === 'draft') {
-        toggleExpand(versions.length);
-      }
     },
   });
 
@@ -68,7 +57,6 @@ export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
           versions={versions}
           isUpdating={isUpdating}
           copiedVersions={{}}
-          onToggleAnalysis={toggleAnalysis}
           onCopy={async () => {}}
           onSetActive={async () => {}}
           onDelete={setVersionToDelete}

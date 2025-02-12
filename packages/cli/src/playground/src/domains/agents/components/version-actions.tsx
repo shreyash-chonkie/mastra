@@ -1,4 +1,4 @@
-import { MoreHorizontal, Play, Trash2 } from 'lucide-react';
+import { MessageCircle, MoreHorizontal, Play, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Dropdown } from '@/components/ui/dropdown-menu';
@@ -9,9 +9,14 @@ export function VersionActions({
   version,
   index,
   isUpdating,
+  isAnalysisExpanded,
   onSetActive,
   onDelete,
-}: Omit<VersionActionsProps, 'onCopy' | 'copiedVersions'>) {
+  onToggleAnalysis,
+}: Omit<VersionActionsProps, 'onCopy' | 'copiedVersions'> & {
+  isAnalysisExpanded: boolean;
+  onToggleAnalysis: (index: number) => void;
+}) {
   return (
     <div className="flex items-center space-x-1">
       {version.status !== 'active' && version.status !== 'draft' && (
@@ -29,7 +34,7 @@ export function VersionActions({
           <span className="text-xs">Set Active</span>
         </Button>
       )}
-      {index !== 0 && version.status !== 'active' && (
+      {(index !== 0 || version.analysis) && version.status !== 'active' && (
         <Dropdown>
           <Dropdown.Trigger>
             <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-mastra-bg-3 relative group">
@@ -37,15 +42,28 @@ export function VersionActions({
             </Button>
           </Dropdown.Trigger>
           <Dropdown.Content>
-            <Dropdown.Item
-              onClick={e => {
-                e.stopPropagation();
-                onDelete(index);
-              }}
-            >
-              <Trash2 className="h-3 w-3 text-red-400 hover:text-red-500" />
-              Delete
-            </Dropdown.Item>
+            {version.analysis && (
+              <Dropdown.Item
+                onClick={e => {
+                  e.stopPropagation();
+                  onToggleAnalysis(index);
+                }}
+              >
+                <MessageCircle className="h-3 w-3 text-mastra-purple" />
+                {isAnalysisExpanded ? 'Hide' : 'Show'} Explanation
+              </Dropdown.Item>
+            )}
+            {index !== 0 && (
+              <Dropdown.Item
+                onClick={e => {
+                  e.stopPropagation();
+                  onDelete(index);
+                }}
+              >
+                <Trash2 className="h-3 w-3 text-red-400 hover:text-red-500" />
+                Delete
+              </Dropdown.Item>
+            )}
           </Dropdown.Content>
         </Dropdown>
       )}

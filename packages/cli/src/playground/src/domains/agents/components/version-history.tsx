@@ -8,7 +8,6 @@ interface VersionHistoryProps {
   versions: PromptVersion[];
   isUpdating: boolean;
   copiedVersions: Record<string | number, boolean>;
-  onToggleAnalysis: (index: number) => void;
   onCopy: (content: string, key: string | number) => Promise<void>;
   onSetActive: (version: PromptVersion, index: number) => Promise<void>;
   onDelete: (index: number) => void;
@@ -18,7 +17,6 @@ export function VersionHistory({
   versions,
   isUpdating,
   copiedVersions,
-  onToggleAnalysis,
   onCopy,
   onSetActive,
   onDelete,
@@ -49,7 +47,12 @@ export function VersionHistory({
               }
               setExpandedVersion(index);
             }}
-            onToggleAnalysis={onToggleAnalysis}
+            onToggleAnalysis={() => {
+              if (expandedAnalysis === index) {
+                return setExpandedAnalysis(null);
+              }
+              setExpandedAnalysis(index);
+            }}
             onCopy={onCopy}
             onSetActive={onSetActive}
             onDelete={onDelete}

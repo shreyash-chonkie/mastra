@@ -14,7 +14,8 @@ export async function generateSystemPromptHandler(c: Context) {
       return c.json({ error: 'This API is only available in the playground environment' }, 403);
     }
 
-    const { instructions } = await c.req.json();
+    const { instructions, comment } = await c.req.json();
+
     if (!instructions) {
       return c.json({ error: 'Missing instructions in request body' }, 400);
     }
@@ -94,6 +95,7 @@ export async function generateSystemPromptHandler(c: Context) {
       `
             We need to improve the system prompt. 
             Current: ${instructions}
+            ${comment ? `User feedback: ${comment}` : ''}
         `,
       {
         output: z.object({
