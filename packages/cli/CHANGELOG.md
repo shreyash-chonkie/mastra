@@ -1,5 +1,59 @@
 # mastra
 
+## 0.2.0-alpha.160
+
+### Patch Changes
+
+- Updated dependencies [a9345f9]
+  - @mastra/core@0.2.0-alpha.102
+  - @mastra/deployer@0.1.0-alpha.52
+
+## 0.2.0-alpha.159
+
+### Patch Changes
+
+- 4f1d1a1: Enforce types ann cleanup package.json
+- Updated dependencies [66a03ec]
+- Updated dependencies [4f1d1a1]
+  - @mastra/core@0.2.0-alpha.101
+  - @mastra/deployer@0.1.0-alpha.51
+
+## 0.2.0-alpha.158
+
+### Patch Changes
+
+- 9d1796d: Fix storage and eval serialization on api
+- Updated dependencies [9d1796d]
+  - @mastra/deployer@0.1.0-alpha.50
+  - @mastra/core@0.2.0-alpha.100
+
+## 0.2.0-alpha.157
+
+### Patch Changes
+
+- 7d83b92: Create default storage and move evals towards it
+- Updated dependencies [7d83b92]
+  - @mastra/deployer@0.1.0-alpha.49
+  - @mastra/core@0.2.0-alpha.99
+
+## 0.2.0-alpha.156
+
+### Patch Changes
+
+- Updated dependencies [8aec8b7]
+  - @mastra/deployer@0.1.0-alpha.48
+
+## 0.2.0-alpha.155
+
+### Patch Changes
+
+- 70dabd9: Fix broken publish
+- 202d404: Added instructions when generating evals
+- Updated dependencies [70dabd9]
+- Updated dependencies [202d404]
+  - @mastra/core@0.2.0-alpha.98
+  - @mastra/deployer@0.1.0-alpha.47
+
 ## 0.2.0-alpha.154
 
 ### Patch Changes

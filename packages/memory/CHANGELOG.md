@@ -1,5 +1,44 @@
 # @mastra/memory
 
+## 0.1.0-alpha.84
+
+### Patch Changes
+
+- Updated dependencies [a9345f9]
+  - @mastra/core@0.2.0-alpha.102
+
+## 0.1.0-alpha.83
+
+### Patch Changes
+
+- 4f1d1a1: Enforce types ann cleanup package.json
+- Updated dependencies [66a03ec]
+- Updated dependencies [4f1d1a1]
+  - @mastra/core@0.2.0-alpha.101
+
+## 0.1.0-alpha.82
+
+### Patch Changes
+
+- Updated dependencies [9d1796d]
+  - @mastra/core@0.2.0-alpha.100
+
+## 0.1.0-alpha.81
+
+### Patch Changes
+
+- Updated dependencies [7d83b92]
+  - @mastra/core@0.2.0-alpha.99
+
+## 0.1.0-alpha.80
+
+### Patch Changes
+
+- 70dabd9: Fix broken publish
+- Updated dependencies [70dabd9]
+- Updated dependencies [202d404]
+  - @mastra/core@0.2.0-alpha.98
+
 ## 0.1.0-alpha.79
 
 ### Patch Changes

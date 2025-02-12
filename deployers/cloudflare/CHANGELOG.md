@@ -1,5 +1,56 @@
 # @mastra/deployer-cloudflare
 
+## 0.1.0-alpha.57
+
+### Patch Changes
+
+- Updated dependencies [a9345f9]
+  - @mastra/core@0.2.0-alpha.102
+  - @mastra/deployer@0.1.0-alpha.52
+
+## 0.1.0-alpha.56
+
+### Patch Changes
+
+- 4f1d1a1: Enforce types ann cleanup package.json
+- Updated dependencies [66a03ec]
+- Updated dependencies [4f1d1a1]
+  - @mastra/core@0.2.0-alpha.101
+  - @mastra/deployer@0.1.0-alpha.51
+
+## 0.1.0-alpha.55
+
+### Patch Changes
+
+- Updated dependencies [9d1796d]
+  - @mastra/deployer@0.1.0-alpha.50
+  - @mastra/core@0.2.0-alpha.100
+
+## 0.1.0-alpha.54
+
+### Patch Changes
+
+- Updated dependencies [7d83b92]
+  - @mastra/deployer@0.1.0-alpha.49
+  - @mastra/core@0.2.0-alpha.99
+
+## 0.1.0-alpha.53
+
+### Patch Changes
+
+- Updated dependencies [8aec8b7]
+  - @mastra/deployer@0.1.0-alpha.48
+
+## 0.1.0-alpha.52
+
+### Patch Changes
+
+- 70dabd9: Fix broken publish
+- Updated dependencies [70dabd9]
+- Updated dependencies [202d404]
+  - @mastra/core@0.2.0-alpha.98
+  - @mastra/deployer@0.1.0-alpha.47
+
 ## 0.1.0-alpha.51
 
 ### Patch Changes
