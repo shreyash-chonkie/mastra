@@ -1,9 +1,15 @@
-import { Terminal, Copy, Check, Wand2, ChevronRight, MessageSquare, Trash2, Play } from 'lucide-react';
+import { Terminal, Copy, Check, Wand2, ChevronRight, MessageSquare, Trash2, Play, MoreHorizontal } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 import { useAgent } from '@/hooks/use-agents';
@@ -30,19 +36,22 @@ export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
   const [expandedVersion, setExpandedVersion] = useState<number | null>(null);
   const [expandedAnalysis, setExpandedAnalysis] = useState<number | null>(null);
   const [versionToDelete, setVersionToDelete] = useState<number | null>(null);
+  const [showCommentInput, setShowCommentInput] = useState(false);
+  const [userComment, setUserComment] = useState('');
 
   // Load versions from local storage on mount
   useEffect(() => {
     const storedVersions = localStorage.getItem(`agent-${agentId}-versions`);
     if (storedVersions) {
       const parsedVersions = JSON.parse(storedVersions);
-      // Convert string dates back to Date objects
-      setVersions(
-        parsedVersions.map((v: any) => ({
-          ...v,
-          timestamp: new Date(v.timestamp),
-        })),
-      );
+      // Convert string dates back to Date objects and set active version
+      const updatedVersions = parsedVersions.map((v: any) => ({
+        ...v,
+        timestamp: new Date(v.timestamp),
+        // Set the version matching current instructions as active
+        status: v.content === agent?.instructions ? 'active' : v.status === 'active' ? 'published' : v.status,
+      }));
+      setVersions(updatedVersions);
     } else if (agent?.instructions) {
       const initialVersions = [
         {
@@ -88,6 +97,7 @@ export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
         },
         body: JSON.stringify({
           instructions: agent.instructions,
+          comment: userComment,
         }),
       });
 
@@ -109,6 +119,10 @@ export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
 
       // Auto-expand the new version
       setExpandedVersion(versions.length);
+
+      // Clear the comment
+      setUserComment('');
+      setShowCommentInput(false);
     } catch (error) {
       console.error('Failed to enhance prompt:', error);
     } finally {
@@ -209,13 +223,20 @@ export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
 
   return (
     <div className="grid p-4 h-full">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
+      <div className="space-y-2">
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
             <div>
               <h3 className="text-sm font-medium text-mastra-el-5">Current Instructions</h3>
             </div>
-            <Button variant="default" size="sm" onClick={enhancePrompt} disabled={isEnhancing || !agent?.instructions}>
+
+            <Button
+              variant="default"
+              size="sm"
+              onClick={enhancePrompt}
+              disabled={isEnhancing || !agent?.instructions}
+              className="bg-[#6366F1] hover:bg-[#6366F1]/90 text-white font-medium"
+            >
               {isEnhancing ? (
                 <>
                   <Terminal className="mr-2 h-3 w-3 animate-spin" />
@@ -229,13 +250,14 @@ export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
               )}
             </Button>
           </div>
-          <ScrollArea className="h-[200px] rounded-md border bg-mastra-bg-2">
+
+          <ScrollArea className="h-[180px] rounded-md border bg-mastra-bg-2">
             <div className="p-2">
               <pre className="text-xs whitespace-pre-wrap font-mono">
                 {enhancedPrompt || agent?.instructions?.trim()}
               </pre>
               {enhancedPrompt && (
-                <div className="mt-2 flex items-center">
+                <div className="mt-1.5">
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500">
                     Draft - Save changes to apply
                   </span>
@@ -243,21 +265,44 @@ export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
               )}
             </div>
           </ScrollArea>
-          {enhancedPrompt && (
-            <div className="flex justify-end space-x-2 mt-4">
-              <Button variant="outline" onClick={() => setEnhancedPrompt('')}>
-                Cancel
-              </Button>
-              <Button onClick={applyChanges} disabled={!enhancedPrompt}>
-                Save
-              </Button>
+
+          <div className="flex items-center justify-between mt-1.5">
+            {enhancedPrompt && (
+              <div className="flex space-x-1.5">
+                <Button variant="outline" onClick={() => setEnhancedPrompt('')}>
+                  Cancel
+                </Button>
+                <Button onClick={applyChanges} disabled={!enhancedPrompt}>
+                  Save
+                </Button>
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCommentInput(!showCommentInput)}
+              className="text-mastra-el-4 hover:text-mastra-el-5"
+            >
+              <MessageSquare className="h-3 w-3 mr-1" />
+              {showCommentInput ? 'Hide Comment' : 'Add Comment'}
+            </Button>
+          </div>
+
+          {showCommentInput && (
+            <div className="mt-1.5 bg-mastra-bg-1/50 p-2 rounded-lg border border-mastra-bg-3 shadow-sm">
+              <textarea
+                value={userComment}
+                onChange={e => setUserComment(e.target.value)}
+                placeholder="Add your comments or requirements for enhancing the prompt..."
+                className="w-full h-16 px-3 py-2 text-xs rounded-md bg-mastra-bg-2 border border-mastra-bg-3 text-mastra-el-5 placeholder:text-mastra-el-3 focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30 focus:border-[#6366F1] transition-all"
+              />
             </div>
           )}
         </div>
 
         {/* Version History */}
         <div>
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-1.5">
             <div>
               <h3 className="text-sm font-medium text-mastra-el-5">Version History</h3>
               <p className="text-xs text-mastra-el-3">Previous versions of the instructions</p>
@@ -318,55 +363,52 @@ export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
                         </span>
                       </Button>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 hover:bg-mastra-bg-3 relative group"
-                      onClick={e => {
-                        e.stopPropagation();
-                        copyToClipboard(version.content, index);
-                      }}
-                    >
-                      {copiedVersions[index] ? (
-                        <Check className="h-3 w-3 text-green-500" />
-                      ) : (
-                        <Copy className="h-3 w-3" />
-                      )}
-                      <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-mastra-bg-3 rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        {copiedVersions[index] ? 'Copied!' : 'Copy to clipboard'}
-                      </span>
-                    </Button>
-                    {version.status !== 'active' && version.status !== 'draft' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 hover:bg-mastra-bg-3 relative group"
-                        onClick={e => {
-                          e.stopPropagation();
-                          setVersionActive(version, index);
-                        }}
-                        disabled={isUpdating}
-                      >
-                        <Play className="h-3 w-3" />
-                        <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-mastra-bg-3 rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                          Set as active
-                        </span>
-                      </Button>
-                    )}
-                    {index !== 0 &&
-                      version.status !== 'active' && ( // Don't show delete button for original or active version
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 hover:bg-red-500/20"
+                    <DropdownMenu>
+                      <DropdownMenuTrigger>
+                        <Button variant="ghost" size="sm" className="h-6 px-2 hover:bg-mastra-bg-3 relative group">
+                          <MoreHorizontal className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem
                           onClick={e => {
                             e.stopPropagation();
-                            setVersionToDelete(index);
+                            copyToClipboard(version.content, index);
                           }}
                         >
-                          <Trash2 className="h-3 w-3 text-red-400 hover:text-red-500" />
-                        </Button>
-                      )}
+                          {copiedVersions[index] ? (
+                            <Check className="h-3 w-3 text-green-500" />
+                          ) : (
+                            <Copy className="h-3 w-3" />
+                          )}
+                          {copiedVersions[index] ? 'Copied!' : 'Copy to clipboard'}
+                        </DropdownMenuItem>
+                        {version.status !== 'active' && version.status !== 'draft' && (
+                          <DropdownMenuItem
+                            onClick={e => {
+                              e.stopPropagation();
+                              setVersionActive(version, index);
+                            }}
+                            disabled={isUpdating}
+                          >
+                            <Play className="h-3 w-3" />
+                            Set as active
+                          </DropdownMenuItem>
+                        )}
+                        {index !== 0 &&
+                          version.status !== 'active' && ( // Don't show delete button for original or active version
+                            <DropdownMenuItem
+                              onClick={e => {
+                                e.stopPropagation();
+                                setVersionToDelete(index);
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3 text-red-400 hover:text-red-500" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
                 {(expandedVersion === index || expandedAnalysis === index) && (
