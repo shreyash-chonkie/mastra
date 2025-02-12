@@ -5,9 +5,6 @@ import { z } from 'zod';
 
 import { handleError } from './error';
 
-/**
- * Handler for generating improved system prompts from instructions
- */
 export async function generateSystemPromptHandler(c: Context) {
   try {
     // Check if this is a playground request
