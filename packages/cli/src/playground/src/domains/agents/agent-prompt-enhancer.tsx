@@ -14,10 +14,16 @@ interface AgentPromptEnhancerProps {
 export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
   const { agent } = useAgent(agentId);
 
-  const { versions, isUpdating, versionToDelete, setVersions, setVersionToDelete, deleteVersion } = usePromptVersions(
-    agentId,
-    agent?.instructions,
-  );
+  const {
+    versions,
+    isUpdating,
+    versionToDelete,
+    setVersions,
+    setVersionToDelete,
+    deleteVersion,
+    updateVersion,
+    setVersionActive,
+  } = usePromptVersions(agentId, agent?.instructions);
 
   const {
     enhancedPrompt,
@@ -32,9 +38,11 @@ export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
   } = usePromptEnhancer({
     agentId,
     instructions: agent?.instructions,
+    versions,
     onVersionCreate: newVersion => {
       setVersions(prev => [...prev, newVersion]);
     },
+    onVersionUpdate: updateVersion,
   });
 
   return (
@@ -58,7 +66,7 @@ export function AgentPromptEnhancer({ agentId }: AgentPromptEnhancerProps) {
           isUpdating={isUpdating}
           copiedVersions={{}}
           onCopy={async () => {}}
-          onSetActive={async () => {}}
+          onSetActive={setVersionActive}
           onDelete={setVersionToDelete}
         />
       </div>

@@ -27,6 +27,31 @@ export async function generateSystemPromptHandler(c: Context) {
       return c.json({ error: 'Agent not found' }, 404);
     }
 
+    let evalSummary = '';
+
+    try {
+      // Get both test and live evals
+      const testEvals = (await mastra.storage?.getEvalsByAgentName?.(agent.name, 'test')) || [];
+      const liveEvals = (await mastra.storage?.getEvalsByAgentName?.(agent.name, 'live')) || [];
+      // Format eval results for the prompt
+      const evalsMapped = [...testEvals, ...liveEvals].map(({ meta, result, ...rest }) => {
+        const new_meta = JSON.parse(meta);
+        const new_result = JSON.parse(result);
+
+        return {
+          meta: new_meta,
+          result: new_result,
+          ...rest,
+        };
+      });
+
+      console.log(evalsMapped);
+      const evalsForInstructions = evalsMapped.filter(({ meta }) => meta.instructions === instructions);
+      console.log(evalsForInstructions);
+    } catch (error) {
+      mastra.getLogger().error(`Error getting evals: ${error}`);
+    }
+
     const ENHANCE_SYSTEM_PROMPT_INSTRUCTIONS = `
             You are an expert system prompt engineer, specialized in analyzing and enhancing instructions to create clear, effective, and comprehensive system prompts. Your goal is to help users transform their basic instructions into well-structured system prompts that will guide AI behavior effectively.
 
@@ -96,6 +121,7 @@ export async function generateSystemPromptHandler(c: Context) {
             We need to improve the system prompt. 
             Current: ${instructions}
             ${comment ? `User feedback: ${comment}` : ''}
+            ${evalSummary ? `\nEvaluation Results:\n${evalSummary}` : ''}
         `,
       {
         output: z.object({

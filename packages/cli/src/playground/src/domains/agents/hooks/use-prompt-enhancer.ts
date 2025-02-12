@@ -5,7 +5,9 @@ import type { PromptVersion } from '../types';
 interface UsePromptEnhancerProps {
   agentId: string;
   instructions?: string;
+  versions: PromptVersion[];
   onVersionCreate: (version: PromptVersion) => void;
+  onVersionUpdate: (index: number, updates: Partial<PromptVersion>) => void;
 }
 
 interface UsePromptEnhancerResult {
@@ -24,7 +26,9 @@ interface UsePromptEnhancerResult {
 export function usePromptEnhancer({
   agentId,
   instructions,
+  versions,
   onVersionCreate,
+  onVersionUpdate,
 }: UsePromptEnhancerProps): UsePromptEnhancerResult {
   const [enhancedPrompt, setEnhancedPrompt] = useState('');
   const [explanation, setExplanation] = useState('');
@@ -56,14 +60,6 @@ export function usePromptEnhancer({
       setEnhancedPrompt(data.new_prompt);
       setExplanation(data.explanation);
 
-      const newVersion = {
-        content: data.new_prompt,
-        timestamp: new Date(),
-        analysis: data.explanation,
-        status: 'draft' as const,
-      };
-      onVersionCreate(newVersion);
-
       // Clear the comment
       setUserComment('');
       setShowCommentInput(false);
@@ -82,14 +78,27 @@ export function usePromptEnhancer({
   const applyChanges = () => {
     if (!enhancedPrompt) return;
 
-    const newVersion = {
-      content: enhancedPrompt,
-      timestamp: new Date(),
-      analysis: explanation,
-      status: 'published' as const,
-    };
+    // Find the draft version index
+    const draftIndex = versions.findIndex(v => v.status === 'draft');
+    if (draftIndex !== -1) {
+      // Update the draft version
+      onVersionUpdate(draftIndex, {
+        content: enhancedPrompt,
+        analysis: explanation,
+        status: 'published' as const,
+        timestamp: new Date(),
+      });
+    } else {
+      // Create a new published version
+      const newVersion = {
+        content: enhancedPrompt,
+        timestamp: new Date(),
+        analysis: explanation,
+        status: 'published' as const,
+      };
+      onVersionCreate(newVersion);
+    }
 
-    onVersionCreate(newVersion);
     clearEnhancement();
   };
 

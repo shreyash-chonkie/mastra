@@ -376,6 +376,10 @@ export async function createHonoServer(
                   type: 'string',
                   description: 'Instructions to generate a system prompt from',
                 },
+                comment: {
+                  type: 'string',
+                  description: 'Comment for the enhanced prompt',
+                },
               },
               required: ['instructions'],
             },

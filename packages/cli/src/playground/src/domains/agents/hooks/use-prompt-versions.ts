@@ -86,17 +86,13 @@ export function usePromptVersions(agentId: string, instructions?: string) {
     }
   };
 
-  const deleteVersion = (indexToDelete: number) => {
-    // Don't allow deleting the original version
-    if (indexToDelete === 0) return;
-
-    setVersions(prev => {
-      const newVersions = prev.filter((_, index) => index !== indexToDelete);
-      return newVersions;
-    });
-
-    // Reset the version to delete
+  const deleteVersion = (index: number) => {
+    setVersions(prev => prev.filter((_, i) => i !== index));
     setVersionToDelete(null);
+  };
+
+  const updateVersion = (index: number, updates: Partial<PromptVersion>) => {
+    setVersions(prev => prev.map((version, i) => (i === index ? { ...version, ...updates } : version)));
   };
 
   return {
@@ -105,9 +101,12 @@ export function usePromptVersions(agentId: string, instructions?: string) {
     isUpdating,
     versionToDelete,
     setVersions,
+    setCopiedVersions,
+    setIsUpdating,
     setVersionToDelete,
     copyToClipboard,
     setVersionActive,
     deleteVersion,
+    updateVersion,
   };
 }
