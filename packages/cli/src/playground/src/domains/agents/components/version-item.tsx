@@ -1,6 +1,6 @@
 import { ChevronRight } from 'lucide-react';
+import { useState } from 'react';
 
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 import type { PromptVersion } from '../types';
@@ -11,11 +11,11 @@ interface VersionItemProps {
   version: PromptVersion;
   index: number;
   isExpanded: boolean;
-  isAnalysisExpanded: boolean;
+  isAnalysisExpanded: number | null;
   isUpdating: boolean;
   copiedVersions: Record<string | number, boolean>;
-  onToggleExpand: (index: number) => void;
-  onToggleAnalysis: (index: number) => void;
+  onToggleExpand: () => void;
+  onToggleAnalysis: () => void;
   onCopy: (content: string, key: string | number) => Promise<void>;
   onSetActive: (version: PromptVersion, index: number) => Promise<void>;
   onDelete: (index: number) => void;
@@ -34,13 +34,21 @@ export function VersionItem({
   onSetActive,
   onDelete,
 }: VersionItemProps) {
+  const [showEvals, setShowEvals] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+
+  const formatText = (text: string) => {
+    return text.replace(/\\n/g, '\n');
+  };
+
   return (
     <div
       className={`rounded-md border ${isExpanded ? 'border-mastra-purple/30' : 'border-mastra-bg-3'} bg-mastra-bg-2`}
     >
       <div
         className="p-2 flex items-center justify-between cursor-pointer hover:bg-mastra-bg-3/50"
-        onClick={() => onToggleExpand(index)}
+        onClick={onToggleExpand}
       >
         <div className="flex items-center space-x-2">
           <ChevronRight
@@ -72,44 +80,133 @@ export function VersionItem({
           onToggleAnalysis={onToggleAnalysis}
         />
       </div>
-      {(isExpanded || isAnalysisExpanded) && (
-        <div className="px-2 pb-2 space-y-2">
-          {isAnalysisExpanded && version.analysis && (
-            <Alert className="py-1.5 bg-transparent border-none">
-              <AlertDescription className="text-[10px] text-mastra-el-4">{version.analysis}</AlertDescription>
-            </Alert>
-          )}
-          {isExpanded && (
-            <ScrollArea className="h-[150px] rounded-md border border-mastra-bg-3">
+      {isExpanded && (
+        <ScrollArea className="h-[250px]">
+          <div className="px-2 pb-2 space-y-2">
+            <div>
               <div
-                className="p-2 cursor-pointer hover:bg-mastra-bg-3/50 transition-colors group"
+                className="flex items-center space-x-1 cursor-pointer hover:bg-mastra-bg-3/50 p-1 rounded-md mb-2"
                 onClick={e => {
                   e.stopPropagation();
-                  // Show copied immediately
-                  const content = version.content;
-                  navigator.clipboard
-                    .writeText(content)
-                    .then(() => {
-                      onCopy(content, index);
-                    })
-                    .catch(console.error);
+                  setShowInstructions(!showInstructions);
                 }}
               >
-                <pre className="text-xs whitespace-pre-wrap font-mono relative">
-                  {version.content}
-                  {copiedVersions[index] && (
-                    <span className="absolute top-0 right-0 text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-500">
-                      Copied!
-                    </span>
-                  )}
-                  <span className="absolute top-0 right-0 text-[10px] px-1.5 py-0.5 rounded-full bg-mastra-bg-3 text-mastra-el-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    Click to copy
-                  </span>
-                </pre>
+                <ChevronRight className={`h-3 w-3 transition-transform ${showInstructions ? 'rotate-90' : ''}`} />
+                <p className="text-xs font-medium text-mastra-el-4">Instructions</p>
               </div>
-            </ScrollArea>
-          )}
-        </div>
+              {showInstructions && (
+                <div className="rounded-md border border-mastra-bg-3">
+                  <div
+                    className="p-2 cursor-pointer hover:bg-mastra-bg-3/50 transition-colors group"
+                    onClick={e => {
+                      e.stopPropagation();
+                      const content = version.content;
+                      navigator.clipboard
+                        .writeText(content)
+                        .then(() => {
+                          onCopy(content, index);
+                        })
+                        .catch(console.error);
+                    }}
+                  >
+                    <pre className="text-[9px] text-mastra-el-4 whitespace-pre-wrap font-mono relative">
+                      {formatText(version.content)}
+                      {copiedVersions[index] && (
+                        <span className="absolute top-0 right-0 text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-500">
+                          Copied!
+                        </span>
+                      )}
+                      <span className="absolute top-0 right-0 text-[10px] px-1.5 py-0.5 rounded-full bg-mastra-bg-3 text-mastra-el-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                        Click to copy
+                      </span>
+                    </pre>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {version.analysis && (
+              <div>
+                <div
+                  className="flex items-center space-x-1 cursor-pointer hover:bg-mastra-bg-3/50 p-1 rounded-md mb-2"
+                  onClick={e => {
+                    e.stopPropagation();
+                    setShowAnalysis(!showAnalysis);
+                  }}
+                >
+                  <ChevronRight className={`h-3 w-3 transition-transform ${showAnalysis ? 'rotate-90' : ''}`} />
+                  <p className="text-xs font-medium text-mastra-el-4">Analysis</p>
+                </div>
+                {showAnalysis && (
+                  <div className="rounded-md border border-mastra-bg-3">
+                    <div className="p-2">
+                      <pre className="text-[10px] text-mastra-el-4 whitespace-pre-wrap font-mono">
+                        {formatText(version.analysis || '')}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {version.evals && version.evals.length > 0 && (
+              <div className="space-y-1">
+                <div
+                  className="flex items-center space-x-1 cursor-pointer hover:bg-mastra-bg-3/50 p-1 rounded-md"
+                  onClick={e => {
+                    e.stopPropagation();
+                    setShowEvals(!showEvals);
+                  }}
+                >
+                  <ChevronRight className={`h-3 w-3 transition-transform ${showEvals ? 'rotate-90' : ''}`} />
+                  <p className="text-xs font-medium text-mastra-el-4">Evaluations ({version.evals.length})</p>
+                </div>
+                {showEvals && (
+                  <div className="pl-4">
+                    <div className="space-y-1 pr-4">
+                      {version.evals.map((metric, evalIndex) => (
+                        <div key={evalIndex} className="rounded-md border border-mastra-bg-3 p-1.5 text-[10px]">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <span
+                                className={`px-1.5 py-0.5 rounded-full min-w-[32px] text-center ${
+                                  metric.result.score >= 0.7
+                                    ? 'bg-green-500/20 text-green-500'
+                                    : metric.result.score >= 0.4
+                                      ? 'bg-yellow-500/20 text-yellow-500'
+                                      : 'bg-red-500/20 text-red-500'
+                                }`}
+                              >
+                                {metric.result.score.toFixed(2)}
+                              </span>
+                              <span className="text-mastra-el-3 text-[9px]">
+                                {new Date(metric.createdAt).toLocaleTimeString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="mt-1 space-y-1">
+                            <div className="flex gap-1.5">
+                              <span className="text-mastra-el-3 shrink-0">→</span>
+                              <span className="text-mastra-el-4">{metric.input}</span>
+                            </div>
+                            <div className="flex gap-1.5">
+                              <span className="text-mastra-el-3 shrink-0">←</span>
+                              <span className="text-mastra-el-4">{metric.output}</span>
+                            </div>
+                            <div className="flex gap-1.5 text-[9px] text-mastra-el-3">
+                              <span className="shrink-0">⚬</span>
+                              <span>{metric.result.info.reason}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
       )}
     </div>
   );

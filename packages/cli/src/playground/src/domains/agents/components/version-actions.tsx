@@ -32,19 +32,6 @@ export function VersionActions({
           <Play className="h-3 w-3" />
         </Button>
       )}
-      {version.analysis && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 px-2 hover:bg-mastra-bg-3 relative group"
-          onClick={e => {
-            e.stopPropagation();
-            onToggleAnalysis(index);
-          }}
-        >
-          <MessageCircle className={`h-3 w-3 ${isAnalysisExpanded ? 'text-mastra-purple' : ''}`} />
-        </Button>
-      )}
       {index !== 0 && version.status !== 'active' && (
         <Button
           variant="ghost"

@@ -34,22 +34,17 @@ export async function generateSystemPromptHandler(c: Context) {
       const testEvals = (await mastra.storage?.getEvalsByAgentName?.(agent.name, 'test')) || [];
       const liveEvals = (await mastra.storage?.getEvalsByAgentName?.(agent.name, 'live')) || [];
       // Format eval results for the prompt
-      const evalsMapped = [...testEvals, ...liveEvals].map(({ meta, result, ...rest }) => {
-        const new_meta = JSON.parse(meta);
-        const new_result = JSON.parse(result);
-
-        return {
-          meta: new_meta,
-          result: new_result,
-          ...rest,
-        };
-      });
+      const evalsMapped = [...testEvals, ...liveEvals].filter(
+        ({ meta }) => (meta as any).instructions === instructions,
+      );
 
       console.log(evalsMapped);
-      const evalsForInstructions = evalsMapped.filter(({ meta }) => meta.instructions === instructions);
-      console.log(evalsForInstructions);
+
+      evalSummary = evalsMapped
+        .map(({ input, output, result }) => `Input: ${input}\nOutput: ${output}\nResult: ${JSON.stringify(result)}\n\n`)
+        .join('');
     } catch (error) {
-      mastra.getLogger().error(`Error getting evals: ${error}`);
+      mastra.getLogger().error(`Error fetching evals`, { error });
     }
 
     const ENHANCE_SYSTEM_PROMPT_INSTRUCTIONS = `

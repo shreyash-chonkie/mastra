@@ -1,8 +1,24 @@
+export type PromptVersionStatus = 'original' | 'draft' | 'published' | 'active';
+
+export interface EvalResult {
+  input: string;
+  output: string;
+  meta: Record<string, any>;
+  createdAt: Date;
+  result: {
+    score: number;
+    info: {
+      reason: string;
+    };
+  };
+}
+
 export interface PromptVersion {
   content: string;
   timestamp: Date;
   analysis?: string;
-  status: 'original' | 'draft' | 'published' | 'active';
+  status: PromptVersionStatus;
+  evals?: EvalResult[];
 }
 
 export interface VersionActionsProps {

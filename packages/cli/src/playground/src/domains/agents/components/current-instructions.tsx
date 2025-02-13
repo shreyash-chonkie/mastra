@@ -61,7 +61,7 @@ export function CurrentInstructions({
         </Button>
       </div>
 
-      <ScrollArea className="h-[180px] rounded-md border bg-mastra-bg-2">
+      <ScrollArea className="h-[150px] rounded-md border bg-mastra-bg-2">
         <div
           className="p-2 cursor-pointer hover:bg-mastra-bg-3/50 transition-colors group relative"
           onClick={() => currentContent && copyToClipboard(currentContent, -1)}
