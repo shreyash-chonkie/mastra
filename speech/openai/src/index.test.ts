@@ -1,102 +1,119 @@
-import { createWriteStream, writeFileSync } from 'fs';
+import { createWriteStream } from 'fs';
 import path from 'path';
+import { Readable } from 'stream';
+import { describe, it, expect, beforeAll } from 'vitest';
 
-import { OpenAITTS } from './index.js';
+import { pipeline } from 'stream/promises';
 
-describe('OpenAITTS Integration Tests', () => {
-  let tts: OpenAITTS;
+import { OpenAI } from './index.js';
 
-  beforeAll(() => {
-    tts = new OpenAITTS({
-      model: {
-        name: 'tts-1',
-      },
+const speech = new OpenAI({
+  sst: 'whisper-1',
+  tts: 'tts-1',
+  apiKey: process.env.OPENAI_API_KEY!,
+});
+
+describe('OpenAI Integration Tests', () => {
+  describe('voices', () => {
+    it('should return list of available voices', async () => {
+      const voices = await speech.voices();
+      expect(voices).toHaveLength(6);
+      expect(voices).toContainEqual({ voice_id: 'alloy' });
+      expect(voices).toContainEqual({ voice_id: 'nova' });
     });
   });
 
-  describe('stream', () => {
-    it('should stream audio data to file', async () => {
-      const { audioResult } = await tts.stream({
-        text: 'Test streaming',
+  describe('text-to-speech', () => {
+    it('should generate speech and return Buffer', async () => {
+      const buffer = await speech.generateSpeech('Hello world', {
         voice: 'alloy',
       });
 
-      return new Promise((resolve, reject) => {
-        const outputPath = path.join(process.cwd(), 'test-outputs/stream-test.mp3');
-        const fileStream = createWriteStream(outputPath);
-        const chunks: Buffer[] = [];
-
-        audioResult.on('data', (chunk: Buffer) => {
-          chunks.push(chunk);
-        });
-
-        audioResult.pipe(fileStream);
-
-        fileStream.on('finish', () => {
-          expect(chunks.length).toBeGreaterThan(0);
-          resolve(undefined);
-        });
-
-        audioResult.on('error', reject);
-        fileStream.on('error', reject);
-      });
-    }),
-      50000;
-
-    it('should stream with different parameters and save to file', async () => {
-      const { audioResult } = await tts.stream({
-        text: 'Testing with different voice and speed',
-        voice: 'nova',
-        speed: 1.2,
-      });
-
-      return new Promise((resolve, reject) => {
-        const outputPath = path.join(process.cwd(), 'test-outputs/stream-test-params.mp3');
-        const fileStream = createWriteStream(outputPath);
-
-        audioResult.pipe(fileStream);
-
-        fileStream.on('finish', resolve);
-        audioResult.on('error', reject);
-        fileStream.on('error', reject);
-      });
+      expect(Buffer.isBuffer(buffer)).toBe(true);
+      expect(buffer.length).toBeGreaterThan(0);
     });
-  });
 
-  describe('generate', () => {
-    it('should return a complete audio buffer and save to file', async () => {
-      const { audioResult } = await tts.generate({
-        text: 'Hello World',
+    it('should stream speech to file', async () => {
+      const outputPath = path.join(process.cwd(), 'test-outputs/stream-test.mp3');
+      const fileStream = createWriteStream(outputPath);
+
+      const response = await speech.streamSpeech('Test streaming', {
         voice: 'alloy',
       });
 
-      expect(Buffer.isBuffer(audioResult)).toBeTruthy();
-      expect(audioResult.length).toBeGreaterThan(0);
+      await pipeline(response as unknown as Readable, fileStream);
 
-      const outputPath = path.join(process.cwd(), 'test-outputs/open-aigenerate-test.mp3');
-      writeFileSync(outputPath, audioResult);
-    });
+      // File should exist and have content
+      const stats = await import('fs').then(fs => fs.promises.stat(outputPath));
+      expect(stats.size).toBeGreaterThan(0);
+    }, 50000);
 
-    it('should work with different parameters and save to file', async () => {
-      const { audioResult } = await tts.generate({
-        text: 'Test with parameters',
-        voice: 'nova',
+    it('should handle custom speed parameter', async () => {
+      const buffer = await speech.generateSpeech('Testing speed', {
+        voice: 'alloy',
         speed: 1.5,
       });
 
-      expect(Buffer.isBuffer(audioResult)).toBeTruthy();
-
-      const outputPath = path.join(process.cwd(), 'test-outputs/open-nova-aigenerate-test.mp3');
-      writeFileSync(outputPath, audioResult);
+      expect(Buffer.isBuffer(buffer)).toBe(true);
+      expect(buffer.length).toBeGreaterThan(0);
     });
   });
 
-  // Error cases
+  describe('speech-to-text', () => {
+    let audioBuffer: Buffer;
+    let audioFile: File;
+
+    beforeAll(async () => {
+      // Create a small audio file for testing
+      audioBuffer = await speech.generateSpeech('This is a test audio', { voice: 'alloy' });
+      audioFile = new File([audioBuffer], 'test.mp3', { type: 'audio/mp3' });
+    });
+
+    it('should transcribe audio to text', async () => {
+      const text = await speech.generateText({
+        audio: audioFile,
+      });
+
+      expect(text).toContain('test');
+    });
+
+    it('should translate audio to english', async () => {
+      const text = await speech.generateTranslation({
+        audio: audioFile,
+      });
+
+      expect(text).toContain('test');
+    });
+
+    it('should stream text transcription', async () => {
+      let transcribedText = '';
+
+      await speech.streamText({
+        audio: audioFile,
+        onText: text => {
+          transcribedText = text;
+        },
+      });
+
+      expect(transcribedText).toContain('test');
+    });
+
+    it('should handle language parameter', async () => {
+      const text = await speech.generateText({
+        audio: audioFile,
+        language: 'fr',
+      });
+
+      console.log(text);
+
+      expect(text).toContain('test');
+    });
+  });
+
   describe('error handling', () => {
     it('should handle invalid voice names', async () => {
       await expect(
-        tts.stream({
-          text: 'Test',
+        speech.generateSpeech('Test', {
           voice: 'invalid_voice',
         }),
       ).rejects.toThrow();
@@ -104,9 +121,17 @@ describe('OpenAITTS Integration Tests', () => {
 
     it('should handle empty text', async () => {
       await expect(
-        tts.stream({
-          text: '',
+        speech.generateSpeech('', {
           voice: 'alloy',
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('should handle invalid audio data', async () => {
+      const invalidAudio = Buffer.from('invalid audio data');
+      await expect(
+        speech.generateText({
+          audio: invalidAudio,
         }),
       ).rejects.toThrow();
     });

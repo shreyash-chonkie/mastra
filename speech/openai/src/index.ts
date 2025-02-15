@@ -1,74 +1,94 @@
-import { MastraTTS } from '@mastra/core/tts';
-import OpenAI from 'openai';
-import { PassThrough } from 'stream';
+import {
+  MastraSpeech,
+  type TTSGenerateOptions,
+  type TTSStreamOptions,
+  type STTGenerateOptions,
+  type STTStreamOptions,
+} from '@mastra/core/speech';
+import OpenAIClient from 'openai';
 
-interface OpenAITTSConfig {
-  name: 'tts-1' | 'tts-1-hd';
-  apiKey?: string;
-}
+export class OpenAI extends MastraSpeech {
+  client: OpenAIClient;
+  tts: 'tts-1' | 'tts-1-hd';
+  sst: 'whisper-1';
+  constructor({ apiKey, tts, sst }: { apiKey: string; tts: 'tts-1' | 'tts-1-hd'; sst: 'whisper-1' }) {
+    super();
 
-export class OpenAITTS extends MastraTTS {
-  client: OpenAI;
-  constructor({ model }: { model: OpenAITTSConfig }) {
-    super({
-      model: {
-        provider: 'OPENAI',
-        ...model,
-      },
-    });
-
-    this.client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || this.model.apiKey });
+    this.client = new OpenAIClient({ apiKey });
+    this.tts = tts;
+    this.sst = sst;
   }
 
   async voices() {
-    const res = this.traced(
-      () => [
-        { voice_id: 'alloy' },
-        { voice_id: 'echo' },
-        { voice_id: 'fable' },
-        { voice_id: 'onyx' },
-        { voice_id: 'nova' },
-        { voice_id: 'shimmer' },
-      ],
-      'tts.openai.voices',
-    )();
-
-    return res;
+    return [
+      { voice_id: 'alloy' },
+      { voice_id: 'echo' },
+      { voice_id: 'fable' },
+      { voice_id: 'onyx' },
+      { voice_id: 'nova' },
+      { voice_id: 'shimmer' },
+    ];
   }
 
-  async generate({ voice, text, speed }: { voice: string; text: string; speed?: number }) {
-    const audio = await this.traced(async () => {
-      const response = await this.client.audio.speech.create({
-        model: this.model.name,
-        voice: voice as any,
-        input: text,
-        speed: speed || 1.0,
-      });
+  async generateSpeech(text: string, options: TTSGenerateOptions): Promise<Buffer> {
+    const response = await this.client.audio.speech.create({
+      model: this.tts,
+      voice: (options.voice || 'alloy') as any,
+      input: text,
+      speed: options.speed || 1.0,
+    });
 
-      // Get the full buffer
-      const buffer = await response.arrayBuffer();
-      return Buffer.from(buffer);
-    }, 'tts.openai.generate')();
-
-    return {
-      audioResult: audio,
-    };
+    // Get the full buffer
+    const buffer = await response.arrayBuffer();
+    return Buffer.from(buffer);
   }
 
-  async stream({ voice, text, speed }: { voice: string; text: string; speed?: number }) {
-    const audio = await this.traced(async () => {
-      const response = await this.client.audio.speech.create({
-        model: this.model.name || 'tts-1',
-        voice: voice as any,
-        input: text,
-        speed: speed || 1.0,
-      });
+  async streamSpeech(text: string, options: TTSStreamOptions): Promise<ReadableStream> {
+    const response = await this.client.audio.speech.create({
+      model: this.tts,
+      voice: (options.voice || 'alloy') as any,
+      input: text,
+      speed: options.speed || 1.0,
+      response_format: 'mp3',
+    });
 
-      return response.body as unknown as PassThrough;
-    }, 'tts.openai.stream')();
+    if (!response.body) {
+      throw new Error('No stream found.');
+    }
 
-    return {
-      audioResult: audio,
-    };
+    return response.body;
+  }
+
+  async generateText(options: STTGenerateOptions): Promise<string> {
+    const response = await this.client.audio.transcriptions.create({
+      model: this.sst,
+      file: options.audio as any,
+      language: options.language,
+      response_format: 'text',
+    });
+
+    return response;
+  }
+
+  async generateTranslation(options: STTGenerateOptions): Promise<string> {
+    const response = await this.client.audio.translations.create({
+      model: this.sst,
+      file: options.audio as any,
+    });
+
+    return response.text;
+  }
+
+  async streamText(options: STTStreamOptions): Promise<void> {
+    const response = await this.client.audio.transcriptions.create({
+      model: this.sst,
+      file: options.audio as any,
+      language: options.language,
+      response_format: 'text',
+    });
+
+    if (options.onText) {
+      options.onText(response);
+    }
   }
 }
