@@ -1,5 +1,11 @@
 # @mastra/composio
 
+## 0.1.1
+
+### Patch Changes
+
+- c05f0cc: Fixed export map
+
 ## 0.1.0
 
 ### Minor Changes

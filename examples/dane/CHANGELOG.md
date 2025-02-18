@@ -1,5 +1,7 @@
 # @mastra/dane
 
+## 0.0.2
+
 ## 0.0.2-alpha.115
 
 ### Patch Changes
