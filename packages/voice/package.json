@@ -1,0 +1,42 @@
+{
+  "name": "@mastra/voice",
+  "version": "0.0.1",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "lint": "eslint .",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@mastra/core": "workspace:^"
+  },
+  "devDependencies": {
+    "@ai-sdk/openai": "^1.1.13",
+    "@mastra/speech-openai": "workspace:^",
+    "@types/node": "^20.8.2",
+    "dotenv": "^16.4.7",
+    "eslint": "^8.50.0",
+    "tsup": "^7.2.0",
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.6"
+  }
+}

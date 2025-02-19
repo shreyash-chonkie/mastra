@@ -1,3 +1,5 @@
+import type { Readable } from 'stream';
+
 import { MastraBase } from '../base';
 import { InstrumentClass } from '../telemetry';
 
@@ -35,6 +37,7 @@ export abstract class MastraTTS extends MastraBase {
     );
   }
 
-  abstract generate({ text }: { text: string }): Promise<any>;
+  abstract generate({ text, voice }: { text: string; voice?: string }): Promise<any>;
   abstract stream({ text }: { text: string }): Promise<any>;
+  abstract transcribe({ audio }: { audio: Blob }): Promise<any>;
 }
