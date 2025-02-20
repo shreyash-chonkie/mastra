@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastra Audio Recorder</title>
+</head>
+<body>
+    <div id="app">
+        <h1>Mastra Audio Recorder</h1>
+        
+        <div class="container">
+            <div class="controls">
+                <button id="recordBtn">Start Recording</button>
+                <button id="stopBtn" disabled>Stop Recording</button>
+                <button id="replayBtn" disabled>Replay Recording</button>
+            </div>
+
+            <div id="status" class="status">
+                Ready to record
+            </div>
+
+            <div id="timer" class="timer">
+                00:00
+            </div>
+        </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

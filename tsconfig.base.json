@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020", "DOM"],
+    "declaration": true,
+    "sourceMap": true,
+    "strict": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "composite": true,
+    "declarationMap": true,
+    "paths": {
+      "@mastra/core/*": ["packages/core/src/*"],
+      "@mastra/deployer/*": ["packages/deployer/src/*"],
+      "@mastra/engine/*": ["packages/engine/src/*"],
+      "@mastra/evals/*": ["packages/evals/src/*"],
+      "@mastra/rag/*": ["packages/rag/src/*"],
+      "@mastra/tts/*": ["packages/tts/src/*"],
+      "@mastra/memory/*": ["packages/memory/src/*"],
+      "@mastra/mcp/*": ["packages/mcp/src/*"],
+      "@mastra/voice/*": ["packages/voice/src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist"]
+}

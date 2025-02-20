@@ -1,0 +1,203 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+#app {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.container {
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    margin-top: 20px;
+    text-align: center;
+}
+
+button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    margin: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#recordBtn {
+    background: #dc3545;
+    color: white;
+}
+
+#recordBtn.recording {
+    background: #6c757d;
+}
+
+#stopBtn {
+    background: #6c757d;
+    color: white;
+}
+
+#replayBtn {
+    background: #28a745;
+    color: white;
+}
+
+.status {
+    margin: 20px 0;
+    padding: 10px;
+    border-radius: 4px;
+    background: #f8f9fa;
+    font-size: 18px;
+}
+
+.status.running {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status.stopped {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.controls {
+    margin: 20px 0;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.metrics {
+    font-family: monospace;
+    white-space: pre;
+    background: #eee;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.timer {
+    font-size: 48px;
+    font-weight: bold;
+    font-family: monospace;
+    margin: 20px 0;
+}
+
+.visualizer {
+    width: 100%;
+    height: 200px;
+    margin: 20px 0;
+    border-radius: 4px;
+    background: #f5f5f5;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.volume-control {
+    margin: 20px 0;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+.volume-control label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.volume-slider {
+    flex: 1;
+    height: 8px;
+    -webkit-appearance: none;
+    background: #ddd;
+    border-radius: 4px;
+    outline: none;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #007bff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #007bff;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.volume-value {
+    min-width: 48px;
+}
+
+.warning {
+    margin: 20px 0;
+    padding: 15px;
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-radius: 4px;
+    color: #856404;
+}
+
+.warning ul {
+    margin: 10px 0 0 0;
+    padding-left: 20px;
+}
+
+.device-selection {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    display: flex;
+    gap: 20px;
+}
+
+.input-device,
+.output-device {
+    flex: 1;
+}
+
+.device-selection label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.device-selection select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    font-size: 14px;
+}
