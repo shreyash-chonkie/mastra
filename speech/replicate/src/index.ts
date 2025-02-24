@@ -1,6 +1,6 @@
+import { PassThrough } from 'stream';
 import { MastraTTS } from '@mastra/core/tts';
 import Replicate from 'replicate';
-import { PassThrough } from 'stream';
 
 interface ReplicateConfig {
   name: `${string}/${string}` | `${string}/${string}:${string}`;
@@ -63,7 +63,7 @@ export class ReplicateTTS extends MastraTTS {
       const stream = new PassThrough();
 
       // Convert AsyncGenerator to PassThrough stream
-      (async () => {
+      void (async () => {
         try {
           for await (const chunk of generator) {
             stream.write(chunk);
