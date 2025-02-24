@@ -29,6 +29,7 @@ export const createConfig = async () =>
         '**/.mastra/**',
         '**/.cache/**',
         '**/node_modules/**',
+        '**/services.gen.ts',
         '**/build/**',
         '**/public/build/**',
         '**/playwright-report/**',
