@@ -32,7 +32,8 @@
     "build:watch": "pnpm build --watch",
     "test:integration": "cd integration-tests && pnpm run test",
     "test": "pnpm test:integration",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [],
   "author": "",

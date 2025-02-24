@@ -20,7 +20,8 @@
     "posttest": "docker compose down",
     "build": "tsup src/index.ts --format esm --experimental-dts --clean --treeshake",
     "build:watch": "pnpm build --watch",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@mastra/core": "workspace:^",

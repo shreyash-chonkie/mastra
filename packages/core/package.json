@@ -55,7 +55,8 @@
     "build": "tsup --config tsup.config.ts",
     "build:watch": "pnpm build --watch",
     "size": "size-limit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@libsql/client": "^0.14.0",

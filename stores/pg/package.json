@@ -23,7 +23,8 @@
     "posttest": "docker compose down -v",
     "pretest:watch": "docker compose up -d",
     "test:watch": "vitest watch",
-    "posttest:watch": "docker compose down -v"
+    "posttest:watch": "docker compose down -v",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@mastra/core": "workspace:^",

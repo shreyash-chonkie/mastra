@@ -5,7 +5,8 @@
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@ai-sdk/openai": "latest",

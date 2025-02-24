@@ -15,7 +15,8 @@
   "scripts": {
     "build": "rollup -c",
     "lint": "eslint .",
-    "clean": "rm -rf dist && rm -rf node_modules"
+    "clean": "rm -rf dist && rm -rf node_modules",
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [
     "mastra",

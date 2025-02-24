@@ -18,7 +18,8 @@
     "build": "tsup src/index.ts --format esm --experimental-dts --clean --treeshake",
     "build:watch": "tsup build --watch",
     "test": "vitest run",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@mastra/core": "workspace:^",
