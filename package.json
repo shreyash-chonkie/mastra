@@ -49,6 +49,7 @@
     "lint-staged": "lint-staged",
     "preinstall": "npx only-allow pnpm",
     "prepare": "husky",
+    "lint:fix": "pnpm -r lint:fix",
     "prettier:format": "prettier --write .",
     "prettier:format:check": "prettier --check .",
     "typecheck": "pnpm -r typecheck",
