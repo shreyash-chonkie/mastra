@@ -1,7 +1,7 @@
-import { Deployer } from '@mastra/deployer';
-import { execa } from 'execa';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { Deployer } from '@mastra/deployer';
+import { execa } from 'execa';
 
 import { getOrCreateSite } from './helpers.js';
 
