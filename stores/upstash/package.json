@@ -19,7 +19,8 @@
     "test": "vitest run",
     "posttest": "docker compose down",
     "build": "tsup src/index.ts --format esm --experimental-dts --clean --treeshake",
-    "build:watch": "pnpm build --watch"
+    "build:watch": "pnpm build --watch",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@mastra/core": "workspace:^",
@@ -27,8 +28,10 @@
     "@upstash/vector": "^1.1.7"
   },
   "devDependencies": {
+    "@internal/lint": "workspace:*",
     "@microsoft/api-extractor": "^7.49.2",
     "@types/node": "^22.13.1",
+    "eslint": "^9.20.1",
     "tsup": "^8.0.1",
     "typescript": "^5.7.3",
     "vitest": "^3.0.4"
