@@ -8,8 +8,8 @@
     "build:llms-txt": "tsx src/scripts/build-llms-text-files.ts",
     "start": "next start",
     "lint": "next lint",
-    "postbuild": "next-sitemap --config next-sitemap.config.mjs",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "next lint --fix",
+    "postbuild": "next-sitemap --config next-sitemap.config.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^1.4.1",

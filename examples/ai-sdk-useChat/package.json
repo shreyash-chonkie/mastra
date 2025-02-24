@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "next lint --fix"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.1.9",
