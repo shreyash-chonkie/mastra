@@ -17,6 +17,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --experimental-dts --clean --treeshake",
     "build:watch": "pnpm build --watch",
+    "lint": "eslint .",
     "test": "vitest run"
   },
   "dependencies": {
@@ -24,8 +25,10 @@
     "@pinecone-database/pinecone": "^3.0.3"
   },
   "devDependencies": {
+    "@internal/lint": "workspace:*",
     "@microsoft/api-extractor": "^7.49.2",
     "@types/node": "^22.13.1",
+    "eslint": "^9.20.1",
     "dotenv": "^16.4.7",
     "tsup": "^8.0.1",
     "typescript": "^5.7.3",
