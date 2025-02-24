@@ -20,6 +20,7 @@
     "build": "tsup src/index.ts src/secrets-manager/index.ts --format esm --experimental-dts --clean --treeshake",
     "build:watch": "pnpm build --watch",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "vitest run"
   },
   "keywords": [],
