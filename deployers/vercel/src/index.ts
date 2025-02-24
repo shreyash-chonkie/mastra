@@ -1,10 +1,9 @@
-import { Deployer } from '@mastra/deployer';
-import { getBundler } from '@mastra/deployer/build';
-import virtual from '@rollup/plugin-virtual';
 import * as child_process from 'child_process';
 import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import process from 'process';
+import { Deployer } from '@mastra/deployer';
+
 
 interface EnvVar {
   key: string;
