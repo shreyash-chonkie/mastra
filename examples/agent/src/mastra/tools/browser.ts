@@ -153,6 +153,7 @@ const browserState: any = {};
 export const launchBrowser = createTool({
   id: 'launch-browser',
   description: 'Launches a browser',
+  inputSchema: z.object({}),
   execute: async () => {
     try {
       const browser = await chromium.launch({ headless: false });
@@ -170,6 +171,7 @@ export const launchBrowser = createTool({
 export const newPageTool = createTool({
   id: 'new-page',
   description: 'Opens a new page in the browser',
+  inputSchema: z.object({}),
   execute: async () => {
     try {
       if (!browserState.browser) {
