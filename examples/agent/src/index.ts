@@ -2,6 +2,16 @@ import { z } from 'zod';
 
 import { mastra } from './mastra';
 
+const scrapingAgent = mastra.getAgent('browserAgent');
+
+async function ycArticles() {
+  const url = 'https://news.ycombinator.com';
+
+  const data = await scrapingAgent.generate(`Can you get me the following url: ${url}?`);
+
+  console.log(data.text);
+}
+
 const agent = mastra.getAgent('chefAgent');
 
 async function text() {
@@ -250,7 +260,7 @@ async function main() {
 
   // await experimentalTextObject();
 
-  await generateExperimentalStreamObject();
+  await ycArticles();
 
   // await generateText();
 
