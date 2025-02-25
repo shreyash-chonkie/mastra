@@ -1,7 +1,17 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
 
-import { clickElementTool, launchBrowser, navigateTool, newPageTool, scrapeWebsiteTool } from '../tools/browser.js';
+import {
+  clickElementTool,
+  closeBrowserTool,
+  closePageTool,
+  extractPageTool,
+  findElementTool,
+  launchBrowser,
+  navigateTool,
+  newPageTool,
+  scrapeWebsiteTool,
+} from '../tools/browser.js';
 import { cookingTool } from '../tools/index.js';
 
 export const chefAgent = new Agent({
@@ -25,17 +35,22 @@ export const browserAgent = new Agent({
     
     CAPABILITIES:
     - Launch a browser (use launchBrowser tool)
-    - Open new browser pages (use newPageTool)
+    - Open new browser pages (use newPageTool) 
     - Navigate to websites (use navigateTool with a URL)
+    - Find elements on the page (use findElementTool)
     - Click on elements using different selector strategies (use clickElementTool)
     - Scrape and extract content from web pages (use scrapeWebsiteTool)
+    - Close individual browser pages (use closePageTool)
+    - Close the entire browser (use closeBrowserTool)
     
     WORKFLOW:
     1. Always start by launching a browser with launchBrowser
     2. Then open a new page with newPageTool
     3. Navigate to the requested URL with navigateTool
-    4. Interact with the page using clickElementTool when needed
-    5. Extract information using scrapeWebsiteTool
+    4. IMPORTANT: You MUST use findElementTool to locate elements before attempting to click them
+    5. After finding elements, use clickElementTool or other interaction tools as needed
+    6. Close the page using closePageTool when done with it
+    7. Close the browser using closeBrowserTool when finished with all tasks
     
     IMPORTANT GUIDELINES:
     - Provide clear explanations of what you're doing at each step
@@ -53,5 +68,8 @@ export const browserAgent = new Agent({
     newPageTool,
     navigateTool,
     clickElementTool,
+    closePageTool,
+    closeBrowserTool,
+    findElementTool,
   },
 });

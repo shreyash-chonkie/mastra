@@ -1,3 +1,4 @@
+import { chromium, devices } from 'playwright';
 import { z } from 'zod';
 
 import { mastra } from './mastra';
@@ -8,7 +9,10 @@ async function ycArticles() {
   const url = 'https://news.ycombinator.com';
 
   const data = await scrapingAgent.generate(
-    `Can you go to https://bbc.com and click on an article and extract the title?`,
+    `1. Can you go to https://bbc.com 
+    2. Find the button labeled "I do not agree"
+    3. Click the "I do not agree" button
+    `,
   );
 
   console.log(data.text);

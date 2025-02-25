@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { createTool, OutputType } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
-import { chromium, type Page } from 'playwright';
+import { chromium, devices, type Page } from 'playwright';
 import Turndown from 'turndown';
 import { z } from 'zod';
 
@@ -156,8 +156,14 @@ export const launchBrowser = createTool({
   inputSchema: z.object({}),
   execute: async () => {
     try {
-      const browser = await chromium.launch({ headless: false });
+      const browser = await chromium.launch({
+        headless: false,
+        slowMo: 1000,
+      });
+      const context = await browser.newContext(devices['Desktop Chrome']);
+
       browserState.browser = browser;
+      browserState.context = context;
       return { message: 'Browser is open' };
     } catch (e) {
       if (e instanceof Error) {
@@ -177,7 +183,7 @@ export const newPageTool = createTool({
       if (!browserState.browser) {
         return { message: 'Error: Browser is not open' };
       }
-      const page = await browserState.browser.newPage();
+      const page = await browserState.context.newPage();
       browserState.page = page;
       return { message: 'New page is open' };
     } catch (e) {
@@ -197,7 +203,9 @@ export const navigateTool = createTool({
   }),
   execute: async ({ context }) => {
     try {
-      await browserState.page.goto(context.url);
+      await browserState.page.goto(context.url, {
+        waitUntil: 'domcontentloaded',
+      });
       return { message: `Navigated to page ${context.url}` };
     } catch (e) {
       if (e instanceof Error) {
@@ -225,18 +233,17 @@ export const clickElementTool = createTool({
 
       const { selector, selectorType, waitForNavigation, timeout } = context;
 
-      // Create a promise for navigation if needed
-      const navigationPromise = waitForNavigation
-        ? browserState.page.waitForNavigation({ timeout })
-        : Promise.resolve();
-
+      console.log({ context });
       // Click the element based on selector type
       if (selectorType === 'css') {
+        console.log('clicking css', selector);
         await browserState.page.waitForSelector(selector, { timeout });
+        console.log('waiting for click');
         await browserState.page.click(selector);
       } else if (selectorType === 'xpath') {
         await browserState.page.waitForXPath(selector, { timeout });
         const elements = await browserState.page.$x(selector);
+        console.log({ elements });
         if (elements.length > 0) {
           await elements[0].click();
         } else {
@@ -274,6 +281,205 @@ export const clickElementTool = createTool({
         return { message: `Error: ${e.message}` };
       }
       return { message: 'An unknown error occurred' };
+    }
+  },
+});
+
+export const findElementTool = createTool({
+  id: 'find-element',
+  description: 'Finds an element on the page by analyzing the current page content',
+  inputSchema: z.object({
+    description: z.string().describe('Description of the element to find (e.g. "login button", "main heading")'),
+    timeout: z.number().optional().default(5000).describe('How long to wait for the element in milliseconds'),
+  }),
+  execute: async ({ context }) => {
+    try {
+      if (!browserState?.page) {
+        return { message: 'No page is currently open' };
+      }
+
+      console.log(context.description);
+      // First get the page content
+      const pageContent = await browserState.page.content();
+
+      // Try different strategies to find the element
+      const strategies = [
+        // Try finding by role and accessible name
+        async () => {
+          console.log('finding element by role and accessible name');
+          const element = await browserState.page.evaluate(description => {
+            // Look for elements with matching accessible name or text content
+            const elements = Array.from(document.querySelectorAll('*'));
+            console.log({ elements });
+            const element = elements.find(el => {
+              const text = el.textContent?.toLowerCase() || '';
+              const ariaLabel = el.getAttribute('aria-label')?.toLowerCase() || '';
+              const role = el.getAttribute('role')?.toLowerCase() || '';
+              const desc = description.toLowerCase();
+
+              return text.includes(desc) || ariaLabel.includes(desc) || role.includes(desc);
+            });
+
+            console.log({ element });
+
+            if (!element) return null;
+
+            // Generate a unique selector for this element
+            const tag = element.tagName.toLowerCase();
+            const id = element.id ? `#${element.id}` : '';
+            const classes = Array.from(element.classList)
+              .map(c => `.${c}`)
+              .join('');
+
+            return {
+              selector: id || (classes ? `${tag}${classes}` : tag),
+              type: 'css',
+              text: element.textContent?.trim(),
+              tag: element.tagName.toLowerCase(),
+              attributes: Object.fromEntries(
+                Array.from(element.attributes).map(attr => [attr.name, attr.value] as [string, string]),
+              ),
+            };
+          }, context.description);
+
+          return element;
+        },
+
+        // Try finding by XPath based on text content
+        async () => {
+          const element = await browserState.page.evaluate(description => {
+            const xpath = `//*[contains(text(),'${description}')]`;
+            const element = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null)
+              .singleNodeValue as Element;
+
+            if (!element) return null;
+
+            return {
+              selector: xpath,
+              type: 'xpath',
+              text: element.textContent?.trim(),
+              tag: element.tagName.toLowerCase(),
+              attributes: Object.fromEntries(
+                Array.from(element.attributes).map(attr => [attr.name, attr.value] as [string, string]),
+              ),
+            };
+          }, context.description);
+
+          return element;
+        },
+      ];
+
+      console.log({ strategies });
+      // Try each strategy until we find the element
+      for (const strategy of strategies) {
+        const result = await strategy();
+        console.log({ result });
+        if (result) {
+          return {
+            message: `Found ${result.tag} element matching "${context.description}"`,
+            found: true,
+            elementInfo: {
+              selector: result.selector,
+              type: result.type,
+              tag: result.tag,
+              text: result.text,
+              attributes: result.attributes,
+            },
+            currentUrl: browserState.page.url(),
+          };
+        }
+      }
+
+      return {
+        message: `Could not find any element matching "${context.description}"`,
+        found: false,
+        currentUrl: browserState.page.url(),
+      };
+    } catch (e) {
+      if (e instanceof Error) {
+        return { message: `Error: ${e.message}`, found: false };
+      }
+      return { message: 'An unknown error occurred', found: false };
+    }
+  },
+});
+
+export const extractPageTool = createTool({
+  id: 'extract-page-tool',
+  description: 'Extracts content from the current page',
+  inputSchema: z.object({
+    // format: z.enum(['text', 'html']).optional().default('text'),
+    // fullPage: z.boolean().optional().default(false),
+  }),
+  execute: async context => {
+    try {
+      console.log('extracting page');
+      if (!browserState?.page) {
+        return { message: 'No page is currently open' };
+      }
+
+      console.log('extracting page 2');
+      const preprocessed = await extractPage({
+        page: browserState.page,
+        format: 'html',
+        fullPage: true,
+      });
+
+      console.log({ preprocessed });
+
+      return {
+        message: 'Page content extracted successfully',
+        content: preprocessed,
+      };
+    } catch (e) {
+      if (e instanceof Error) {
+        return { message: `Error extracting page content: ${e.message}` };
+      }
+      return { message: 'An unknown error occurred while extracting page content' };
+    }
+  },
+});
+
+export const closePageTool = createTool({
+  id: 'close-page',
+  description: 'Closes the currently open browser page',
+  inputSchema: z.object({}),
+  execute: async () => {
+    try {
+      if (!browserState?.page) {
+        return { message: 'No page is currently open' };
+      }
+
+      await browserState.page.close();
+      return { message: 'Page closed successfully' };
+    } catch (e) {
+      if (e instanceof Error) {
+        return { message: `Error closing page: ${e.message}` };
+      }
+      return { message: 'An unknown error occurred while closing the page' };
+    }
+  },
+});
+
+export const closeBrowserTool = createTool({
+  id: 'close-browser',
+  description: 'Closes the browser instance completely',
+  inputSchema: z.object({}),
+  execute: async () => {
+    try {
+      if (!browserState?.browser) {
+        return { message: 'No browser is currently open' };
+      }
+
+      await browserState.browser.close();
+      browserState.browser = null;
+      browserState.page = null;
+      return { message: 'Browser closed successfully' };
+    } catch (e) {
+      if (e instanceof Error) {
+        return { message: `Error closing browser: ${e.message}` };
+      }
+      return { message: 'An unknown error occurred while closing the browser' };
     }
   },
 });
