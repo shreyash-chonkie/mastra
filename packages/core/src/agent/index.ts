@@ -8,6 +8,8 @@ import type {
   ToolCallPart,
   UserContent,
   LanguageModelV1,
+  GenerateTextResult,
+  GenerateObjectResult,
 } from 'ai';
 import { randomUUID } from 'crypto';
 import type { JSONSchema7 } from 'json-schema';
@@ -768,6 +770,14 @@ export class Agent<
 
   async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
     messages: string | string[] | CoreMessage[],
+    args?: AgentGenerateOptions<Z> & { output: 'text' },
+  ): Promise<GenerateTextResult<any, any>>;
+  async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
+    messages: string | string[] | CoreMessage[],
+    args?: AgentGenerateOptions<Z> & { output?: Z },
+  ): Promise<GenerateObjectResult<any>>;
+  async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
+    messages: string | string[] | CoreMessage[],
     {
       context,
       threadId: threadIdInFn,
@@ -777,12 +787,12 @@ export class Agent<
       onStepFinish,
       runId,
       toolsets,
-      output = 'text' as const,
+      output = 'text',
       temperature,
       toolChoice = 'auto',
       experimental_output,
     }: AgentGenerateOptions<Z> = {},
-  ): Promise<GenerateReturn<Z>> {
+  ): Promise<GenerateTextResult<any, any> | GenerateObjectResult<any>> {
     let messagesToUse: CoreMessage[] = [];
 
     if (typeof messages === `string`) {

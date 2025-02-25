@@ -137,7 +137,7 @@ const extractorAgent = new Agent({
   model: openai('gpt-4o'),
 });
 
-async function extractData({ url, content, schema }: { url: string; content: string; schema: OutputType }) {
+async function extractData({ url, content, schema }: { url: string; content: string; schema: any }) {
   const result = await extractorAgent.generate(content, {
     output: schema,
   });
@@ -147,6 +147,134 @@ async function extractData({ url, content, schema }: { url: string; content: str
     url: url,
   };
 }
+
+const browserState: any = {};
+
+export const launchBrowser = createTool({
+  id: 'launch-browser',
+  description: 'Launches a browser',
+  execute: async () => {
+    try {
+      const browser = await chromium.launch({ headless: false });
+      browserState.browser = browser;
+      return { message: 'Browser is open' };
+    } catch (e) {
+      if (e instanceof Error) {
+        return { message: `Error: ${e.message}` };
+      }
+      return { message: 'Error' };
+    }
+  },
+});
+
+export const newPageTool = createTool({
+  id: 'new-page',
+  description: 'Opens a new page in the browser',
+  execute: async () => {
+    try {
+      if (!browserState.browser) {
+        return { message: 'Error: Browser is not open' };
+      }
+      const page = await browserState.browser.newPage();
+      browserState.page = page;
+      return { message: 'New page is open' };
+    } catch (e) {
+      if (e instanceof Error) {
+        return { message: `Error: ${e.message}` };
+      }
+      return { message: 'Error' };
+    }
+  },
+});
+
+export const navigateTool = createTool({
+  id: 'navigate-website-tool',
+  description: 'Navigates to a website',
+  inputSchema: z.object({
+    url: z.string().url(),
+  }),
+  execute: async ({ context }) => {
+    try {
+      await browserState.page.goto(context.url);
+      return { message: `Navigated to page ${context.url}` };
+    } catch (e) {
+      if (e instanceof Error) {
+        return { message: `Error: ${e.message}` };
+      }
+      return { message: 'Error' };
+    }
+  },
+});
+
+export const clickElementTool = createTool({
+  id: 'click-element-tool',
+  description: 'Clicks an element on the current page using a selector',
+  inputSchema: z.object({
+    selector: z.string().describe('CSS selector of the element to click'),
+    selectorType: z.enum(['css', 'xpath', 'text']).default('css').describe('Type of selector to use'),
+    waitForNavigation: z.boolean().default(true).describe('Whether to wait for navigation after clicking'),
+    timeout: z.number().default(30000).describe('Timeout in milliseconds'),
+  }),
+  execute: async ({ context }) => {
+    try {
+      if (!browserState.page) {
+        return { message: 'Error: No active page. Use new-page tool first.' };
+      }
+
+      const { selector, selectorType, waitForNavigation, timeout } = context;
+
+      // Create a promise for navigation if needed
+      const navigationPromise = waitForNavigation
+        ? browserState.page.waitForNavigation({ timeout })
+        : Promise.resolve();
+
+      // Click the element based on selector type
+      if (selectorType === 'css') {
+        await browserState.page.waitForSelector(selector, { timeout });
+        await browserState.page.click(selector);
+      } else if (selectorType === 'xpath') {
+        await browserState.page.waitForXPath(selector, { timeout });
+        const elements = await browserState.page.$x(selector);
+        if (elements.length > 0) {
+          await elements[0].click();
+        } else {
+          return { message: `Error: No elements found with XPath: ${selector}` };
+        }
+      } else if (selectorType === 'text') {
+        // Find element containing text
+        await browserState.page.waitForFunction(
+          text => {
+            return Array.from(document.querySelectorAll('*')).find(el => el.textContent?.includes(text));
+          },
+          { timeout },
+          selector,
+        );
+
+        await browserState.page.evaluate(text => {
+          const element = Array.from(document.querySelectorAll('*')).find(el => el.textContent?.includes(text));
+          if (element) {
+            (element as HTMLElement).click();
+          }
+        }, selector);
+      }
+
+      // Wait for navigation if requested
+      if (waitForNavigation) {
+        await navigationPromise;
+      }
+
+      return {
+        message: `Clicked element with ${selectorType} selector: ${selector}`,
+        currentUrl: browserState.page.url(),
+      };
+    } catch (e) {
+      if (e instanceof Error) {
+        return { message: `Error: ${e.message}` };
+      }
+      return { message: 'An unknown error occurred' };
+    }
+  },
+});
 
 export const scrapeWebsiteTool = createTool({
   id: 'scrape-website',

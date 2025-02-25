@@ -7,7 +7,9 @@ const scrapingAgent = mastra.getAgent('browserAgent');
 async function ycArticles() {
   const url = 'https://news.ycombinator.com';
 
-  const data = await scrapingAgent.generate(`Can you get me the following url: ${url}?`);
+  const data = await scrapingAgent.generate(
+    `Can you go to https://bbc.com and click on an article and extract the title?`,
+  );
 
   console.log(data.text);
 }
