@@ -9,13 +9,10 @@ async function ycArticles() {
   const url = 'https://news.ycombinator.com';
 
   const data = await scrapingAgent.generate(
-    `1. Can you go to https://bbc.com 
-    2. Find the button labeled "I do not agree"
-    3. Click the "I do not agree" button
+    `1. Can you navigate to https://reddit.com
+    2. click on the first article of the page
     `,
   );
-
-  console.log(data.text);
 }
 
 const agent = mastra.getAgent('chefAgent');

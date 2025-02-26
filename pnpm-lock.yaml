@@ -43,7 +43,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   client-sdks/client-js:
     dependencies:
@@ -86,7 +86,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   deployers/cloudflare:
     dependencies:
@@ -135,7 +135,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   deployers/netlify:
     dependencies:
@@ -175,7 +175,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   deployers/vercel:
     dependencies:
@@ -209,7 +209,7 @@ importers:
         version: 39.4.2(@swc/core@1.10.18(@swc/helpers@0.5.15))(encoding@0.1.13)(rollup@4.34.8)
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   docs:
     dependencies:
@@ -283,6 +283,9 @@ importers:
       ai:
         specifier: latest
         version: 4.1.46(react@19.0.0)(zod@3.24.2)
+      get-xpath:
+        specifier: ^3.3.0
+        version: 3.3.0
       playwright:
         specifier: ^1.49.1
         version: 1.50.1
@@ -301,7 +304,7 @@ importers:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: latest
-        version: 1.1.10(zod@3.24.2)
+        version: 1.1.11(zod@3.24.2)
       '@ai-sdk/react':
         specifier: ^1.1.17
         version: 1.1.17(react@19.0.0)(zod@3.24.2)
@@ -420,7 +423,7 @@ importers:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: latest
-        version: 1.1.10(zod@3.24.2)
+        version: 1.1.11(zod@3.24.2)
       '@mastra/core':
         specifier: workspace:*
         version: link:../../../../packages/core
@@ -432,7 +435,7 @@ importers:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: latest
-        version: 1.1.10(zod@3.24.2)
+        version: 1.1.11(zod@3.24.2)
       '@ai-sdk/openai':
         specifier: latest
         version: 1.1.14(zod@3.24.2)
@@ -447,7 +450,7 @@ importers:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: latest
-        version: 1.1.10(zod@3.24.2)
+        version: 1.1.11(zod@3.24.2)
       '@ai-sdk/openai':
         specifier: latest
         version: 1.1.14(zod@3.24.2)
@@ -1079,7 +1082,7 @@ importers:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: latest
-        version: 1.1.10(zod@3.24.2)
+        version: 1.1.11(zod@3.24.2)
       '@mastra/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -1122,7 +1125,7 @@ importers:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: latest
-        version: 1.1.10(zod@3.24.2)
+        version: 1.1.11(zod@3.24.2)
       '@libsql/client':
         specifier: ^0.14.0
         version: 0.14.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
@@ -1195,7 +1198,7 @@ importers:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: latest
-        version: 1.1.10(zod@3.24.2)
+        version: 1.1.11(zod@3.24.2)
       '@mastra/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -1491,7 +1494,7 @@ importers:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: latest
-        version: 1.1.10(zod@3.24.2)
+        version: 1.1.11(zod@3.24.2)
       '@inquirer/prompts':
         specifier: ^7.2.1
         version: 7.3.2(@types/node@22.13.4)
@@ -1805,7 +1808,7 @@ importers:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: latest
-        version: 1.1.10(zod@3.24.2)
+        version: 1.1.11(zod@3.24.2)
       '@ai-sdk/groq':
         specifier: latest
         version: 1.1.11(zod@3.24.2)
@@ -1861,7 +1864,7 @@ importers:
     dependencies:
       '@ai-sdk/anthropic':
         specifier: latest
-        version: 1.1.10(zod@3.24.2)
+        version: 1.1.11(zod@3.24.2)
       '@libsql/client':
         specifier: ^0.14.0
         version: 0.14.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
@@ -2572,7 +2575,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   packages/cli/src/playground:
     dependencies:
@@ -2874,7 +2877,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   packages/create-mastra:
     dependencies:
@@ -3123,7 +3126,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   packages/loggers:
     dependencies:
@@ -3151,7 +3154,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   packages/mcp:
     dependencies:
@@ -3170,7 +3173,7 @@ importers:
     devDependencies:
       '@ai-sdk/anthropic':
         specifier: latest
-        version: 1.1.10(zod@3.24.2)
+        version: 1.1.11(zod@3.24.2)
       '@internal/lint':
         specifier: workspace:*
         version: link:../_config
@@ -3191,7 +3194,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   packages/memory:
     dependencies:
@@ -3243,7 +3246,7 @@ importers:
         version: 8.24.1(eslint@9.20.1(jiti@2.4.2))(typescript@5.7.3)
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   packages/memory/integration-tests:
     dependencies:
@@ -3344,7 +3347,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   speech/azure:
     dependencies:
@@ -3684,7 +3687,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   stores/chroma:
     dependencies:
@@ -3709,7 +3712,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   stores/pg:
     dependencies:
@@ -3740,7 +3743,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   stores/pinecone:
     dependencies:
@@ -3768,7 +3771,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   stores/qdrant:
     dependencies:
@@ -3793,7 +3796,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   stores/upstash:
     dependencies:
@@ -3821,7 +3824,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   stores/vectorize:
     dependencies:
@@ -3846,7 +3849,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.5
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   vector-stores/astra:
     dependencies:
@@ -3918,7 +3921,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   vector-stores/pinecone:
     dependencies:
@@ -3987,7 +3990,7 @@ importers:
         version: 5.7.3
       vitest:
         specifier: ^3.0.4
-        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+        version: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   vector-stores/vectorize:
     dependencies:
@@ -4242,8 +4245,8 @@ importers:
 
 packages:
 
-  '@ai-sdk/anthropic@1.1.10':
-    resolution: {integrity: sha512-kWmqr4ONAify8APPp+dVlw2X79ygUqPxLnA8buXrt1Sv+tkWUQ4bfTrfAkaavDJ4/VPODWqRyKcYADD482TtKg==}
+  '@ai-sdk/anthropic@1.1.11':
+    resolution: {integrity: sha512-FsjF+Qdy4c56dbXyUcec+UDOOnYayL1gd3Mysu1rSZ4RTAPuvsDewNJeSObqhJ7kMXnuHHLmDA5CcM4WvbSD/g==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
@@ -11889,6 +11892,7 @@ packages:
   bson@6.10.2:
     resolution: {integrity: sha512-5afhLTjqDSA3akH56E+/2J6kTDuSIlBxyXPdQslj9hcIgOUE378xdOfZvC/9q3LifJNI6KR/juZ+d0NRNYBwXg==}
     engines: {node: '>=16.20.1'}
+    deprecated: a critical bug affecting only useBigInt64=true deserialization usage is fixed in bson@6.10.3
 
   buffer-crc32@0.2.13:
     resolution: {integrity: sha512-VO9Ht/+p3SN7SKWqcrgEzjGbRSJYTx+Q1pTQC0wrWqHx0vpJraQ6GtHx8tvcg1rlK1byhU5gccxgOgj7B0TDkQ==}
@@ -14586,6 +14590,9 @@ packages:
 
   get-tsconfig@4.10.0:
     resolution: {integrity: sha512-kGzZ3LWWQcGIAmg6iWvXn0ei6WDtV26wzHRMwDSzmAbcXrTEXxHy6IehI6/4eT6VRKyMP1eF1VqwrVUmE/LR7A==}
+
+  get-xpath@3.3.0:
+    resolution: {integrity: sha512-AKbHVEHSlSDS9AJDmjfSxV010xSVRFzkS4UkGCb8CaGvorp83GCuKwcmzF/64CVp3M5wjgy9tc6y1uR2V+c5Xw==}
 
   gh-release-fetch@4.0.3:
     resolution: {integrity: sha512-TOiP1nwLsH5shG85Yt6v6Kjq5JU/44jXyEpbcfPgmj3C829yeXIlx9nAEwQRaxtRF3SJinn2lz7XUkfG9W/U4g==}
@@ -21507,7 +21514,7 @@ packages:
 
 snapshots:
 
-  '@ai-sdk/anthropic@1.1.10(zod@3.24.2)':
+  '@ai-sdk/anthropic@1.1.11(zod@3.24.2)':
     dependencies:
       '@ai-sdk/provider': 1.0.9
       '@ai-sdk/provider-utils': 2.1.10(zod@3.24.2)
@@ -30945,7 +30952,7 @@ snapshots:
       eslint: 9.20.1(jiti@2.4.2)
     optionalDependencies:
       typescript: 5.7.3
-      vitest: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
+      vitest: 3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0)
 
   '@vitest/expect@1.6.1':
     dependencies:
@@ -34276,7 +34283,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.0(@typescript-eslint/parser@5.62.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2(eslint-plugin-import-x@4.6.1(eslint@8.57.1)(typescript@5.7.3))(eslint-plugin-import@2.31.0)(eslint@8.57.1))(eslint@8.57.1):
+  eslint-module-utils@2.12.0(@typescript-eslint/parser@5.62.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2)(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -34287,7 +34294,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2(eslint-plugin-import-x@4.6.1(eslint@8.57.1)(typescript@5.7.3))(eslint-plugin-import@2.31.0)(eslint@8.57.1))(eslint@8.57.1):
+  eslint-module-utils@2.12.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2)(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -34298,7 +34305,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.0(@typescript-eslint/parser@8.24.1(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2(eslint-plugin-import-x@4.6.1(eslint@8.57.1)(typescript@5.7.3))(eslint-plugin-import@2.31.0)(eslint@8.57.1))(eslint@8.57.1):
+  eslint-module-utils@2.12.0(@typescript-eslint/parser@8.24.1(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2)(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -34309,7 +34316,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.0(@typescript-eslint/parser@8.24.1(eslint@9.20.1(jiti@2.4.2))(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2(eslint-plugin-import-x@4.6.1(eslint@9.20.1(jiti@2.4.2))(typescript@5.7.3))(eslint-plugin-import@2.31.0)(eslint@9.20.1(jiti@2.4.2)))(eslint@9.20.1(jiti@2.4.2)):
+  eslint-module-utils@2.12.0(@typescript-eslint/parser@8.24.1(eslint@9.20.1(jiti@2.4.2))(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2)(eslint@9.20.1(jiti@2.4.2)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -34380,7 +34387,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.0(@typescript-eslint/parser@5.62.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2(eslint-plugin-import-x@4.6.1(eslint@8.57.1)(typescript@5.7.3))(eslint-plugin-import@2.31.0)(eslint@8.57.1))(eslint@8.57.1)
+      eslint-module-utils: 2.12.0(@typescript-eslint/parser@5.62.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2)(eslint@8.57.1)
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -34409,7 +34416,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2(eslint-plugin-import-x@4.6.1(eslint@8.57.1)(typescript@5.7.3))(eslint-plugin-import@2.31.0)(eslint@8.57.1))(eslint@8.57.1)
+      eslint-module-utils: 2.12.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2)(eslint@8.57.1)
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -34438,7 +34445,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.0(@typescript-eslint/parser@8.24.1(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2(eslint-plugin-import-x@4.6.1(eslint@8.57.1)(typescript@5.7.3))(eslint-plugin-import@2.31.0)(eslint@8.57.1))(eslint@8.57.1)
+      eslint-module-utils: 2.12.0(@typescript-eslint/parser@8.24.1(eslint@8.57.1)(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2)(eslint@8.57.1)
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -34467,7 +34474,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.20.1(jiti@2.4.2)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.0(@typescript-eslint/parser@8.24.1(eslint@9.20.1(jiti@2.4.2))(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2(eslint-plugin-import-x@4.6.1(eslint@9.20.1(jiti@2.4.2))(typescript@5.7.3))(eslint-plugin-import@2.31.0)(eslint@9.20.1(jiti@2.4.2)))(eslint@9.20.1(jiti@2.4.2))
+      eslint-module-utils: 2.12.0(@typescript-eslint/parser@8.24.1(eslint@9.20.1(jiti@2.4.2))(typescript@5.7.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.8.2)(eslint@9.20.1(jiti@2.4.2))
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -35592,6 +35599,8 @@ snapshots:
   get-tsconfig@4.10.0:
     dependencies:
       resolve-pkg-maps: 1.0.0
+
+  get-xpath@3.3.0: {}
 
   gh-release-fetch@4.0.3:
     dependencies:
@@ -36983,7 +36992,7 @@ snapshots:
       '@types/node': 22.13.4
       jest-mock: 29.7.0
       jest-util: 29.7.0
-      jsdom: 20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5)
+      jsdom: 20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5)
     optionalDependencies:
       canvas: 2.11.2(encoding@0.1.13)
     transitivePeerDependencies:
@@ -37290,41 +37299,6 @@ snapshots:
   jsbn@1.1.0:
     optional: true
 
-  jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5):
-    dependencies:
-      abab: 2.0.6
-      acorn: 8.14.0
-      acorn-globals: 7.0.1
-      cssom: 0.5.0
-      cssstyle: 2.3.0
-      data-urls: 3.0.2
-      decimal.js: 10.5.0
-      domexception: 4.0.0
-      escodegen: 2.1.0
-      form-data: 4.0.2
-      html-encoding-sniffer: 3.0.0
-      http-proxy-agent: 5.0.0
-      https-proxy-agent: 5.0.1(supports-color@9.4.0)
-      is-potential-custom-element-name: 1.0.1
-      nwsapi: 2.2.16
-      parse5: 7.2.1
-      saxes: 6.0.0
-      symbol-tree: 3.2.4
-      tough-cookie: 4.1.4
-      w3c-xmlserializer: 4.0.0
-      webidl-conversions: 7.0.0
-      whatwg-encoding: 2.0.0
-      whatwg-mimetype: 3.0.0
-      whatwg-url: 11.0.0
-      ws: 8.18.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
-      xml-name-validator: 4.0.0
-    optionalDependencies:
-      canvas: 2.11.2(encoding@0.1.13)
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-
   jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@5.0.10):
     dependencies:
       abab: 2.0.6
@@ -37360,6 +37334,41 @@ snapshots:
       - supports-color
       - utf-8-validate
     optional: true
+
+  jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5):
+    dependencies:
+      abab: 2.0.6
+      acorn: 8.14.0
+      acorn-globals: 7.0.1
+      cssom: 0.5.0
+      cssstyle: 2.3.0
+      data-urls: 3.0.2
+      decimal.js: 10.5.0
+      domexception: 4.0.0
+      escodegen: 2.1.0
+      form-data: 4.0.2
+      html-encoding-sniffer: 3.0.0
+      http-proxy-agent: 5.0.0
+      https-proxy-agent: 5.0.1(supports-color@9.4.0)
+      is-potential-custom-element-name: 1.0.1
+      nwsapi: 2.2.16
+      parse5: 7.2.1
+      saxes: 6.0.0
+      symbol-tree: 3.2.4
+      tough-cookie: 4.1.4
+      w3c-xmlserializer: 4.0.0
+      webidl-conversions: 7.0.0
+      whatwg-encoding: 2.0.0
+      whatwg-mimetype: 3.0.0
+      whatwg-url: 11.0.0
+      ws: 8.18.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
+      xml-name-validator: 4.0.0
+    optionalDependencies:
+      canvas: 2.11.2(encoding@0.1.13)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
 
   jsesc@2.5.2: {}
 
@@ -37539,7 +37548,7 @@ snapshots:
       fast-xml-parser: 4.4.1
       html-to-text: 9.0.5
       ignore: 5.3.2
-      jsdom: 20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5)
+      jsdom: 20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5)
       mammoth: 1.9.0
       mongodb: 6.13.0(@aws-sdk/credential-providers@3.750.0)(socks@2.8.4)
       pdf-parse: 1.1.1
@@ -43773,7 +43782,7 @@ snapshots:
     optionalDependencies:
       '@edge-runtime/vm': 3.2.0
       '@types/node': 22.13.4
-      jsdom: 20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5)
+      jsdom: 20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5)
     transitivePeerDependencies:
       - less
       - lightningcss
@@ -43846,7 +43855,7 @@ snapshots:
     optionalDependencies:
       '@edge-runtime/vm': 3.2.0
       '@types/node': 22.13.4
-      jsdom: 20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5)
+      jsdom: 20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5)
     transitivePeerDependencies:
       - less
       - lightningcss
@@ -43858,7 +43867,7 @@ snapshots:
       - supports-color
       - terser
 
-  vitest@3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0):
+  vitest@3.0.6(@edge-runtime/vm@3.2.0)(@types/debug@4.1.12)(@types/node@22.13.4)(jiti@2.4.2)(jsdom@20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5))(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0):
     dependencies:
       '@vitest/expect': 3.0.6
       '@vitest/mocker': 3.0.6(vite@6.1.1(@types/node@22.13.4)(jiti@2.4.2)(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0))
@@ -43884,7 +43893,7 @@ snapshots:
       '@edge-runtime/vm': 3.2.0
       '@types/debug': 4.1.12
       '@types/node': 22.13.4
-      jsdom: 20.0.3(bufferutil@4.0.9)(canvas@2.11.2(encoding@0.1.13))(utf-8-validate@6.0.5)
+      jsdom: 20.0.3(bufferutil@4.0.9)(canvas@2.11.2)(utf-8-validate@6.0.5)
     transitivePeerDependencies:
       - jiti
       - less

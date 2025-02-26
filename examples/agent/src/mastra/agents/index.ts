@@ -5,7 +5,6 @@ import {
   clickElementTool,
   closeBrowserTool,
   closePageTool,
-  extractPageTool,
   findElementTool,
   launchBrowser,
   navigateTool,
@@ -47,7 +46,7 @@ export const browserAgent = new Agent({
     1. Always start by launching a browser with launchBrowser
     2. Then open a new page with newPageTool
     3. Navigate to the requested URL with navigateTool
-    4. IMPORTANT: You MUST use findElementTool to locate elements before attempting to click them
+    4. IMPORTANT: You MUST use findElementTool to get the xpath selectors for the current page
     5. After finding elements, use clickElementTool or other interaction tools as needed
     6. Close the page using closePageTool when done with it
     7. Close the browser using closeBrowserTool when finished with all tasks
