@@ -1,7 +1,13 @@
 import type { Filter } from '@mastra/core/filter';
 import type { IndexStats, QueryResult } from '@mastra/core/vector';
 import { MastraVector } from '@mastra/core/vector';
-import { Turbopuffer, type DistanceMetric, type QueryResults, type Vector } from '@turbopuffer/turbopuffer';
+import {
+  Turbopuffer,
+  type DistanceMetric,
+  type QueryResults,
+  type Schema,
+  type Vector,
+} from '@turbopuffer/turbopuffer';
 import { TurbopufferFilterTranslator } from './filter';
 
 export interface TurbopufferVectorOptions {
@@ -17,18 +23,59 @@ export interface TurbopufferVectorOptions {
   warmConnections?: number;
   /** Whether to compress requests and accept compressed responses. Default is true. */
   compression?: boolean;
+  /**
+   * A callback function that takes an index name and returns a config object for that index.
+   * This allows you to define explicit schemas per index.
+   *
+   * Example:
+   * ```typescript
+   * schemaConfigForIndex: (indexName: string) => {
+   *   // Mastra's default embedding model and index for memory messages:
+   *   if (indexName === "memory_messages_384") {
+   *     return {
+   *       dimensions: 384,
+   *       schema: {
+   *         thread_id: {
+   *           type: "string",
+   *           filterable: true,
+   *         },
+   *       },
+   *     };
+   *   } else {
+   *     throw new Error(`TODO: add schema for index: ${indexName}`);
+   *   }
+   * },
+   * ```
+   */
+  schemaConfigForIndex?: (indexName: string) => {
+    dimensions: number;
+    schema: Schema;
+  };
 }
 
 export class TurbopufferVector extends MastraVector {
   private client: Turbopuffer;
   private filterTranslator: TurbopufferFilterTranslator;
-  // MastraVector takes in distance metric in createIndex, but we need it in upsert(),
-  // so remember it in this cache
-  private distanceMetricCache: Map<string, DistanceMetric> = new Map();
+  // There is no explicit create index operation in Turbopuffer, so just register that
+  // someone has called createIndex() and verify that subsequent upsert calls are consistent
+  // with how the index was "created"
+  private createIndexCache: Map<
+    string,
+    {
+      dimension: number;
+      metric: 'cosine' | 'euclidean' | 'dotproduct';
+      tpufDistanceMetric: DistanceMetric;
+    }
+  > = new Map();
+  private opts: TurbopufferVectorOptions;
 
   constructor(opts: TurbopufferVectorOptions) {
+    console.log(
+      `DEBUG turbopuffer constructor apiKey=${opts.apiKey ? '[REDACTED]' : undefined} baseUrl=${opts.baseUrl}`,
+    );
     super();
     this.filterTranslator = new TurbopufferFilterTranslator();
+    this.opts = opts;
 
     const baseClient = new Turbopuffer(opts);
     const telemetry = this.__getTelemetry();
@@ -46,7 +93,16 @@ export class TurbopufferVector extends MastraVector {
     dimension: number,
     metric: 'cosine' | 'euclidean' | 'dotproduct' = 'cosine',
   ): Promise<void> {
-    // Validate input parameters
+    if (this.createIndexCache.has(indexName)) {
+      // verify that the dimensions and distance metric match what we expect
+      const expected = this.createIndexCache.get(indexName)!;
+      if (dimension !== expected.dimension || metric !== expected.metric) {
+        throw new Error(
+          `createIndex() called more than once with inconsistent inputs. Index ${indexName} expected dimensions=${expected.dimension} and metric=${expected.metric} but got dimensions=${dimension} and metric=${metric}`,
+        );
+      }
+      return;
+    }
     if (dimension <= 0) {
       throw new Error('Dimension must be a positive integer');
     }
@@ -61,38 +117,11 @@ export class TurbopufferVector extends MastraVector {
       case 'dotproduct':
         throw new Error('dotproduct is not supported in Turbopuffer');
     }
-    this.distanceMetricCache.set(indexName, distanceMetric);
-    try {
-      const namespaceExists = (await this.client.namespaces({ prefix: indexName })).namespaces.find(
-        n => n.id === indexName,
-      );
-      if (namespaceExists) {
-        return;
-      }
-      // Create initial vector with id and proper format
-      await this.client.namespace(indexName).upsert({
-        vectors: [
-          {
-            id: `${indexName}-init-${Date.now()}`, // Add timestamp to make it unique
-            vector: Array(dimension).fill(0.0),
-            attributes: { _init: true },
-          },
-        ],
-        distance_metric: distanceMetric,
-      });
-    } catch (error: any) {
-      throw new Error(`Failed to create Turbopuffer namespace ${indexName}: ${error.message}`);
-    }
-  }
-
-  private getDistanceMetric(indexName: string): DistanceMetric {
-    if (this.distanceMetricCache.has(indexName)) {
-      return this.distanceMetricCache.get(indexName)!;
-    }
-    console.warn(
-      `Could not determine distance metric for ${indexName}, defaulting to cosine_distance. Call createIndex() to register a distance metric for this index.`,
-    );
-    return 'cosine_distance';
+    this.createIndexCache.set(indexName, {
+      dimension,
+      metric,
+      tpufDistanceMetric: distanceMetric,
+    });
   }
 
   async upsert(
@@ -103,7 +132,11 @@ export class TurbopufferVector extends MastraVector {
   ): Promise<string[]> {
     try {
       const index = this.client.namespace(indexName);
-      const distanceMetric = await this.getDistanceMetric(indexName);
+      const createIndex = this.createIndexCache.get(indexName);
+      if (!createIndex) {
+        throw new Error(`createIndex() not called for this index`);
+      }
+      const distanceMetric = createIndex.tpufDistanceMetric;
       const vectorIds = ids || vectors.map(() => crypto.randomUUID());
       const records: Vector[] = vectors.map((vector, i) => ({
         id: vectorIds[i]!,
@@ -116,12 +149,28 @@ export class TurbopufferVector extends MastraVector {
       const batchSize = 100;
       for (let i = 0; i < records.length; i += batchSize) {
         const batch = records.slice(i, i + batchSize);
-        await index.upsert({
+        const upsertOptions: {
+          vectors: Vector[];
+          distance_metric: DistanceMetric;
+          schema?: Schema;
+          batchSize?: number;
+        } = {
           vectors: batch,
           distance_metric: distanceMetric,
-          // todo: some way to set the schema? Maybe there should be a way to register a function that takes index name and returns a Turbopuffer schema such that this can get customized
-          // schema:
-        });
+        };
+
+        // Use the schemaForIndex callback if provided
+        const schemaConfig = this.opts.schemaConfigForIndex?.(indexName);
+        if (schemaConfig) {
+          upsertOptions.schema = schemaConfig.schema;
+          if (vectors[0]?.length !== schemaConfig.dimensions) {
+            throw new Error(
+              `Turbopuffer index ${indexName} was configured with dimensions=${schemaConfig.dimensions} but attempting to upsert vectors[0].length=${vectors[0]?.length}`,
+            );
+          }
+        }
+
+        await index.upsert(upsertOptions);
       }
 
       return vectorIds;
@@ -137,11 +186,24 @@ export class TurbopufferVector extends MastraVector {
     filter?: Filter,
     includeVector: boolean = false,
   ): Promise<QueryResult[]> {
+    const schemaConfig = this.opts.schemaConfigForIndex?.(indexName);
+    if (schemaConfig) {
+      if (queryVector.length !== schemaConfig.dimensions) {
+        throw new Error(
+          `Turbopuffer index ${indexName} was configured with dimensions=${schemaConfig.dimensions} but attempting to query with queryVector.length=${queryVector.length}`,
+        );
+      }
+    }
+    const createIndex = this.createIndexCache.get(indexName);
+    if (!createIndex) {
+      throw new Error(`createIndex() not called for this index`);
+    }
+    const distanceMetric = createIndex.tpufDistanceMetric;
     try {
       const index = this.client.namespace(indexName);
       const translatedFilter = this.filterTranslator.translate(filter);
       const results: QueryResults = await index.query({
-        distance_metric: await this.getDistanceMetric(indexName),
+        distance_metric: distanceMetric,
         vector: queryVector,
         top_k: topK,
         filters: translatedFilter,
@@ -173,20 +235,16 @@ export class TurbopufferVector extends MastraVector {
     try {
       const namespace = this.client.namespace(indexName);
       const metadata = await namespace.metadata();
-      const distanceMetric = await this.getDistanceMetric(indexName);
-      let metric: 'cosine' | 'euclidean' | 'dotproduct' = 'cosine';
-      if (distanceMetric === 'euclidean_squared') {
-        metric = 'euclidean';
-      } else {
-        metric = 'cosine';
+      const createIndex = this.createIndexCache.get(indexName);
+      if (!createIndex) {
+        throw new Error(`createIndex() not called for this index`);
       }
       const dimension = metadata.dimensions;
       const count = metadata.approx_count;
-
       return {
         dimension,
         count,
-        metric,
+        metric: createIndex.metric,
       };
     } catch (error) {
       throw new Error(`Failed to describe Turbopuffer namespace ${indexName}: ${error}`);
@@ -197,7 +255,7 @@ export class TurbopufferVector extends MastraVector {
     try {
       const namespace = this.client.namespace(indexName);
       await namespace.deleteAll();
-      this.distanceMetricCache.delete(indexName);
+      this.createIndexCache.delete(indexName);
     } catch (error: any) {
       throw new Error(`Failed to delete Turbopuffer namespace ${indexName}: ${error.message}`);
     }

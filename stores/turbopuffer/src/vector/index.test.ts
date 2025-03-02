@@ -14,30 +14,6 @@ const RUN_INTEGRATION_TESTS = !!TURBOPUFFER_API_KEY && TURBOPUFFER_API_KEY.trim(
 // }
 // TODO: skip until secrets in Github
 
-function waitUntilReady(vectorDB: TurbopufferVector, indexName: string) {
-  return new Promise((resolve, reject) => {
-    const maxAttempts = 30; // 30 seconds max
-    let attempts = 0;
-    const interval = setInterval(async () => {
-      try {
-        const stats = await vectorDB.describeIndex(indexName);
-        if (stats) {
-          clearInterval(interval);
-          console.log(`Index ${indexName} is ready with dimension ${stats.dimension}`);
-          resolve(true);
-        }
-      } catch (error) {
-        console.log(`Waiting for index ${indexName} to be ready...`);
-        attempts++;
-        if (attempts >= maxAttempts) {
-          clearInterval(interval);
-          reject(new Error(`Timeout waiting for index ${indexName} to be ready`));
-        }
-      }
-    }, 1000);
-  });
-}
-
 function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string, expectedCount: number) {
   return new Promise((resolve, reject) => {
     const maxAttempts = 30; // 30 seconds max
@@ -88,21 +64,8 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       // Create test index
-      try {
-        await vectorDB.createIndex(testIndexName, dimension);
-        console.log(`Successfully created index: ${testIndexName}`);
-
-        try {
-          await waitUntilReady(vectorDB, testIndexName);
-          console.log(`Index ${testIndexName} is ready for testing`);
-        } catch (waitError) {
-          console.error(`Error waiting for index to be ready: ${waitError.message}`);
-          throw waitError;
-        }
-      } catch (createError) {
-        console.error(`Error creating index ${testIndexName}: ${createError.message}`);
-        throw createError;
-      }
+      await vectorDB.createIndex(testIndexName, dimension);
+      console.log(`Successfully created index: ${testIndexName}`);
     } catch (error) {
       console.error(`Error in test setup: ${error.message}`);
       throw error; // Re-throw to fail the test suite setup
@@ -135,20 +98,6 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       // Don't throw - we don't want to fail tests during cleanup
     }
   }, 500000);
-
-  describe('Index Operations', () => {
-    it('should list indexes including our test index', async () => {
-      const indexes = await vectorDB.listIndexes();
-      expect(indexes).toContain(testIndexName);
-    }, 500000);
-
-    it('should describe index with correct properties', async () => {
-      const stats = await vectorDB.describeIndex(testIndexName);
-      expect(stats.dimension).toBe(dimension);
-      expect(stats.metric).toBe('cosine');
-      expect(typeof stats.count).toBe('number');
-    }, 500000);
-  });
 
   describe('Vector Operations', () => {
     const testVectors = [
@@ -195,10 +144,24 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
     }, 500000);
   });
 
+  describe('Index Operations', () => {
+    it('should list indexes including our test index', async () => {
+      const indexes = await vectorDB.listIndexes();
+      expect(indexes).toContain(testIndexName);
+    }, 500000);
+
+    it('should describe index with correct properties', async () => {
+      const stats = await vectorDB.describeIndex(testIndexName);
+      expect(stats.dimension).toBe(dimension);
+      expect(stats.metric).toBe('cosine');
+      expect(typeof stats.count).toBe('number');
+    }, 500000);
+  });
+
   describe('Error Handling', () => {
     it('should handle non-existent index query gracefully', async () => {
       const nonExistentIndex = 'non-existent-index';
-      await expect(vectorDB.query(nonExistentIndex, [1, 0, 0])).rejects.toThrow(/namespace.*not found/);
+      await expect(vectorDB.query(nonExistentIndex, [1, 0, 0])).rejects.toThrow(/createIndex\(\) not called/);
     }, 500000);
 
     it('should handle incorrect dimension vectors', async () => {
