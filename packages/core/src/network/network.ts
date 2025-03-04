@@ -1,6 +1,5 @@
 import { randomUUID } from 'crypto';
 import type { LanguageModelV1, CoreMessage } from 'ai';
-import { streamText } from 'ai';
 import type { JSONSchema7 } from 'json-schema';
 import type { ZodSchema } from 'zod';
 import { Agent } from '../agent';
