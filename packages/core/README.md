@@ -132,20 +132,20 @@ Networks enable orchestration of multiple agents working together to solve compl
 ```typescript
 import { AgentNetwork } from '@mastra/core/network';
 import { Agent } from '@mastra/core/agent';
-import { OpenAILanguageModel } from '@mastra/core/llm/model/openai';
+import { openai } from '@ai-sdk/openai';
 
 // Create agents
 const agent1 = new Agent({
   name: 'Agent1',
   instructions: 'Your instructions here',
-  model: new OpenAILanguageModel({ model: 'gpt-4o' }),
+  model: openai('gpt-4o'),
 });
 
 // Create a network
 const network = new AgentNetwork({
   name: 'MyNetwork',
   agents: [agent1, agent2],
-  routingModel: new OpenAILanguageModel({ model: 'gpt-4o' }),
+  routingModel: openai('gpt-4o'),
 });
 
 // Generate a response

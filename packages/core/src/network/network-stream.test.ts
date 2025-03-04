@@ -15,7 +15,7 @@ const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const TEST_TIMEOUT = 10000;
 
 describe('AgentNetwork Streaming', () => {
-  it.only(
+  it(
     'should stream network execution with events',
     async () => {
       // Create search agent
