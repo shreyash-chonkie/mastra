@@ -50,6 +50,27 @@ export type StreamParams<T extends JSONSchema7 | ZodSchema | undefined = undefin
   messages: string | string[] | CoreMessage[];
 } & Partial<AgentStreamOptions<T>>;
 
+export interface GetNetworkResponse {
+  name: string;
+  agents: Array<{
+    name: string;
+    provider: string;
+    modelId: string;
+  }>;
+  routingModel: {
+    provider: string;
+    modelId: string;
+  };
+}
+
+export type NetworkGenerateParams = {
+  input: string | CoreMessage[];
+};
+
+export type NetworkStreamParams = {
+  input: string | CoreMessage[];
+};
+
 export interface GetEvalsByAgentIdResponse extends GetAgentResponse {
   evals: any[];
 }
