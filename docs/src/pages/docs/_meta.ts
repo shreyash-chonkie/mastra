@@ -12,6 +12,10 @@ const meta = {
     title: "Agents",
     collapsed: false,
   },
+  network: {
+    title: "Networks",
+    collapsed: false,
+  },
   workflows: {
     title: "Workflows",
     collapsed: false,

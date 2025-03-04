@@ -1,0 +1,227 @@
+---
+title: "Custom Routing in Agent Networks | Network Documentation | Mastra"
+description: Learn how to implement custom routing logic in Mastra agent networks to control the flow between agents and create sophisticated multi-agent workflows.
+---
+
+# Custom Routing in Agent Networks
+
+Custom routing is a powerful feature of Agent Networks that allows you to control which agent is called next based on the current state, previous results, and other factors. This enables you to create sophisticated workflows where agents collaborate in a structured manner.
+
+## 1. Router Function Basics
+
+The router function determines which agent to call next in the network. It receives a `RouterState` object and returns either an agent or `undefined` (to signal completion):
+
+```ts showLineNumbers copy
+const network = new AgentNetwork({
+  name: "Custom Routing Example",
+  agents: [agentA, agentB, agentC],
+  router: async ({ callCount, state, lastResult, input }) => {
+    // Your routing logic here
+    if (callCount === 0) return agentA;
+    if (callCount === 1) return agentB;
+    return undefined; // Done after two calls
+  },
+});
+```
+
+### RouterState Parameters
+
+The router function receives a `RouterState` object with these properties:
+
+- `callCount`: Number of agent calls made so far (starts at 0)
+- `state`: Current state of the network (NetworkState object)
+- `lastResult`: Result from the previous agent call (or null if first call)
+- `input`: Original input to the network
+
+## 2. Routing Patterns
+
+### Sequential Routing
+
+The simplest routing pattern is to call agents in a fixed sequence:
+
+```ts showLineNumbers copy
+const router = async ({ callCount }) => {
+  // Call agents in sequence: A → B → C
+  if (callCount === 0) return agentA;
+  if (callCount === 1) return agentB;
+  if (callCount === 2) return agentC;
+  return undefined; // Done after three calls
+};
+```
+
+### Conditional Routing
+
+Route based on the content of the previous agent's output:
+
+```ts showLineNumbers copy
+const router = async ({ callCount, lastResult }) => {
+  if (callCount === 0) return searchAgent;
+  
+  // Route based on the previous result
+  if (lastResult.includes("error") || lastResult.includes("not found")) {
+    return errorHandlingAgent;
+  }
+  
+  if (lastResult.includes("needs more details")) {
+    return detailAgent;
+  }
+  
+  if (callCount === 1) return summaryAgent;
+  
+  return undefined; // Done
+};
+```
+
+### State-Based Routing
+
+Use the network state to make routing decisions:
+
+```ts showLineNumbers copy
+const router = async ({ callCount, state }) => {
+  // First call always goes to the initial agent
+  if (callCount === 0) {
+    return initialAgent;
+  }
+  
+  // Check state to determine next agent
+  const processingComplete = state.get("processingComplete");
+  const errorOccurred = state.get("errorOccurred");
+  
+  if (errorOccurred) {
+    return errorHandlingAgent;
+  }
+  
+  if (!processingComplete) {
+    return processingAgent;
+  }
+  
+  return finalAgent;
+};
+```
+
+### Dynamic Routing with LLMs
+
+For more complex routing decisions, you can use the `routingModel` to dynamically determine the next agent:
+
+```ts showLineNumbers copy
+const network = new AgentNetwork({
+  name: "Dynamic Routing",
+  agents: [researchAgent, analysisAgent, summaryAgent, factCheckAgent],
+  routingModel: openai("gpt-4o"),
+  // No router function - will use the routingModel to decide
+});
+```
+
+When no router function is provided, the network uses the `routingModel` to analyze the current state and determine which agent to call next.
+
+## 3. Advanced Routing Techniques
+
+### Looping and Iteration
+
+Create loops where an agent is called multiple times until a condition is met:
+
+```ts showLineNumbers copy
+const router = async ({ callCount, state, lastResult }) => {
+  // Always start with the research agent
+  if (callCount === 0) return researchAgent;
+  
+  // Check if we need more research
+  const needsMoreResearch = lastResult.includes("insufficient information");
+  const researchCount = state.get("researchCount") || 0;
+  
+  if (needsMoreResearch && researchCount < 3) {
+    // Update the research count in state
+    state.set("researchCount", researchCount + 1);
+    // Loop back to research agent
+    return researchAgent;
+  }
+  
+  // Move to summary agent after research is complete
+  if (state.get("researchComplete") !== true) {
+    state.set("researchComplete", true);
+    return summaryAgent;
+  }
+  
+  return undefined; // Done
+};
+```
+
+### Branching Workflows
+
+Create complex workflows with multiple branches:
+
+```ts showLineNumbers copy
+const router = async ({ callCount, state, lastResult }) => {
+  // Start with the classifier agent
+  if (callCount === 0) return classifierAgent;
+  
+  // After classification, branch based on the topic
+  if (callCount === 1) {
+    const topic = lastResult.toLowerCase();
+    state.set("topic", topic);
+    
+    if (topic.includes("technical") || topic.includes("science")) {
+      return technicalAgent;
+    }
+    
+    if (topic.includes("business") || topic.includes("finance")) {
+      return businessAgent;
+    }
+    
+    if (topic.includes("creative") || topic.includes("art")) {
+      return creativeAgent;
+    }
+    
+    // Default path
+    return generalAgent;
+  }
+  
+  // Final step is always the formatter agent
+  if (callCount === 2) return formatterAgent;
+  
+  return undefined; // Done after three steps
+};
+```
+
+### Error Recovery
+
+Implement error recovery in your routing logic:
+
+```ts showLineNumbers copy
+const router = async ({ callCount, state, lastResult }) => {
+  try {
+    // Normal routing logic
+    if (callCount === 0) return primaryAgent;
+    
+    // Check for errors in the result
+    if (lastResult.includes("error") || lastResult.includes("exception")) {
+      state.set("errorOccurred", true);
+      return fallbackAgent;
+    }
+    
+    if (callCount === 1) return finalAgent;
+    
+    return undefined; // Done
+  } catch (error) {
+    // Handle any errors in the routing logic itself
+    console.error("Routing error:", error);
+    state.set("routingError", true);
+    return errorHandlingAgent;
+  }
+};
+```
+
+## 4. Best Practices
+
+- **Keep It Simple**: Start with simple routing logic and add complexity only as needed
+- **Avoid Infinite Loops**: Always ensure there's a way to exit the network
+- **Use State for Context**: Store important information in the network state
+- **Handle Edge Cases**: Consider what happens if an agent fails or returns unexpected results
+- **Set Maximum Steps**: Use the `maxSteps` option to prevent runaway execution
+- **Test Thoroughly**: Test your routing logic with different inputs and edge cases
+
+## Next Steps
+
+- Learn about [State Management](./02-state-management.mdx) to share data between agents
+- Explore [Streaming](./03-streaming.mdx) for real-time updates during network execution
+- Return to the [Overview](./00-overview.mdx) for general network concepts
