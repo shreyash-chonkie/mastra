@@ -26,11 +26,6 @@ export interface NetworkConfig<TAgents extends Agent[] = Agent[]> {
   routingModel: LanguageModelV1;
 
   /**
-   * Optional router function to determine the next agent to run
-   */
-  router?: RouterFunction<TAgents>;
-
-  /**
    * Optional maximum number of steps to prevent infinite loops
    * @default 10
    */

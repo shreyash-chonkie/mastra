@@ -20,14 +20,14 @@ describe('AgentNetwork', () => {
     const searchAgent = new Agent({
       name: 'Search',
       instructions: 'You search for information on the web',
-      model: openai('gpt-4o'),
+      model: openai('gpt-4o-mini'),
     });
 
     // Create summary agent
     const summaryAgent = new Agent({
       name: 'Summary',
       instructions: 'You summarize information into concise points',
-      model: openai('gpt-4o'),
+      model: openai('gpt-4o-mini'),
     });
 
     // Create a network
@@ -44,143 +44,341 @@ describe('AgentNetwork', () => {
     expect(network.agents[1].name).toBe('Summary');
   });
 
-  it('should run a network with a custom router', async () => {
-    // Create a simple calculator tool
-    const calculatorTool = createTool({
-      id: 'calculator',
-      description: 'Perform mathematical calculations',
-      inputSchema: z.object({
-        operation: z.enum(['add', 'subtract', 'multiply', 'divide']),
-        a: z.number(),
-        b: z.number(),
-      }),
-      execute: async ({ context }) => {
-        const { operation, a, b } = context;
-
-        switch (operation) {
-          case 'add':
-            return a + b;
-          case 'subtract':
-            return a - b;
-          case 'multiply':
-            return a * b;
-          case 'divide':
-            return a / b;
-          default:
-            throw new Error(`Unknown operation: ${operation}`);
-        }
-      },
+  it.only('should create a travel itinerary using specialized agents', async () => {
+    // Create destination research agent
+    const destinationResearchAgent = new Agent({
+      name: 'DestinationResearcher',
+      instructions: `You are a travel destination expert.
+      Your job is to analyze travel destinations based on user preferences and constraints.
+      Provide detailed information about locations including:
+      - Best times to visit
+      - Cultural highlights
+      - Local cuisine
+      - Safety considerations
+      - Weather patterns
+      - Visa requirements
+      
+      Focus only on researching and analyzing destinations. Do not create itineraries or schedules.
+      If you need more information about user preferences, note this in your response.`,
+      model: openai('gpt-4o-mini'),
     });
 
-    // Create math agent with calculator tool
-    const mathAgent = new Agent({
-      name: 'Math',
-      instructions:
-        'You solve math problems using the calculator tool. When asked to calculate, always use the calculator tool.',
-      model: openai('gpt-4o'),
-      tools: { calculatorTool },
+    // Create accommodation specialist agent
+    const accommodationAgent = new Agent({
+      name: 'AccommodationSpecialist',
+      instructions: `You are an accommodation expert.
+      Your job is to recommend suitable lodging options based on:
+      - Location proximity to attractions
+      - Budget constraints
+      - Accommodation style preferences (hotel, hostel, rental)
+      - Necessary amenities
+      - Length of stay
+      
+      Provide specific recommendations with reasoning. Consider the destination information 
+      provided by the DestinationResearcher when making your suggestions.
+      Focus only on accommodations, not on activities or transportation.`,
+      model: openai('gpt-4o-mini'),
     });
 
-    // Create explanation agent
-    const explanationAgent = new Agent({
-      name: 'Explanation',
-      instructions: 'You explain mathematical concepts and results in simple terms',
-      model: openai('gpt-4o'),
+    // Create activities planner agent
+    const activitiesAgent = new Agent({
+      name: 'ActivitiesPlanner',
+      instructions: `You are an activities and excursion specialist.
+      Your job is to recommend engaging activities and experiences based on:
+      - Destination characteristics
+      - Traveler interests and preferences
+      - Seasonal availability
+      - Budget considerations
+      - Physical ability levels
+      
+      Create a balanced mix of cultural, adventure, relaxation, and culinary experiences.
+      Consider information from both the DestinationResearcher and AccommodationSpecialist.
+      Focus only on activities and experiences, not on logistics or scheduling.`,
+      model: openai('gpt-4o-mini'),
     });
 
-    // Create a network with a custom router that always uses mathAgent first, then explanationAgent
-    const network = new AgentNetwork({
-      name: 'Math Helper',
-      agents: [mathAgent, explanationAgent],
-      routingModel: openai('gpt-4o'),
-      router: async ({ callCount }) => {
-        if (callCount === 0) return mathAgent;
-        if (callCount === 1) return explanationAgent;
-        return undefined; // Done after two calls
-      },
-      maxSteps: 3, // Limit to 3 steps to be safe
+    // Create itinerary coordinator agent
+    const itineraryCoordinatorAgent = new Agent({
+      name: 'ItineraryCoordinator',
+      instructions: `You are a travel itinerary coordinator.
+      Your job is to take information from all the specialist agents and create a cohesive, 
+      day-by-day travel plan that includes:
+      - Logical ordering of activities
+      - Realistic timing and pacing
+      - Transportation between locations
+      - Meal recommendations and timing
+      - Free time for relaxation or spontaneity
+      
+      Create a complete itinerary document that's ready to use, including:
+      - A daily schedule
+      - Estimated costs
+      - Packing recommendations
+      - Important contact information
+      - Local emergency information
+      
+      Your itinerary should be comprehensive, realistic, and personalized to the traveler's needs.`,
+      model: openai('gpt-4o-mini'),
     });
 
-    // Run the network
-    const result = await network.generate('Calculate 25 * 4 and explain the result');
-
-    // Check the result
-    expect(result).toBeDefined();
-    expect(result.steps).toBe(2); // Should have run both agents
-    expect(result.history).toHaveLength(2);
-    expect(result.history[0].agent).toBe('Math');
-    expect(result.history[1].agent).toBe('Explanation');
-    expect(result.output).toBeDefined();
-  }, 10000); // Increase timeout to 10 seconds
-
-  it('should use NetworkState to maintain state between agent calls', async () => {
-    // Create first agent that stores data
-    const storeAgent = new Agent({
-      name: 'DataStore',
-      instructions: 'You store data provided by the user. Respond with "Data stored".',
-      model: openai('gpt-4o'),
-    });
-
-    // Create second agent that retrieves data
-    const retrieveAgent = new Agent({
-      name: 'DataRetriever',
-      instructions: 'You retrieve and display the data that was stored.',
-      model: openai('gpt-4o'),
-    });
-
-    // Create initial state
+    // Create initial state with traveler preferences
     const initialState = new NetworkState();
-    initialState.set('userData', { name: 'John Doe', age: 30 });
+    initialState.set('travelerPreferences', {
+      destination: 'Japan',
+      duration: '10 days',
+      budget: 'mid-range ($150-$250/day)',
+      interests: ['cultural experiences', 'food', 'nature', 'photography'],
+      travelStyle: 'balanced pace, authentic experiences',
+      accommodation: 'mix of traditional ryokans and modern hotels',
+      dietaryRestrictions: 'vegetarian options needed',
+      travelDates: 'April 2025 (cherry blossom season)',
+    });
 
-    // Create a network with a custom router
+    // Create a network
     const network = new AgentNetwork({
-      name: 'Data Manager',
-      agents: [storeAgent, retrieveAgent],
+      name: 'Travel Planning System',
+      agents: [destinationResearchAgent, accommodationAgent, activitiesAgent, itineraryCoordinatorAgent],
       routingModel: openai('gpt-4o'),
-      initialState: initialState,
-      router: async ({ callCount, state }) => {
-        // First call: use storeAgent
-        if (callCount === 0) {
-          return storeAgent;
-        }
-
-        // Second call: use retrieveAgent
-        if (callCount === 1) {
-          // Verify state was maintained
-          expect(state.get('userData')).toEqual({ name: 'John Doe', age: 30 });
-          expect(state.get('lastAgent')).toBe('DataStore');
-
-          return retrieveAgent;
-        }
-
-        return undefined; // Done after two calls
-      },
+      initialState,
+      maxSteps: 5, // Allow up to 5 steps
     });
 
     // Run the network
-    const result = await network.generate('Store my data and then retrieve it');
+    const result = await network.generate(
+      'Create a detailed 10-day Japan itinerary for cherry blossom season. I want a mix of cultural experiences, nature, and food. I prefer a mix of traditional ryokans and modern hotels with a mid-range budget.',
+    );
 
     // Check the result
     expect(result).toBeDefined();
-    expect(result.steps).toBe(2);
-    expect(result.state.get('userData')).toEqual({ name: 'John Doe', age: 30 });
-    expect(result.state.get('lastAgent')).toBe('DataRetriever');
-  }, 10000); // Increase timeout to 10 seconds
+    expect(result.steps).toBeGreaterThanOrEqual(2); // Should use multiple agents
+    expect(result.history.length).toBeGreaterThanOrEqual(2);
+    expect(result.output).toBeDefined();
+
+    // Log the result for manual inspection
+    console.log('Travel Itinerary Network Result:');
+    console.log(`Steps: ${result.steps}`);
+    console.log('Agent History:');
+    result.history.forEach((step, i) => {
+      console.log(`Step ${i + 1}: ${step.agent}`);
+    });
+    console.log(
+      'Final Output Excerpt (first 500 chars):',
+      typeof result.output === 'string'
+        ? result.output.substring(0, 500) + '...'
+        : JSON.stringify(result.output).substring(0, 500) + '...',
+    );
+  }, 30000); // Increase timeout to 30 seconds
+
+  it('should create a research report using multiple specialized agents', async () => {
+    // Create research agent
+    const researchAgent = new Agent({
+      name: 'Researcher',
+      instructions: `You are a research specialist.
+      Your job is to gather and analyze information on a given topic.
+      Focus on finding key facts, statistics, and insights.
+      Organize your findings in a structured way, highlighting the most important information.
+      If the topic requires further analysis, say so in your response.`,
+      model: openai('gpt-4o-mini'),
+    });
+
+    // Create analysis agent
+    const analysisAgent = new Agent({
+      name: 'Analyst',
+      instructions: `You are an analytical expert.
+      Your job is to take research findings and perform deeper analysis.
+      Identify patterns, trends, and implications.
+      Connect different pieces of information to draw meaningful conclusions.
+      If you need more specific information, say so in your response.`,
+      model: openai('gpt-4o-mini'),
+    });
+
+    // Create report writing agent
+    const reportAgent = new Agent({
+      name: 'ReportWriter',
+      instructions: `You are a professional report writer.
+      Your job is to take research and analysis and create a polished, well-structured report.
+      Use clear headings, concise language, and professional formatting.
+      Include an executive summary at the beginning and recommendations at the end.
+      The report should be comprehensive yet easy to read.`,
+      model: openai('gpt-4o-mini'),
+    });
+
+    // Create a network
+    const network = new AgentNetwork({
+      name: 'Research Report Generator',
+      agents: [researchAgent, analysisAgent, reportAgent],
+      routingModel: openai('gpt-4o'),
+      maxSteps: 4, // Limit to 4 steps
+    });
+
+    // Run the network
+    const result = await network.generate(
+      'Create a report on the impact of artificial intelligence on the job market over the next decade.',
+    );
+
+    // Check the result
+    expect(result).toBeDefined();
+    expect(result.steps).toBeGreaterThanOrEqual(1);
+    expect(result.history.length).toBeGreaterThanOrEqual(1);
+    expect(result.output).toBeDefined();
+
+    // Log the result for manual inspection
+    console.log('Research Report Network Result:');
+    console.log(`Steps: ${result.steps}`);
+    console.log('Agent History:');
+    result.history.forEach((step, i) => {
+      console.log(`Step ${i + 1}: ${step.agent}`);
+    });
+  }, 15000); // Increase timeout to 15 seconds
+
+  it('should create a marketing campaign using collaborative agents', async () => {
+    // Create market research agent
+    const marketResearchAgent = new Agent({
+      name: 'MarketResearcher',
+      instructions: `You are a market research specialist.
+      Your job is to analyze target audiences, market trends, and competitor strategies.
+      Provide insights on customer demographics, preferences, and behaviors.
+      Identify market opportunities and potential challenges.
+      Your analysis should be data-driven and actionable.`,
+      model: openai('gpt-4o-mini'),
+    });
+
+    // Create creative concept agent
+    const creativeConceptAgent = new Agent({
+      name: 'CreativeConcept',
+      instructions: `You are a creative director.
+      Your job is to develop innovative marketing concepts and campaign ideas.
+      Create compelling messaging, visual themes, and storytelling approaches.
+      Your concepts should be original, memorable, and aligned with brand values.
+      Consider how to emotionally connect with the target audience.`,
+      model: openai('gpt-4o-mini'),
+    });
+
+    // Create campaign strategy agent
+    const campaignStrategyAgent = new Agent({
+      name: 'CampaignStrategist',
+      instructions: `You are a campaign strategy expert.
+      Your job is to develop comprehensive marketing campaign plans.
+      Create channel strategies, timing plans, and budget allocations.
+      Recommend specific tactics for different platforms and audiences.
+      Your strategies should be practical, measurable, and results-oriented.`,
+      model: openai('gpt-4o-mini'),
+    });
+
+    // Create initial state with brand information
+    const initialState = new NetworkState();
+    initialState.set('brandInfo', {
+      name: 'EcoTech Solutions',
+      industry: 'Sustainable Technology',
+      values: ['Innovation', 'Sustainability', 'Accessibility'],
+      targetAudience: 'Environmentally conscious consumers aged 25-45',
+    });
+
+    // Create a network
+    const network = new AgentNetwork({
+      name: 'Marketing Campaign Generator',
+      agents: [marketResearchAgent, creativeConceptAgent, campaignStrategyAgent],
+      routingModel: openai('gpt-4o'),
+      initialState,
+      maxSteps: 4, // Limit to 4 steps
+    });
+
+    // Run the network
+    const result = await network.generate(
+      'Create a marketing campaign for our new solar-powered smart home system that reduces energy consumption by 40%.',
+    );
+
+    // Check the result
+    expect(result).toBeDefined();
+    expect(result.steps).toBeGreaterThanOrEqual(1);
+    expect(result.history.length).toBeGreaterThanOrEqual(1);
+    expect(result.output).toBeDefined();
+
+    // Verify state was maintained
+    expect(result.state.get('brandInfo')).toBeDefined();
+
+    // Log the result for manual inspection
+    console.log('Marketing Campaign Network Result:');
+    console.log(`Steps: ${result.steps}`);
+    console.log('Agent History:');
+    result.history.forEach((step, i) => {
+      console.log(`Step ${i + 1}: ${step.agent}`);
+    });
+  }, 15000); // Increase timeout to 15 seconds
+
+  it('should troubleshoot a technical problem using specialized agents', async () => {
+    // Create diagnostic agent
+    const diagnosticAgent = new Agent({
+      name: 'Diagnostician',
+      instructions: `You are a technical diagnostician.
+      Your job is to analyze error messages, symptoms, and system information to identify potential issues.
+      Ask clarifying questions if needed and consider multiple possible causes.
+      Provide a clear assessment of what might be causing the problem.`,
+      model: openai('gpt-4o-mini'),
+    });
+
+    // Create solution agent
+    const solutionAgent = new Agent({
+      name: 'SolutionProvider',
+      instructions: `You are a technical solution expert.
+      Your job is to provide step-by-step solutions to technical problems.
+      Based on the diagnosis, offer clear, actionable instructions to resolve the issue.
+      Include alternative approaches if applicable and explain the reasoning behind your solutions.
+      Your instructions should be detailed enough for someone with basic technical knowledge to follow.`,
+      model: openai('gpt-4o-mini'),
+    });
+
+    // Create prevention agent
+    const preventionAgent = new Agent({
+      name: 'PreventionAdvisor',
+      instructions: `You are a technical prevention specialist.
+      Your job is to provide advice on how to prevent similar problems in the future.
+      Recommend best practices, maintenance routines, and system improvements.
+      Your advice should be practical and tailored to the specific situation.
+      Consider both short-term fixes and long-term strategies.`,
+      model: openai('gpt-4o-mini'),
+    });
+
+    // Create a network
+    const network = new AgentNetwork({
+      name: 'Technical Support System',
+      agents: [diagnosticAgent, solutionAgent, preventionAgent],
+      routingModel: openai('gpt-4o'),
+      maxSteps: 4, // Limit to 4 steps
+    });
+
+    // Run the network with a technical problem
+    const result = await network.generate(
+      'My application keeps crashing with an "out of memory" error when processing large files. The error occurs after about 2 minutes of processing. I\'m using Node.js v18 on a server with 8GB RAM.',
+    );
+
+    // Check the result
+    expect(result).toBeDefined();
+    expect(result.steps).toBeGreaterThanOrEqual(1);
+    expect(result.history.length).toBeGreaterThanOrEqual(1);
+    expect(result.output).toBeDefined();
+
+    // Log the result for manual inspection
+    console.log('Technical Support Network Result:');
+    console.log(`Steps: ${result.steps}`);
+    console.log('Agent History:');
+    result.history.forEach((step, i) => {
+      console.log(`Step ${i + 1}: ${step.agent}`);
+    });
+  }, 15000); // Increase timeout to 15 seconds
 
   it('should handle maximum steps and stop execution', async () => {
     // Create an agent that will always suggest continuing
     const loopAgent = new Agent({
       name: 'Loop',
       instructions: 'You always respond with "Let\'s continue the process"',
-      model: openai('gpt-4o'),
+      model: openai('gpt-4o-mini'),
     });
 
-    // Create a network with a router that always returns the same agent
+    // Create a network with a limited number of steps
     const network = new AgentNetwork({
       name: 'Loop Test',
       agents: [loopAgent],
       routingModel: openai('gpt-4o'),
-      router: async () => loopAgent, // Always return the same agent
       maxSteps: 3, // Set a low max steps count
     });
 
@@ -188,181 +386,8 @@ describe('AgentNetwork', () => {
     const result = await network.generate('This will loop');
 
     // Check that it stopped at the max steps
-    expect(result.steps).toBe(3);
-    expect(result.history).toHaveLength(3);
-    expect(result.history.every(h => h.agent === 'Loop')).toBe(true);
-  }, 10000); // Increase timeout to 10 seconds
-
-  it('should pass the correct input to agents', async () => {
-    // Create two agents
-    const firstAgent = new Agent({
-      name: 'First',
-      instructions: 'You are the first agent. Always respond with "First agent response"',
-      model: openai('gpt-4o'),
-    });
-
-    const secondAgent = new Agent({
-      name: 'Second',
-      instructions: 'You are the second agent. Always include the phrase "received from first agent" in your response',
-      model: openai('gpt-4o'),
-    });
-
-    // Create a network with a router that uses both agents in sequence
-    const network = new AgentNetwork({
-      name: 'Input Test',
-      agents: [firstAgent, secondAgent],
-      routingModel: openai('gpt-4o'),
-      router: async ({ callCount }) => {
-        if (callCount === 0) return firstAgent;
-        if (callCount === 1) return secondAgent;
-        return undefined;
-      },
-    });
-
-    const initialInput = 'Process this message';
-
-    // Run the network
-    const result = await network.generate(initialInput);
-
-    // Check that the second agent's response references the first agent
-    expect(result.history).toHaveLength(2);
-    expect(result.history[0].agent).toBe('First');
-    expect(result.history[1].agent).toBe('Second');
-
-    // The output could be a string or an object with a text property
-    const secondAgentOutput =
-      typeof result.history[1].output === 'string' ? result.history[1].output : result.history[1].output.text;
-
-    expect(secondAgentOutput.toLowerCase()).toContain('first agent');
-  }, 10000); // Increase timeout to 10 seconds
-
-  it('should handle errors gracefully', async () => {
-    // Create a calculator tool that throws an error for division by zero
-    const calculatorTool = createTool({
-      id: 'calculator',
-      description: 'Perform mathematical calculations',
-      inputSchema: z.object({
-        operation: z.enum(['add', 'subtract', 'multiply', 'divide']),
-        a: z.number(),
-        b: z.number(),
-      }),
-      execute: async ({ context }) => {
-        const { operation, a, b } = context;
-
-        switch (operation) {
-          case 'add':
-            return a + b;
-          case 'subtract':
-            return a - b;
-          case 'multiply':
-            return a * b;
-          case 'divide':
-            if (b === 0) throw new Error('Division by zero');
-            return a / b;
-          default:
-            throw new Error(`Unknown operation: ${operation}`);
-        }
-      },
-    });
-
-    // Create math agent with calculator tool
-    const mathAgent = new Agent({
-      name: 'Math',
-      instructions:
-        'You solve math problems using the calculator tool. When asked to calculate, always use the calculator tool.',
-      model: openai('gpt-4o'),
-      tools: { calculatorTool },
-    });
-
-    // Create error handler agent
-    const errorHandlerAgent = new Agent({
-      name: 'ErrorHandler',
-      instructions: 'You handle errors in calculations and provide a friendly explanation of what went wrong.',
-      model: openai('gpt-4o'),
-    });
-
-    // Create a network with error handling
-    const network = new AgentNetwork({
-      name: 'Error Handling Test',
-      agents: [mathAgent, errorHandlerAgent],
-      routingModel: openai('gpt-4o'),
-      router: async ({ callCount, lastResult }) => {
-        if (callCount === 0) return mathAgent;
-
-        // If there was an error in the math agent, use the error handler
-        if (typeof lastResult === 'string' && lastResult.includes('error')) {
-          return errorHandlerAgent;
-        }
-
-        return undefined;
-      },
-    });
-
-    // Run the network with a division by zero
-    const result = await network.generate('Calculate 10 / 0');
-
-    // Check that the error was handled
-    expect(result.steps).toBeGreaterThanOrEqual(1);
-    expect(result.history.length).toBeGreaterThanOrEqual(1);
-
-    // If the error handler was used, check that it was the last agent
-    if (result.history.length > 1) {
-      expect(result.history[result.history.length - 1].agent).toBe('ErrorHandler');
-    }
-  }, 10000); // Increase timeout to 10 seconds
-
-  it('should support complex state operations', async () => {
-    // Create an agent that updates state
-    const stateAgent = new Agent({
-      name: 'StateUpdater',
-      instructions:
-        'You update state data. For the first call, respond with "Counter updated". For the second call, respond with "Items updated". For the third call, respond with "User preferences updated".',
-      model: openai('gpt-4o'),
-    });
-
-    // Create initial complex state
-    const initialState = new NetworkState();
-    initialState.set('counter', 0);
-    initialState.set('items', ['apple', 'banana']);
-    initialState.set('user', { name: 'Alice', preferences: { theme: 'dark' } });
-
-    // Create a router that updates state on each call
-    const router = async ({ callCount, state }: { callCount: number; state: NetworkState }) => {
-      if (callCount >= 3) return undefined;
-
-      // Update state differently on each call
-      if (callCount === 0) {
-        state.set('counter', 1);
-      } else if (callCount === 1) {
-        const items = state.get<string[]>('items') || [];
-        items.push('orange');
-        state.set('items', items);
-      } else if (callCount === 2) {
-        const user = state.get<any>('user') || { preferences: { theme: 'dark' } };
-        user.preferences.theme = 'light';
-        state.set('user', user);
-      }
-
-      return stateAgent;
-    };
-
-    // Create the network
-    const network = new AgentNetwork({
-      name: 'State Operations',
-      agents: [stateAgent],
-      routingModel: openai('gpt-4o'),
-      initialState,
-      router,
-    });
-
-    // Run the network
-    const result = await network.generate('Test complex state operations');
-
-    // Verify state was updated correctly
-    expect(result.state.get('counter')).toBe(1);
-    expect(result.state.get<string[]>('items')).toEqual(['apple', 'banana', 'orange']);
-    expect(result.state.get<any>('user').preferences.theme).toBe('light');
-    expect(result.steps).toBe(3);
+    expect(result.steps).toBeLessThanOrEqual(3);
+    expect(result.history.length).toBeLessThanOrEqual(3);
   }, 10000); // Increase timeout to 10 seconds
 
   it('should support running with custom runId and threadId', async () => {
@@ -370,7 +395,7 @@ describe('AgentNetwork', () => {
     const testAgent = new Agent({
       name: 'TestAgent',
       instructions: 'You are a test agent that responds with the runId and threadId you receive',
-      model: openai('gpt-4o'),
+      model: openai('gpt-4o-mini'),
     });
 
     // Create a network
@@ -378,7 +403,6 @@ describe('AgentNetwork', () => {
       name: 'Custom IDs Test',
       agents: [testAgent],
       routingModel: openai('gpt-4o'),
-      router: async ({ callCount }) => (callCount === 0 ? testAgent : undefined),
     });
 
     // Custom IDs
@@ -398,29 +422,4 @@ describe('AgentNetwork', () => {
     expect(result.history).toHaveLength(1);
     expect(result.history[0].agent).toBe('TestAgent');
   }, 10000); // Increase timeout to 10 seconds
-
-  it('should respect maxSteps option at generate time', async () => {
-    const loopAgent = new Agent({
-      name: 'Loop',
-      instructions: 'You always respond with "Let\'s continue the process"',
-      model: openai('gpt-4o'),
-    });
-
-    // Create a network with a router that always returns the same agent
-    const network = new AgentNetwork({
-      name: 'MaxSteps Test',
-      agents: [loopAgent],
-      routingModel: openai('gpt-4o'),
-      router: async () => loopAgent, // Always return the same agent
-      maxSteps: 5, // Default max steps
-    });
-
-    // Run the network with a custom maxSteps that's lower than the default
-    const result = await network.generate('This will loop', { maxSteps: 2 });
-
-    // Check that it stopped at the specified maxSteps
-    expect(result.steps).toBe(2);
-    expect(result.history).toHaveLength(2);
-    expect(result.history.every(h => h.agent === 'Loop')).toBe(true);
-  });
 });

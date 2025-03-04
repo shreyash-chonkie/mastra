@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { Agent } from '../agent';
 import { AgentNetwork } from './network';
-import { NetworkState } from './state';
 
 config();
 
@@ -32,16 +31,11 @@ describe('AgentNetwork Streaming', () => {
         model: openai('gpt-4o'),
       });
 
-      // Create a network with a custom router that always uses searchAgent first, then summaryAgent
+      // Create a network with a LLM-based router
       const network = new AgentNetwork({
         name: 'Research Assistant',
         agents: [searchAgent, summaryAgent],
         routingModel: openai('gpt-4o'),
-        router: async ({ callCount }) => {
-          if (callCount === 0) return searchAgent;
-          if (callCount === 1) return summaryAgent;
-          return undefined; // Done after two calls
-        },
         maxSteps: 3, // Limit to 3 steps to be safe
       });
 
@@ -134,12 +128,11 @@ describe('AgentNetwork Streaming', () => {
         model: openai('gpt-4o'),
       });
 
-      // Create a network with a router that always returns the same agent (to create a loop)
+      // Create a network with a LLM-based router
       const network = new AgentNetwork({
         name: 'Looping Network',
         agents: [loopAgent],
         routingModel: openai('gpt-4o'),
-        router: async () => loopAgent, // Always return the same agent to create a loop
         maxSteps: 5, // Default max steps
       });
 
@@ -176,7 +169,7 @@ describe('AgentNetwork Streaming', () => {
         model: openai('gpt-4o'),
       });
 
-      // Create a network with a router that uses the error agent
+      // Create a network with a LLM-based router
       const network = new AgentNetwork({
         name: 'Error Network',
         agents: [errorAgent],

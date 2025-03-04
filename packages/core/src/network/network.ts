@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import type { LanguageModelV1, CoreMessage } from 'ai';
+import type { LanguageModelV1, CoreMessage, GenerateTextResult } from 'ai';
 import type { JSONSchema7 } from 'json-schema';
 import type { ZodSchema } from 'zod';
 import { Agent } from '../agent';
@@ -12,7 +12,6 @@ import { InstrumentClass } from '../telemetry';
 import type {
   NetworkConfig,
   NetworkResult,
-  NetworkRunOptions,
   NetworkOptions,
   RouterFunction,
   RouterState,
@@ -50,13 +49,7 @@ export class AgentNetwork<TAgents extends Agent[] = Agent[]> extends MastraBase 
     // Create LLM for routing decisions
     this.llm = new MastraLLM({ model: config.routingModel, mastra: config.mastra });
 
-    // Set up router function
-    if (config.router) {
-      this.router = config.router;
-    } else {
-      // Default router uses the LLM to decide which agent to use
-      this.router = this.createDefaultRouter();
-    }
+    this.router = this.createDefaultRouter();
 
     // Register primitives if provided
     if (config.mastra) {
@@ -105,6 +98,7 @@ If another agent should be called, respond with the agent's name exactly as list
 `;
 
       const result = await this.llm.generate(prompt);
+      console.log('LLM Result:', result.text);
       const content = result.text.trim();
 
       if (content === 'DONE') {
@@ -114,19 +108,6 @@ If another agent should be called, respond with the agent's name exactly as list
       // Find the agent with the matching name
       return this.agents.find(agent => agent.name === content);
     };
-  }
-
-  /**
-   * Run the network with the given input
-   * @deprecated Use generate() instead
-   */
-  async run(options: NetworkRunOptions): Promise<NetworkResult> {
-    return this.generate(options.input, {
-      runId: options.runId,
-      resourceId: options.resourceId,
-      threadId: options.threadId,
-      initialState: options.initialState,
-    });
   }
 
   /**
@@ -201,25 +182,29 @@ If another agent should be called, respond with the agent's name exactly as list
         }
 
         // Run the agent
-        let agentResult;
+        let agentResult: string = '';
 
         try {
           // If input is a CoreMessage[] array, pass it directly
-          if (Array.isArray(agentInput) && agentInput.length > 0 && 'role' in agentInput[0]) {
-            agentResult = await nextAgent.generate(agentInput, {
-              runId,
-              resourceId,
-              threadId,
-            });
+          if (Array.isArray(agentInput) && agentInput.length > 0 && agentInput?.[0] && 'role' in agentInput[0]) {
+            agentResult = (
+              await nextAgent.generate(agentInput, {
+                runId,
+                resourceId,
+                threadId,
+              })
+            ).text;
           } else {
             // Otherwise, convert to string if needed
             const stringInput = typeof agentInput === 'string' ? agentInput : JSON.stringify(agentInput);
 
-            agentResult = await nextAgent.generate(stringInput, {
-              runId,
-              resourceId,
-              threadId,
-            });
+            agentResult = (
+              await nextAgent.generate(stringInput, {
+                runId,
+                resourceId,
+                threadId,
+              })
+            ).text;
           }
         } catch (error) {
           this.logger.error(`Error in agent execution`, {
@@ -229,8 +214,10 @@ If another agent should be called, respond with the agent's name exactly as list
             error,
           });
 
-          // Convert the error to a string result so we can continue
-          agentResult = `Error: ${error.message || 'Unknown error in agent execution'}`;
+          if (error instanceof Error) {
+            // Convert the error to a string result so we can continue
+            agentResult = `Error: ${error.message || 'Unknown error in agent execution'}`;
+          }
         }
 
         // Store result
@@ -495,7 +482,7 @@ If another agent should be called, respond with the agent's name exactly as list
 
         try {
           // If input is a CoreMessage[] array, pass it directly
-          if (Array.isArray(agentInput) && agentInput.length > 0 && 'role' in agentInput[0]) {
+          if (Array.isArray(agentInput) && agentInput.length > 0 && agentInput?.[0] && 'role' in agentInput[0]) {
             // Use stream instead of generate to get real-time updates
             const streamResult = await nextAgent.stream(agentInput, {
               runId,
@@ -546,16 +533,18 @@ If another agent should be called, respond with the agent's name exactly as list
             error,
           });
 
-          // Write the error to the stream
-          writer.write({
-            type: 'error',
-            agent: nextAgent.name,
-            error: error.message || 'Unknown error in agent execution',
-            step: callCount,
-          });
+          if (error instanceof Error) {
+            // Write the error to the stream
+            writer.write({
+              type: 'error',
+              agent: nextAgent.name,
+              error: error.message || 'Unknown error in agent execution',
+              step: callCount,
+            });
 
-          // Convert the error to a string result so we can continue
-          agentResult = `Error: ${error.message || 'Unknown error in agent execution'}`;
+            // Convert the error to a string result so we can continue
+            agentResult = `Error: ${error.message || 'Unknown error in agent execution'}`;
+          }
         }
 
         // Store result
