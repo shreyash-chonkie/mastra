@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import type { LanguageModelV1, CoreMessage, GenerateTextResult } from 'ai';
+import type { LanguageModelV1, CoreMessage } from 'ai';
 import type { JSONSchema7 } from 'json-schema';
 import type { ZodSchema } from 'zod';
 import { Agent } from '../agent';
@@ -430,12 +430,20 @@ If another agent should be called, respond with the agent's name exactly as list
           });
 
           // Write the final result to the stream
-          writer.write({
-            type: 'complete',
-            text: lastResult,
-            steps: callCount,
-            history,
-          });
+          writer
+            .write({
+              type: 'complete',
+              text: lastResult,
+              steps: callCount,
+              history,
+            })
+            .catch(error => {
+              this.logger.error(`Error writing final result to stream`, {
+                networkName: this.name,
+                runId,
+                error: error.message,
+              });
+            });
 
           break;
         }
@@ -453,11 +461,19 @@ If another agent should be called, respond with the agent's name exactly as list
         }
 
         // Write the step start to the stream
-        writer.write({
-          type: 'stepStart',
-          agent: nextAgent.name,
-          step: callCount,
-        });
+        writer
+          .write({
+            type: 'stepStart',
+            agent: nextAgent.name,
+            step: callCount,
+          })
+          .catch(error => {
+            this.logger.error(`Error writing final result to stream`, {
+              networkName: this.name,
+              runId,
+              error: error.message,
+            });
+          });
 
         // Prepare input for the agent
         let agentInput: string | CoreMessage[];
@@ -492,12 +508,20 @@ If another agent should be called, respond with the agent's name exactly as list
 
             // Forward the agent's stream chunks to our stream
             for await (const chunk of streamResult.textStream) {
-              writer.write({
-                type: 'agentChunk',
-                agent: nextAgent.name,
-                chunk,
-                step: callCount,
-              });
+              writer
+                .write({
+                  type: 'agentChunk',
+                  agent: nextAgent.name,
+                  chunk,
+                  step: callCount,
+                })
+                .catch(error => {
+                  this.logger.error(`Error writing final result to stream`, {
+                    networkName: this.name,
+                    runId,
+                    error: error.message,
+                  });
+                });
             }
 
             // Get the final result
@@ -514,12 +538,20 @@ If another agent should be called, respond with the agent's name exactly as list
 
             // Forward the agent's stream chunks to our stream
             for await (const chunk of streamResult.textStream) {
-              writer.write({
-                type: 'agentChunk',
-                agent: nextAgent.name,
-                chunk,
-                step: callCount,
-              });
+              writer
+                .write({
+                  type: 'agentChunk',
+                  agent: nextAgent.name,
+                  chunk,
+                  step: callCount,
+                })
+                .catch(error => {
+                  this.logger.error(`Error writing final result to stream`, {
+                    networkName: this.name,
+                    runId,
+                    error: error.message,
+                  });
+                });
             }
 
             // Get the final result
