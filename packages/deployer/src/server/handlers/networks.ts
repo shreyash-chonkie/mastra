@@ -10,7 +10,7 @@ export async function getNetworksHandler(c: Context) {
     const mastra: Mastra = c.get('mastra');
     const networks = mastra.getNetworks();
 
-    const serializedNetworks = Object.entries(networks).reduce<any>((acc, [_id, _network]) => {
+    const serializedNetworks = Object.entries(networks).reduce<Record<string, any>>((acc, [_id, _network]) => {
       const network = _network as any;
       acc[_id] = {
         name: network.routingAgent.name,
@@ -24,6 +24,7 @@ export async function getNetworksHandler(c: Context) {
           provider: network.routingAgent.llm?.getProvider(),
           modelId: network.routingAgent.llm?.getModelId(),
         },
+        state: network.getState()?.state.toObject() || {},
       };
       return acc;
     }, {});
@@ -45,9 +46,11 @@ export async function getNetworkByIdHandler(c: Context) {
     }
 
     const serializedNetwork = {
-      name: network.name,
-      agents: network.agents.map((agent: any) => ({
+      name: network.routingAgent.name,
+      instructions: network.routingAgent.instructions,
+      agents: network.agents.map(agent => ({
         name: agent.name,
+        instructions: agent.instructions,
         provider: agent.llm?.getProvider(),
         modelId: agent.llm?.getModelId(),
       })),
@@ -55,6 +58,7 @@ export async function getNetworkByIdHandler(c: Context) {
         provider: network.routingAgent.llm?.getProvider(),
         modelId: network.routingAgent.llm?.getModelId(),
       },
+      state: network.getState()?.state.toObject() || {},
     };
 
     return c.json(serializedNetwork);
@@ -98,7 +102,7 @@ export async function streamGenerateHandler(c: Context): Promise<Response | unde
     const network = mastra.getNetwork(networkId);
 
     if (!network) {
-      throw new HTTPException(404, { message: 'Network not found' });
+      throw new HTTPException(404, { message: 'Agent not found' });
     }
 
     const { messages, threadId, resourceid, resourceId, output, runId, ...rest } = await c.req.json();

@@ -61,15 +61,8 @@ export interface GetNetworkResponse {
     provider: string;
     modelId: string;
   };
+  state?: Record<string, any>;
 }
-
-export type NetworkGenerateParams = {
-  input: string | CoreMessage[];
-};
-
-export type NetworkStreamParams = {
-  input: string | CoreMessage[];
-};
 
 export interface GetEvalsByAgentIdResponse extends GetAgentResponse {
   evals: any[];

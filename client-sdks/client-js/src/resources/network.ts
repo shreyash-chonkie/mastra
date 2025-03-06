@@ -1,5 +1,9 @@
-import type { ClientOptions, GetNetworkResponse, NetworkGenerateParams, NetworkStreamParams } from '../types';
+import type { ClientOptions, GenerateParams, GetNetworkResponse, StreamParams } from '../types';
 import { BaseResource } from './base';
+import type { GenerateReturn } from '@mastra/core';
+import type { JSONSchema7 } from 'json-schema';
+import { ZodSchema } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
 export class Network extends BaseResource {
   constructor(
@@ -22,12 +26,21 @@ export class Network extends BaseResource {
    * @param params - Parameters for generation including input
    * @returns Promise containing the generated response
    */
-  generate(params: NetworkGenerateParams): Promise<any> {
+  generate<T extends JSONSchema7 | ZodSchema | undefined = undefined>(
+    params: GenerateParams<T>,
+  ): Promise<GenerateReturn<T>> {
+    const processedParams = {
+      ...params,
+      output: params.output instanceof ZodSchema ? zodToJsonSchema(params.output) : params.output,
+      experimental_output:
+        params.experimental_output instanceof ZodSchema
+          ? zodToJsonSchema(params.experimental_output)
+          : params.experimental_output,
+    };
+
     return this.request(`/api/networks/${this.networkId}/generate`, {
       method: 'POST',
-      body: {
-        input: params.input,
-      },
+      body: processedParams,
     });
   }
 
@@ -36,51 +49,20 @@ export class Network extends BaseResource {
    * @param params - Parameters for streaming including input
    * @returns ReadableStream of network response chunks
    */
-  async stream(params: NetworkStreamParams): Promise<ReadableStream> {
-    const response = await this.request<Response>(`/api/networks/${this.networkId}/stream`, {
+  async stream<T extends JSONSchema7 | ZodSchema | undefined = undefined>(params: StreamParams<T>): Promise<Response> {
+    const processedParams = {
+      ...params,
+      output: params.output instanceof ZodSchema ? zodToJsonSchema(params.output) : params.output,
+      experimental_output:
+        params.experimental_output instanceof ZodSchema
+          ? zodToJsonSchema(params.experimental_output)
+          : params.experimental_output,
+    };
+
+    return await this.request<Response>(`/api/networks/${this.networkId}/stream`, {
       method: 'POST',
-      body: {
-        input: params.input,
-      },
+      body: processedParams,
       stream: true,
     });
-
-    return response.body as ReadableStream;
-  }
-
-  /**
-   * Creates a stream reader for network responses
-   * @param params - Parameters for streaming including input
-   * @returns AsyncGenerator yielding network response chunks
-   */
-  async *streamReader(params: NetworkStreamParams): AsyncGenerator<any, void, unknown> {
-    const stream = await this.stream(params);
-    const reader = stream.getReader();
-
-    const decoder = new TextDecoder();
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk
-          .split('\n')
-          .filter(Boolean)
-          .map(line => {
-            try {
-              return JSON.parse(line);
-            } catch (e) {
-              return line;
-            }
-          });
-
-        for (const line of lines) {
-          yield line;
-        }
-      }
-    } finally {
-      reader.releaseLock();
-    }
   }
 }

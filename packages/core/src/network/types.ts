@@ -1,5 +1,4 @@
 import type { CoreMessage, LanguageModelV1, TelemetrySettings } from 'ai';
-import type { MastraPrimitives } from '../action';
 import type { Agent } from '../agent';
 import type { NetworkState } from './state';
 

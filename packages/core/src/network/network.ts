@@ -30,6 +30,7 @@ export class AgentNetwork extends MastraBase {
   model: LanguageModelV1;
   current_state?: CurrentNetworkState;
   instructions?: string;
+  routingAgent: Agent;
 
   constructor(config: NetworkConfig) {
     super({ component: 'AGENT', name: 'NETWORK' });
@@ -37,6 +38,12 @@ export class AgentNetwork extends MastraBase {
     this.agents = config.agents;
     this.model = config.routingModel;
     this.instructions = config.instructions;
+
+    this.routingAgent = new Agent({
+      name: config.name,
+      instructions: this.getInstructions(),
+      model: this.model,
+    });
   }
 
   setCurrentState(state: CurrentNetworkState) {
@@ -79,7 +86,7 @@ export class AgentNetwork extends MastraBase {
         `;
   }
 
-  async buildRouter() {
+  buildNetworkTools() {
     // Define the tool type for better type safety
     type AgentTool = ReturnType<typeof createTool>;
 
@@ -125,9 +132,9 @@ export class AgentNetwork extends MastraBase {
               // Store the result in the state object as well with a timestamp
               const timestamp = new Date().toISOString();
               this.current_state.state.set(agentId, {
-                __result: result.text,
-                _timestamp: timestamp,
-                _input: agentContext,
+                result: result.text,
+                timestamp: timestamp,
+                input: agentContext,
               });
               this.logger.debug(
                 `Updated network state [agent=${agentId}] [callCount=${this.current_state.callCount}] [timestamp=${timestamp}]`,
@@ -148,98 +155,88 @@ export class AgentNetwork extends MastraBase {
     );
 
     // Create the router agent with the tools
-    return new Agent({
-      name: 'Router',
-      model: this.model,
-      instructions: this.getInstructions(),
-      tools: {
-        ...agentAsTools,
-        getNetworkState: createTool({
-          id: 'getNetworkState',
-          description: 'Get the current state of the agent network, including previous agent results and call history',
-          inputSchema: z.object({}),
-          outputSchema: z.object({
-            state: z.object({
-              callCount: z.number(),
-              lastResult: z.any(),
-              input: z.string(),
-              agentResults: z.record(z.string()),
-              agentHistory: z.array(
-                z.object({
-                  agent: z.string(),
-                  input: z.string(),
-                  result: z.string(),
-                  timestamp: z.string(),
-                }),
-              ),
-              stateData: z.record(z.unknown()),
-            }),
+    return {
+      ...agentAsTools,
+      getNetworkState: createTool({
+        id: 'getNetworkState',
+        description: 'Get the current state of the agent network, including previous agent results and call history',
+        inputSchema: z.object({}),
+        outputSchema: z.object({
+          state: z.object({
+            callCount: z.number(),
+            lastResult: z.any(),
+            input: z.string(),
+            agentResults: z.record(z.string()),
+            agentHistory: z.array(
+              z.object({
+                agent: z.string(),
+                input: z.string(),
+                result: z.string(),
+                timestamp: z.string(),
+              }),
+            ),
+            stateData: z.record(z.unknown()),
           }),
-          execute: async () => {
-            this.logger.info('Querying Network State');
-
-            // Return the current network state in a structured format
-            const stateObj = this.current_state?.state.toObject() || {};
-
-            // Create a more structured representation of agent results
-            const agentResults: Record<string, string> = {};
-            const agentHistory: Array<{ agent: string; input: string; result: string; timestamp: string }> = [];
-
-            // Group related agent data (results, timestamps, inputs)
-            const agentIds = new Set<string>();
-
-            // First, identify all unique agent IDs
-            for (const key in stateObj) {
-              if (key.endsWith('_result')) {
-                const agentId = key.replace('_result', '');
-                agentIds.add(agentId);
-              }
-            }
-
-            // Then collect all data for each agent
-            for (const agentId of agentIds) {
-              const result = stateObj[`${agentId}_result`];
-              const timestamp = stateObj[`${agentId}_timestamp`];
-              const input = stateObj[`${agentId}_input`];
-
-              if (result) {
-                // Add to the results object
-                agentResults[`${agentId}_result`] = result;
-
-                // Add to the chronological history
-                agentHistory.push({
-                  agent: agentId,
-                  input: input || '',
-                  result,
-                  timestamp: timestamp || new Date().toISOString(),
-                });
-              }
-            }
-
-            // Sort history by timestamp
-            agentHistory.sort((a, b) => {
-              return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-            });
-
-            const callCount = this.current_state?.callCount || 0;
-            this.logger.info(
-              `Network state retrieved [callCount=${callCount}] [agentCount=${agentIds.size}] [historyLength=${agentHistory.length}]`,
-            );
-
-            return {
-              state: {
-                callCount: this.current_state?.callCount || 0,
-                lastResult: this.current_state?.lastResult || '',
-                input: this.current_state?.input || '',
-                agentResults,
-                agentHistory,
-                stateData: stateObj,
-              },
-            };
-          },
         }),
-      },
-    });
+        execute: async () => {
+          this.logger.info('Querying Network State');
+
+          // Return the current network state in a structured format
+          const stateObj = this.current_state?.state.toObject() || {};
+
+          // Create a more structured representation of agent results
+          const agentResults: Record<string, string> = {};
+          const agentHistory: Array<{ agent: string; input: string; result: string; timestamp: string }> = [];
+
+          // Group related agent data (results, timestamps, inputs)
+          const agentIds = new Set<string>();
+
+          // First, identify all unique agent IDs
+          for (const key in stateObj) {
+            agentIds.add(key);
+          }
+
+          // Then collect all data for each agent
+          for (const agentId of agentIds) {
+            const result = stateObj[`${agentId}`];
+
+            if (result) {
+              // Add to the results object
+              agentResults[`${agentId}`] = result;
+
+              // Add to the chronological history
+              agentHistory.push({
+                agent: agentId,
+                input: result.input || '',
+                result: result.result || '',
+                timestamp: result.timestamp || new Date().toISOString(),
+              });
+            }
+          }
+
+          // Sort history by timestamp
+          agentHistory.sort((a, b) => {
+            return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+          });
+
+          const callCount = this.current_state?.callCount || 0;
+          this.logger.info(
+            `Network state retrieved [callCount=${callCount}] [agentCount=${agentIds.size}] [historyLength=${agentHistory.length}]`,
+          );
+
+          return {
+            state: {
+              callCount: this.current_state?.callCount || 0,
+              lastResult: this.current_state?.lastResult || '',
+              input: this.current_state?.input || '',
+              agentResults,
+              agentHistory,
+              stateData: stateObj,
+            },
+          };
+        },
+      }),
+    };
   }
 
   async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
@@ -270,14 +267,19 @@ export class AgentNetwork extends MastraBase {
         });
       }
 
-      // Build router with current state
-      const router = await this.buildRouter();
-
-      // Get response from router - pass options directly without modification
-      const result = await router.generate(messages, {
+      const ops = {
         maxSteps: this.agents?.length * 10,
         ...args,
-      } as AgentGenerateOptions<Z> & { output?: never; experimental_output?: never });
+        toolsets: {
+          routing: this.buildNetworkTools(),
+        },
+      };
+
+      // Get response from router - pass options directly without modification
+      const result = await this.routingAgent.generate(
+        messages,
+        ops as AgentGenerateOptions<Z> & { output?: never; experimental_output?: never },
+      );
 
       // Update state with the result
       if (this.current_state) {
@@ -320,14 +322,19 @@ export class AgentNetwork extends MastraBase {
         });
       }
 
-      // Build router with current state
-      const router = await this.buildRouter();
-
-      // Get streaming response from router - pass options directly without modification
-      const streamResult = await router.stream(messages, {
+      const ops = {
         maxSteps: this.agents?.length * 10,
         ...args,
-      } as AgentStreamOptions<Z> & { output?: never; experimental_output?: never });
+        toolsets: {
+          routing: this.buildNetworkTools(),
+        },
+      };
+
+      // Get streaming response from router - pass options directly without modification
+      const streamResult = await this.routingAgent.stream(
+        messages,
+        ops as AgentStreamOptions<Z> & { output?: never; experimental_output?: never },
+      );
 
       // Update state (note: we can't access the full text yet as it's streaming)
       if (this.current_state) {
