@@ -1,10 +1,7 @@
-import { Agent } from '../agent';
-import type { CoreMessage, LanguageModelV1, StreamObjectResult, StreamTextResult, TelemetrySettings } from 'ai';
-import type { JSONSchema7 } from 'json-schema';
-import type { ZodSchema } from 'zod';
+import type { CoreMessage, LanguageModelV1, TelemetrySettings } from 'ai';
 import type { MastraPrimitives } from '../action';
+import type { Agent } from '../agent';
 import type { NetworkState } from './state';
-import type { AgentNetwork } from './network';
 
 /**
  * Configuration for creating a Network
@@ -37,9 +34,9 @@ export interface NetworkConfig<TAgents extends Agent[] = Agent[]> {
   initialState?: NetworkState;
 
   /**
-   * Optional Mastra primitives for telemetry, logging, etc.
+   * Instructions for the router
    */
-  mastra?: MastraPrimitives;
+  instructions?: string;
 }
 
 /**

@@ -7,7 +7,6 @@ import type { Handler } from './mitt';
 export enum AvailableHooks {
   ON_EVALUATION = 'onEvaluation',
   ON_GENERATION = 'onGeneration',
-  BEFORE_NETWORK_RUN = 'beforeNetworkRun',
 }
 
 const hooks = mitt();
@@ -41,8 +40,6 @@ export function registerHook(hook: `${AvailableHooks}`, action: Handler<any>): v
 
 export function executeHook(hook: AvailableHooks.ON_EVALUATION, action: EvaluationHookData): void;
 export function executeHook(hook: AvailableHooks.ON_GENERATION, action: GenerationHookData): void;
-export function executeHook(hook: AvailableHooks.BEFORE_NETWORK_RUN, action: { network: Network }): void;
-
 export function executeHook(hook: `${AvailableHooks}`, data: unknown): void {
   // do not block the main thread
   setImmediate(() => {

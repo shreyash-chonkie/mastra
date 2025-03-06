@@ -1,605 +1,360 @@
-import { randomUUID } from 'crypto';
-import type { LanguageModelV1, CoreMessage } from 'ai';
-import { createDataStream } from 'ai';
-import type { JSONSchema7 } from 'json-schema';
-import type { ZodSchema } from 'zod';
-import { Agent } from '../agent';
-import { MastraBase } from '../base';
-import type { MastraLLMBase } from '../llm/model/base';
-import { MastraLLM } from '../llm/model/model';
-import { RegisteredLogger } from '../logger';
-import { InstrumentClass } from '../telemetry';
-
 import type {
-  NetworkConfig,
-  NetworkResult,
-  NetworkOptions,
-  RouterFunction,
-  RouterState,
-  NetworkStreamOptions,
-  NetworkStreamResult,
-  NetworkStepResult,
-} from './types';
+  CoreMessage,
+  GenerateObjectResult,
+  GenerateTextResult,
+  LanguageModelV1,
+  StreamObjectResult,
+  StreamTextResult,
+} from 'ai';
+import type { JSONSchema7 } from 'json-schema';
+import { z } from 'zod';
+import type { ZodSchema } from 'zod';
+import type { MastraPrimitives } from '../action';
+import { Agent } from '../agent';
+import type { AgentGenerateOptions, AgentStreamOptions } from '../agent/types';
+import { MastraBase } from '../base';
+import { createTool } from '../tools';
 import { NetworkState } from './state';
+import type { NetworkConfig } from './types';
 
-/**
- * AgentNetwork class for orchestrating multiple agents
- */
-@InstrumentClass({
-  prefix: 'network',
-  excludeMethods: ['__setLogger', '__setTelemetry'],
-})
-export class AgentNetwork<TAgents extends Agent[] = Agent[]> extends MastraBase {
-  public name: string;
-  public agents: TAgents;
-  private routingModel: LanguageModelV1;
-  private router: RouterFunction<TAgents>;
-  private defaultMaxSteps: number;
-  private initialState: NetworkState;
-  private llm: MastraLLMBase;
+interface CurrentNetworkState {
+  state: NetworkState;
+  lastResult: string;
+  callCount: number;
+  input: string;
+}
 
-  constructor(config: NetworkConfig<TAgents>) {
-    super({ component: RegisteredLogger.AGENT, name: config.name });
+export class AgentNetwork extends MastraBase {
+  state: NetworkState;
+  agents: Agent[];
+  model: LanguageModelV1;
+  current_state?: CurrentNetworkState;
+  instructions?: string;
 
-    this.name = config.name;
+  constructor(config: NetworkConfig) {
+    super({ component: 'AGENT', name: 'NETWORK' });
+    this.state = config.initialState || new NetworkState({});
     this.agents = config.agents;
-    this.routingModel = config.routingModel;
-    this.defaultMaxSteps = config.maxSteps || 10; // Default to 10 steps max
-    this.initialState = config.initialState || new NetworkState();
-
-    // Create LLM for routing decisions
-    this.llm = new MastraLLM({ model: config.routingModel, mastra: config.mastra });
-
-    this.router = this.createDefaultRouter();
-
-    // Register primitives if provided
-    if (config.mastra) {
-      if (config.mastra.logger) {
-        this.__setLogger(config.mastra.logger);
-      }
-      if (config.mastra.telemetry) {
-        this.__setTelemetry(config.mastra.telemetry);
-      }
-    }
+    this.model = config.routingModel;
+    this.instructions = config.instructions;
   }
 
-  /**
-   * Create a default router that uses the LLM to decide which agent to run next
-   */
-  private createDefaultRouter(): RouterFunction<TAgents> {
-    return async (routerState: RouterState) => {
-      // If this is the first call, use the first agent
-      if (routerState.callCount === 0) {
-        return this.agents[0];
-      }
-
-      // Use LLM to decide which agent to use next or if we're done
-      const agentDescriptions = this.agents.map(agent => ({
-        name: agent.name,
-        description: agent.instructions,
-      }));
-
-      const prompt = `
-You are a router in a network of specialized agents. Your job is to decide which agent should handle the next step or if the task is complete.
-
-Available agents:
-${agentDescriptions.map(a => `- ${a.name}: ${a.description}`).join('\n')}
-
-Current state:
-${JSON.stringify(routerState.state.toObject(), null, 2)}
-
-Last result:
-${JSON.stringify(routerState.lastResult, null, 2)}
-
-Call count: ${routerState.callCount}
-
-Based on the above information, decide which agent should be called next or if the task is complete.
-If the task is complete, respond with "DONE".
-If another agent should be called, respond with the agent's name exactly as listed above.
-`;
-
-      const result = await this.llm.generate(prompt);
-      console.log('LLM Result:', result.text);
-      const content = result.text.trim();
-
-      if (content === 'DONE') {
-        return undefined;
-      }
-
-      // Find the agent with the matching name
-      return this.agents.find(agent => agent.name === content);
-    };
+  setCurrentState(state: CurrentNetworkState) {
+    this.current_state = state;
   }
 
-  /**
-   * Generate a response from the network with the given input
-   * @param input - Input prompt or message to start the network with
-   * @param options - Optional parameters for the network run
-   */
-  async generate(input: string | CoreMessage[], options: NetworkOptions = {}): Promise<NetworkResult> {
-    const runId = options.runId || randomUUID();
-    const resourceId = options.resourceId || randomUUID();
-    const threadId = options.threadId || randomUUID();
-    const state = options.initialState || this.initialState.clone();
-    const maxSteps = options.maxSteps !== undefined ? options.maxSteps : this.defaultMaxSteps;
-
-    let callCount = 0;
-    let lastResult: any = null;
-    const history: NetworkResult['history'] = [];
-
-    this.logger.info(`Starting network run`, {
-      networkName: this.name,
-      runId,
-      threadId,
-    });
-
-    try {
-      // Main execution loop
-      while (callCount < maxSteps) {
-        // Create router state
-        const routerState: RouterState = {
-          state,
-          lastResult,
-          callCount,
-          input,
-        };
-
-        // Get next agent from router
-        const nextAgent = await this.router(routerState);
-
-        // If no agent is returned, we're done
-        if (!nextAgent) {
-          this.logger.info(`Network run complete - router returned no agent`, {
-            networkName: this.name,
-            runId,
-            steps: callCount,
-          });
-          break;
-        }
-
-        this.logger.info(`Running agent in network`, {
-          networkName: this.name,
-          agentName: nextAgent.name,
-          runId,
-          step: callCount,
-        });
-
-        // Prepare input for the agent
-        let agentInput: string | CoreMessage[];
-
-        if (callCount === 0) {
-          // For the first call, use the original input
-          agentInput = input;
-        } else {
-          // For subsequent calls, include the previous result
-          const inputContent =
-            typeof input === 'string'
-              ? input
-              : Array.isArray(input)
-                ? input.map(m => m.content).join('\n')
-                : String(input);
-
-          agentInput = `Previous result: ${JSON.stringify(lastResult)}\n\nCurrent task: ${inputContent}`;
-        }
-
-        // Run the agent
-        let agentResult: string = '';
-
-        try {
-          // If input is a CoreMessage[] array, pass it directly
-          if (Array.isArray(agentInput) && agentInput.length > 0 && agentInput?.[0] && 'role' in agentInput[0]) {
-            agentResult = (
-              await nextAgent.generate(agentInput, {
-                runId,
-                resourceId,
-                threadId,
-              })
-            ).text;
-          } else {
-            // Otherwise, convert to string if needed
-            const stringInput = typeof agentInput === 'string' ? agentInput : JSON.stringify(agentInput);
-
-            agentResult = (
-              await nextAgent.generate(stringInput, {
-                runId,
-                resourceId,
-                threadId,
-              })
-            ).text;
-          }
-        } catch (error) {
-          this.logger.error(`Error in agent execution`, {
-            networkName: this.name,
-            agentName: nextAgent.name,
-            runId,
-            error,
-          });
-
-          if (error instanceof Error) {
-            // Convert the error to a string result so we can continue
-            agentResult = `Error: ${error.message || 'Unknown error in agent execution'}`;
-          }
-        }
-
-        // Store result
-        lastResult = agentResult;
-
-        // Update state with agent result
-        state.update({
-          [`agent_${nextAgent.name}_result`]: agentResult,
-          lastResult: agentResult,
-          lastAgent: nextAgent.name,
-        });
-
-        // Add to history
-        history.push({
-          agent: nextAgent.name,
-          input: agentInput,
-          output: agentResult,
-          timestamp: Date.now(),
-        });
-
-        // Increment call count
-        callCount++;
-      }
-
-      // If we reached max steps, log a warning
-      if (callCount >= maxSteps) {
-        this.logger.warn(`Network run reached maximum steps`, {
-          networkName: this.name,
-          runId,
-          maxSteps,
-        });
-      }
-
-      return {
-        state,
-        output: lastResult,
-        steps: callCount,
-        history,
-      };
-    } catch (error) {
-      this.logger.error(`Error in network run`, {
-        networkName: this.name,
-        runId,
-        error,
-      });
-
-      throw error;
-    }
+  getState() {
+    return this.current_state;
   }
 
-  /**
-   * Stream a response from the network with the given input
-   * @param input - Input prompt or message to start the network with
-   * @param options - Optional parameters for the network stream
-   */
-  public stream(input: string | CoreMessage[], options: NetworkStreamOptions = {}): NetworkStreamResult {
-    const {
-      runId = randomUUID(),
-      resourceId = randomUUID(),
-      threadId = randomUUID(),
-      maxSteps = options.maxSteps ?? this.defaultMaxSteps,
-      onStepStart,
-      onStepFinish,
-    } = options;
+  getInstructions() {
+    const agentDescriptions = this.agents.map(agent => ({
+      name: agent.name,
+      description: agent.instructions,
+    }));
 
-    // Create a data stream for the network execution
-    const stream = createDataStream({
-      execute: async dataStream => {
-        try {
-          // Initialize network state
-          const state = new NetworkState();
+    return `
+            You are a router in a network of specialized agents. Your job is to decide which agent should handle the next step or if the task is complete.
 
-          // Execute the network with streaming
-          const result = await this.executeNetworkWithStream(input, {
-            runId,
-            resourceId,
-            threadId,
-            state,
-            maxSteps,
-            onStepStart,
-            onStepFinish,
-            dataStream,
-          });
+            Available agents as tool calls:
+            ${agentDescriptions.map(a => `- ${a.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`).join('\n')}
 
-          return result.output;
-        } catch (error) {
-          this.logger.error(`Error in network stream`, {
-            networkName: this.name,
-            runId,
-            error,
-          });
+            ${this.instructions}
 
-          throw error;
-        }
-      },
-      onError: error => {
-        this.logger.error(`Error in network stream`, {
-          networkName: this.name,
-          runId,
-          error,
-        });
-
-        return `Error: ${error instanceof Error ? error.message : 'Unknown error in network execution'}`;
-      },
-    });
-
-    return {
-      textStream: stream,
-      text: stream.text(),
-    };
+            Based on the above information, decide which agent should be called next or if the task is complete.
+            
+            WORKFLOW:
+            1. ALWAYS start by using the getNetworkState tool to check the current state of the network, including any previous agent results
+            2. Assess the current state and determine if you need to call an agent or if the task is complete
+            3. If you need to call an agent, execute the agent as a tool call with the appropriate message
+               - Include relevant information from previous agent results in your message to the next agent
+               - Make sure to pass along important context from the original query
+            4. IMMEDIATELY after receiving the agent's response, use getNetworkState again to see the updated network state
+               - This step is MANDATORY - you must check the state after EACH agent call
+            5. Assess if the task is now complete or if another agent needs to be called
+            6. If the task is complete, provide a final comprehensive answer based on all the information gathered from the agents
+            7. If another agent is needed, execute that agent as a tool call
+            
+            IMPORTANT: You MUST call getNetworkState before and after EVERY agent call. This ensures each agent has access to the results of previous agents.
+        `;
   }
 
-  /**
-   * Execute the network with streaming updates
-   * @private
-   */
-  private async executeNetworkWithStream(
-    input: string | CoreMessage[],
-    options: {
-      runId: string;
-      resourceId: string;
-      threadId: string;
-      state: NetworkState;
-      maxSteps: number;
-      onStepStart?: (agent: Agent, step: number) => void;
-      onStepFinish?: (result: NetworkStepResult) => void;
-      dataStream: {
-        writeData: (data: any) => Promise<void> | void;
-        error: (error: Error) => void;
-      };
-    },
-  ): Promise<NetworkResult> {
-    const { runId, resourceId, threadId, state, maxSteps, onStepStart, onStepFinish, dataStream } = options;
+  async buildRouter() {
+    // Define the tool type for better type safety
+    type AgentTool = ReturnType<typeof createTool>;
 
-    let callCount = 0;
-    let lastResult: any = null;
-    const history: NetworkResult['history'] = [];
+    // Create tools from agents with state tracking
+    const agentAsTools = this.agents.reduce<Record<string, AgentTool>>(
+      (memo, agent) => {
+        // Sanitize agent name to ensure it only contains alphanumeric characters, underscores, and hyphens
+        const agentId = agent.name.replace(/[^a-zA-Z0-9_-]/g, '_');
 
-    this.logger.info(`Starting network stream`, {
-      networkName: this.name,
-      runId,
-      threadId,
-    });
+        memo[agentId] = createTool({
+          id: agentId,
+          description: `${agent.name}`,
+          inputSchema: z.object({ message: z.string() }),
+          outputSchema: z.object({ message: z.string() }),
+          execute: async ({ context }) => {
+            this.logger.info(`Executing agent [name=${agent.name}] [id=${agentId}] [context=${context.message}]`);
 
-    try {
-      // Main execution loop
-      while (callCount < maxSteps) {
-        // Create router state
-        const routerState: RouterState = {
-          state,
-          lastResult,
-          callCount,
-          input,
-        };
+            // Prepare agent context with any relevant state information
+            let agentContext = context.message;
 
-        // Get next agent from router
-        const nextAgent = await this.router(routerState);
-
-        // If no agent is returned, we're done
-        if (!nextAgent) {
-          this.logger.info(`Network stream complete - router returned no agent`, {
-            networkName: this.name,
-            runId,
-            steps: callCount,
-          });
-
-          // Write the final result to the stream
-          await dataStream.writeData({
-            type: 'complete',
-            text: lastResult,
-            steps: callCount,
-            history,
-          });
-
-          break;
-        }
-
-        this.logger.info(`Running agent in network stream`, {
-          networkName: this.name,
-          agentName: nextAgent.name,
-          runId,
-          step: callCount,
-        });
-
-        // Notify that a step is starting
-        if (onStepStart) {
-          onStepStart(nextAgent, callCount);
-        }
-
-        // Write the step start to the stream
-        await dataStream.writeData({
-          type: 'stepStart',
-          agent: nextAgent.name,
-          step: callCount,
-        });
-
-        // Prepare input for the agent
-        let agentInput: string | CoreMessage[];
-
-        if (callCount === 0) {
-          // For the first call, use the original input
-          agentInput = input;
-        } else {
-          // For subsequent calls, include the previous result
-          const inputContent =
-            typeof input === 'string'
-              ? input
-              : Array.isArray(input)
-                ? input.map(m => (typeof m.content === 'string' ? m.content : JSON.stringify(m.content))).join('\n')
-                : String(input);
-
-          agentInput = `Previous result: ${JSON.stringify(lastResult)}\n\nCurrent task: ${inputContent}`;
-        }
-
-        // Run the agent
-        let agentResult;
-
-        try {
-          // Create a data stream for the agent step
-          const agentStep = createDataStream({
-            execute: async agentDataStream => {
-              // If input is a CoreMessage[] array, pass it directly
-              if (Array.isArray(agentInput) && agentInput.length > 0 && agentInput?.[0] && 'role' in agentInput[0]) {
-                // Use stream instead of generate to get real-time updates
-                const streamResult = await nextAgent.stream(agentInput, {
-                  runId,
-                  resourceId,
-                  threadId,
-                });
-
-                agentDataStream.merge(streamResult);
-
-                // Forward the agent's stream chunks to our stream
-                for await (const chunk of streamResult.textStream) {
-                  const chunkData = {
-                    type: 'agentChunk',
-                    agent: nextAgent.name,
-                    chunk,
-                    step: callCount,
-                  };
-
-                  dataStream.writeData(chunkData);
-                  // Also write to the agent data stream
-                  agentDataStream.writeData(chunk);
-                }
-
-                return await streamResult.text;
-              } else {
-                // Otherwise, convert to string if needed and stream
-                const stringInput = typeof agentInput === 'string' ? agentInput : JSON.stringify(agentInput);
-
-                const streamResult = await nextAgent.stream(stringInput, {
-                  runId,
-                  resourceId,
-                  threadId,
-                });
-
-                // Forward the agent's stream chunks to our stream
-                for await (const chunk of streamResult.textStream) {
-                  const chunkData = {
-                    type: 'agentChunk',
-                    agent: nextAgent.name,
-                    chunk,
-                    step: callCount,
-                  };
-
-                  dataStream.writeData(chunkData);
-                  // Also write to the agent data stream
-                  agentDataStream.writeData(chunk);
-                }
-
-                return await streamResult.text;
-              }
-            },
-            onError: error => {
-              // This is called when the execute function throws an error
-              return `Error: ${error instanceof Error ? error.message : 'Unknown error in agent execution'}`;
-            },
-          });
-
-          // Get the final result from the agent data stream
-          const reader = agentStep.getReader();
-          let agentResultText = '';
-
-          // Read all chunks from the stream
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            // Accumulate the text
-            if (typeof value === 'string') {
-              agentResultText += value;
+            // If this isn't the first agent call, we might want to include previous results
+            if (this.current_state && this.current_state.callCount > 0) {
+              // Log that we're passing context from previous agents
+              this.logger.debug(`Passing context from previous agents to ${agent.name}`);
             }
-          }
 
-          agentResult = agentResultText;
-        } catch (error) {
-          this.logger.error(`Error in agent execution during stream`, {
-            networkName: this.name,
-            agentName: nextAgent.name,
-            runId,
-            error,
-          });
+            // Generate response from the agent
+            const startTime = Date.now();
 
-          // Convert the error to a string result so we can continue
-          agentResult = `Error: ${error instanceof Error ? error.message : 'Unknown error in agent execution'}`;
-        }
+            const result = await agent.generate(agentContext, {
+              context: this.current_state?.lastResult
+                ? [{ role: 'assistant', content: this.current_state?.lastResult }]
+                : [],
+            });
 
-        // Store result
-        lastResult = agentResult;
+            const duration = Date.now() - startTime;
 
-        // Update state with agent result
-        state.update({
-          [`agent_${nextAgent.name}_result`]: agentResult,
-          lastResult: agentResult,
-          lastAgent: nextAgent.name,
+            // Update network state with this agent's result
+            if (this.current_state) {
+              this.current_state.lastResult = result.text;
+              this.current_state.callCount += 1;
+
+              // Store the result in the state object as well with a timestamp
+              const timestamp = new Date().toISOString();
+              this.current_state.state.set(agentId, {
+                __result: result.text,
+                _timestamp: timestamp,
+                _input: agentContext,
+              });
+              this.logger.debug(
+                `Updated network state [agent=${agentId}] [callCount=${this.current_state.callCount}] [timestamp=${timestamp}]`,
+              );
+            }
+
+            // Log a preview of the result
+            const resultPreview = result.text.length > 100 ? `${result.text.substring(0, 100)}...` : result.text;
+            this.logger.debug(
+              `Agent response [name=${agent.name}] [duration=${duration}ms] [preview=${resultPreview}]`,
+            );
+            return { message: result.text };
+          },
         });
+        return memo;
+      },
+      {} as Record<string, AgentTool>,
+    );
 
-        // Create the step result
-        const stepResult: NetworkStepResult = {
-          agent: nextAgent.name,
-          input: agentInput,
-          output: agentResult,
-          timestamp: Date.now(),
-          step: callCount,
-          state: state.clone(),
-        };
+    // Create the router agent with the tools
+    return new Agent({
+      name: 'Router',
+      model: this.model,
+      instructions: this.getInstructions(),
+      tools: {
+        ...agentAsTools,
+        getNetworkState: createTool({
+          id: 'getNetworkState',
+          description: 'Get the current state of the agent network, including previous agent results and call history',
+          inputSchema: z.object({}),
+          outputSchema: z.object({
+            state: z.object({
+              callCount: z.number(),
+              lastResult: z.any(),
+              input: z.string(),
+              agentResults: z.record(z.string()),
+              agentHistory: z.array(
+                z.object({
+                  agent: z.string(),
+                  input: z.string(),
+                  result: z.string(),
+                  timestamp: z.string(),
+                }),
+              ),
+              stateData: z.record(z.unknown()),
+            }),
+          }),
+          execute: async () => {
+            this.logger.info('Querying Network State');
 
-        // Add to history
-        history.push({
-          agent: nextAgent.name,
-          input: agentInput,
-          output: agentResult,
-          timestamp: Date.now(),
+            // Return the current network state in a structured format
+            const stateObj = this.current_state?.state.toObject() || {};
+
+            // Create a more structured representation of agent results
+            const agentResults: Record<string, string> = {};
+            const agentHistory: Array<{ agent: string; input: string; result: string; timestamp: string }> = [];
+
+            // Group related agent data (results, timestamps, inputs)
+            const agentIds = new Set<string>();
+
+            // First, identify all unique agent IDs
+            for (const key in stateObj) {
+              if (key.endsWith('_result')) {
+                const agentId = key.replace('_result', '');
+                agentIds.add(agentId);
+              }
+            }
+
+            // Then collect all data for each agent
+            for (const agentId of agentIds) {
+              const result = stateObj[`${agentId}_result`];
+              const timestamp = stateObj[`${agentId}_timestamp`];
+              const input = stateObj[`${agentId}_input`];
+
+              if (result) {
+                // Add to the results object
+                agentResults[`${agentId}_result`] = result;
+
+                // Add to the chronological history
+                agentHistory.push({
+                  agent: agentId,
+                  input: input || '',
+                  result,
+                  timestamp: timestamp || new Date().toISOString(),
+                });
+              }
+            }
+
+            // Sort history by timestamp
+            agentHistory.sort((a, b) => {
+              return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+            });
+
+            const callCount = this.current_state?.callCount || 0;
+            this.logger.info(
+              `Network state retrieved [callCount=${callCount}] [agentCount=${agentIds.size}] [historyLength=${agentHistory.length}]`,
+            );
+
+            return {
+              state: {
+                callCount: this.current_state?.callCount || 0,
+                lastResult: this.current_state?.lastResult || '',
+                input: this.current_state?.input || '',
+                agentResults,
+                agentHistory,
+                stateData: stateObj,
+              },
+            };
+          },
+        }),
+      },
+    });
+  }
+
+  async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
+    messages: string | string[] | CoreMessage[],
+    args?: AgentGenerateOptions<Z> & { output?: never; experimental_output?: never },
+  ): Promise<GenerateTextResult<any, Z extends ZodSchema ? z.infer<Z> : unknown>>;
+  async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
+    messages: string | string[] | CoreMessage[],
+    args?: AgentGenerateOptions<Z> &
+      ({ output: Z; experimental_output?: never } | { experimental_output: Z; output?: never }),
+  ): Promise<GenerateObjectResult<Z extends ZodSchema ? z.infer<Z> : unknown>>;
+  async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
+    messages: string | string[] | CoreMessage[],
+    args?: AgentGenerateOptions<Z> &
+      ({ output?: Z; experimental_output?: never } | { experimental_output?: Z; output?: never }),
+  ): Promise<
+    | GenerateTextResult<any, Z extends ZodSchema ? z.infer<Z> : unknown>
+    | GenerateObjectResult<Z extends ZodSchema ? z.infer<Z> : unknown>
+  > {
+    try {
+      // Initialize state if not already set
+      if (!this.current_state) {
+        this.setCurrentState({
+          state: new NetworkState({}),
+          lastResult: '',
+          callCount: 0,
+          input: typeof messages === 'string' ? messages : JSON.stringify(messages),
         });
-
-        // Write the step finish to the stream
-        await dataStream.writeData({
-          type: 'stepFinish',
-          result: stepResult,
-        });
-
-        // Notify that a step is finished
-        if (onStepFinish) {
-          onStepFinish(stepResult);
-        }
-
-        // Increment call count
-        callCount++;
       }
 
-      // If we reached max steps, log a warning
-      if (callCount >= maxSteps) {
-        this.logger.warn(`Network stream reached maximum steps`, {
-          networkName: this.name,
-          runId,
-          maxSteps,
-        });
+      // Build router with current state
+      const router = await this.buildRouter();
 
-        // Write the max steps warning to the stream
-        await dataStream.writeData({
-          type: 'warning',
-          message: `Network reached maximum steps (${maxSteps})`,
+      // Get response from router - pass options directly without modification
+      const result = await router.generate(
+        messages,
+        args as AgentGenerateOptions<Z> & { output?: never; experimental_output?: never },
+      );
+
+      // Update state with the result
+      if (this.current_state) {
+        this.current_state.lastResult = result.text;
+        this.current_state.callCount += 1;
+      }
+
+      return result;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  }
+
+  async stream<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
+    messages: string | string[] | CoreMessage[],
+    args?: AgentStreamOptions<Z> & { output?: never; experimental_output?: never },
+  ): Promise<StreamTextResult<any, Z extends ZodSchema ? z.infer<Z> : unknown>>;
+  async stream<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
+    messages: string | string[] | CoreMessage[],
+    args?: AgentStreamOptions<Z> &
+      ({ output: Z; experimental_output?: never } | { experimental_output: Z; output?: never }),
+  ): Promise<StreamObjectResult<any, Z extends ZodSchema ? z.infer<Z> : unknown, any>>;
+  async stream<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
+    messages: string | string[] | CoreMessage[],
+    args?: AgentStreamOptions<Z> &
+      ({ output?: Z; experimental_output?: never } | { experimental_output?: Z; output?: never }),
+  ): Promise<
+    | StreamTextResult<any, Z extends ZodSchema ? z.infer<Z> : unknown>
+    | StreamObjectResult<any, Z extends ZodSchema ? z.infer<Z> : unknown, any>
+  > {
+    try {
+      // Initialize state if not already set
+      if (!this.current_state) {
+        this.setCurrentState({
+          state: new NetworkState({}),
+          lastResult: '',
+          callCount: 0,
+          input: typeof messages === 'string' ? messages : JSON.stringify(messages),
         });
       }
 
-      // Return the final result
-      return {
-        state,
-        output: lastResult,
-        steps: callCount,
-        history,
-      };
-    } catch (error) {
-      this.logger.error(`Error in network stream execution`, {
-        networkName: this.name,
-        runId,
-        error,
-      });
+      // Build router with current state
+      const router = await this.buildRouter();
 
-      throw error;
+      // Get streaming response from router - pass options directly without modification
+      const streamResult = await router.stream(
+        messages,
+        args as AgentStreamOptions<Z> & { output?: never; experimental_output?: never },
+      );
+
+      // Update state (note: we can't access the full text yet as it's streaming)
+      if (this.current_state) {
+        this.current_state.callCount += 1;
+      }
+
+      return streamResult;
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  }
+
+  __registerPrimitives(p: MastraPrimitives) {
+    if (p.telemetry) {
+      this.__setTelemetry(p.telemetry);
+    }
+
+    if (p.logger) {
+      this.__setLogger(p.logger);
+    }
+
+    // Register primitives for each agent in the network
+    for (const agent of this.agents) {
+      if (typeof agent.__registerPrimitives === 'function') {
+        agent.__registerPrimitives(p);
+      }
     }
   }
 }
