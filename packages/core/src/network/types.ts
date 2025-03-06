@@ -104,10 +104,9 @@ export interface NetworkOptions {
 /**
  * Network options for stream method
  */
-export interface NetworkStreamOptions<Z extends ZodSchema | JSONSchema7 | undefined = undefined>
-  extends NetworkOptions {
+export interface NetworkStreamOptions extends NetworkOptions {
   /**
-   * Optional callback function that is called when a step is finished
+   * Optional callback function that is called when a step is starting
    */
   onStepStart?: (agent: Agent, step: number) => void;
 
@@ -115,16 +114,6 @@ export interface NetworkStreamOptions<Z extends ZodSchema | JSONSchema7 | undefi
    * Optional callback function that is called when a step is finished
    */
   onStepFinish?: (result: NetworkStepResult) => void;
-
-  /**
-   * Optional callback function that is called when the entire network run is finished
-   */
-  onFinish?: (result: NetworkResult) => void;
-
-  /**
-   * Optional structured output schema
-   */
-  output?: Z;
 
   /**
    * Optional telemetry settings
@@ -232,10 +221,17 @@ export interface NetworkResult {
 /**
  * Network stream result type
  */
-export type NetworkStreamResult<Z extends ZodSchema | JSONSchema7 | undefined = undefined> = {
-  stream: ReadableStream<any>;
-  done: () => Promise<string>;
-};
+export interface NetworkStreamResult {
+  /**
+   * Stream of text chunks from the network execution
+   */
+  textStream: ReadableStream<string>;
+
+  /**
+   * Promise that resolves to the final text result
+   */
+  text: Promise<string>;
+}
 
 /**
  * Available hook types for network events

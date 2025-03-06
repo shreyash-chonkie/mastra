@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import type { LanguageModelV1, CoreMessage } from 'ai';
+import { createDataStream } from 'ai';
 import type { JSONSchema7 } from 'json-schema';
 import type { ZodSchema } from 'zod';
 import { Agent } from '../agent';
@@ -273,109 +274,61 @@ If another agent should be called, respond with the agent's name exactly as list
    * @param input - Input prompt or message to start the network with
    * @param options - Optional parameters for the network stream
    */
-  async stream<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
-    input: string | CoreMessage[],
-    options: NetworkStreamOptions<Z> = {},
-  ): Promise<NetworkStreamResult<Z>> {
-    const runId = options.runId || randomUUID();
-    const resourceId = options.resourceId || randomUUID();
-    const threadId = options.threadId || randomUUID();
-    const state = options.initialState || this.initialState.clone();
-    const maxSteps = options.maxSteps !== undefined ? options.maxSteps : this.defaultMaxSteps;
-    const { onStepStart, onStepFinish, onFinish } = options;
-
-    // Create a readable stream for the network execution
-    const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
-
-    // Store chunks for the done method
-    const storedChunks: any[] = [];
-
-    // Create a transformed readable stream that stores chunks
-    const { readable: transformedReadable, writable: transformedWritable } = new TransformStream({
-      transform(chunk, controller) {
-        // Store the chunk
-        storedChunks.push(chunk);
-        // Pass it through
-        controller.enqueue(chunk);
-      },
-    });
-
-    // Pipe the original readable to the transformed writable
-    readable.pipeTo(transformedWritable).catch(error => {
-      console.error('Error piping stream:', error);
-    });
-
-    // Start the network execution in the background
-    this.executeNetworkWithStream(input, {
-      runId,
-      resourceId,
-      threadId,
-      state,
-      maxSteps,
+  public stream(input: string | CoreMessage[], options: NetworkStreamOptions = {}): NetworkStreamResult {
+    const {
+      runId = randomUUID(),
+      resourceId = randomUUID(),
+      threadId = randomUUID(),
+      maxSteps = options.maxSteps ?? this.defaultMaxSteps,
       onStepStart,
       onStepFinish,
-      writer,
-    })
-      .then(result => {
-        // When the network execution is complete, call the onFinish callback
-        if (onFinish) {
-          onFinish(result);
-        }
+    } = options;
 
-        // Close the stream
-        writer.close();
-      })
-      .catch(error => {
+    // Create a data stream for the network execution
+    const stream = createDataStream({
+      execute: async dataStream => {
+        try {
+          // Initialize network state
+          const state = new NetworkState();
+
+          // Execute the network with streaming
+          const result = await this.executeNetworkWithStream(input, {
+            runId,
+            resourceId,
+            threadId,
+            state,
+            maxSteps,
+            onStepStart,
+            onStepFinish,
+            dataStream,
+          });
+
+          return result.output;
+        } catch (error) {
+          this.logger.error(`Error in network stream`, {
+            networkName: this.name,
+            runId,
+            error,
+          });
+
+          throw error;
+        }
+      },
+      onError: error => {
         this.logger.error(`Error in network stream`, {
           networkName: this.name,
           runId,
           error,
         });
 
-        // Write the error to the stream and close it
-        writer.write({ type: 'error', error: error.message || 'Unknown error' });
-        writer.close();
-      });
-
-    // Return the stream result
-    return {
-      stream: transformedReadable,
-      // Add the done method to get the final result
-      done: async () => {
-        // Wait a short time to ensure all chunks are processed
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        console.log('Stored chunks:', storedChunks.length);
-
-        // Return the final result (the last complete chunk or empty string)
-        const completeChunks = storedChunks.filter(chunk => chunk.type === 'complete');
-        if (completeChunks.length > 0) {
-          const lastCompleteChunk = completeChunks[completeChunks.length - 1];
-          return lastCompleteChunk.text || '';
-        }
-
-        // If no complete chunks, try to extract text from the last step finish event
-        const stepFinishChunks = storedChunks.filter(chunk => chunk.type === 'stepFinish');
-        if (stepFinishChunks.length > 0) {
-          const lastStepFinish = stepFinishChunks[stepFinishChunks.length - 1];
-          return lastStepFinish.result?.output || '';
-        }
-
-        // If no complete or step finish chunks, concatenate all agent chunks
-        const agentChunks = storedChunks.filter(chunk => chunk.type === 'agentChunk');
-        if (agentChunks.length > 0) {
-          // Get the last agent's chunks
-          const lastAgent = agentChunks[agentChunks.length - 1].agent;
-          const lastAgentChunks = agentChunks.filter(chunk => chunk.agent === lastAgent);
-
-          // Concatenate all chunks from the last agent
-          return lastAgentChunks.map(chunk => chunk.chunk).join('');
-        }
-
-        return '';
+        return `Error: ${error instanceof Error ? error.message : 'Unknown error in network execution'}`;
       },
-    } as NetworkStreamResult<Z>;
+    });
+
+    return {
+      textStream: stream,
+      text: stream.text(),
+    };
   }
 
   /**
@@ -392,10 +345,13 @@ If another agent should be called, respond with the agent's name exactly as list
       maxSteps: number;
       onStepStart?: (agent: Agent, step: number) => void;
       onStepFinish?: (result: NetworkStepResult) => void;
-      writer: WritableStreamDefaultWriter<any>;
+      dataStream: {
+        writeData: (data: any) => Promise<void> | void;
+        error: (error: Error) => void;
+      };
     },
   ): Promise<NetworkResult> {
-    const { runId, resourceId, threadId, state, maxSteps, onStepStart, onStepFinish, writer } = options;
+    const { runId, resourceId, threadId, state, maxSteps, onStepStart, onStepFinish, dataStream } = options;
 
     let callCount = 0;
     let lastResult: any = null;
@@ -430,20 +386,12 @@ If another agent should be called, respond with the agent's name exactly as list
           });
 
           // Write the final result to the stream
-          writer
-            .write({
-              type: 'complete',
-              text: lastResult,
-              steps: callCount,
-              history,
-            })
-            .catch(error => {
-              this.logger.error(`Error writing final result to stream`, {
-                networkName: this.name,
-                runId,
-                error: error.message,
-              });
-            });
+          await dataStream.writeData({
+            type: 'complete',
+            text: lastResult,
+            steps: callCount,
+            history,
+          });
 
           break;
         }
@@ -461,19 +409,11 @@ If another agent should be called, respond with the agent's name exactly as list
         }
 
         // Write the step start to the stream
-        writer
-          .write({
-            type: 'stepStart',
-            agent: nextAgent.name,
-            step: callCount,
-          })
-          .catch(error => {
-            this.logger.error(`Error writing final result to stream`, {
-              networkName: this.name,
-              runId,
-              error: error.message,
-            });
-          });
+        await dataStream.writeData({
+          type: 'stepStart',
+          agent: nextAgent.name,
+          step: callCount,
+        });
 
         // Prepare input for the agent
         let agentInput: string | CoreMessage[];
@@ -497,66 +437,84 @@ If another agent should be called, respond with the agent's name exactly as list
         let agentResult;
 
         try {
-          // If input is a CoreMessage[] array, pass it directly
-          if (Array.isArray(agentInput) && agentInput.length > 0 && agentInput?.[0] && 'role' in agentInput[0]) {
-            // Use stream instead of generate to get real-time updates
-            const streamResult = await nextAgent.stream(agentInput, {
-              runId,
-              resourceId,
-              threadId,
-            });
-
-            // Forward the agent's stream chunks to our stream
-            for await (const chunk of streamResult.textStream) {
-              writer
-                .write({
-                  type: 'agentChunk',
-                  agent: nextAgent.name,
-                  chunk,
-                  step: callCount,
-                })
-                .catch(error => {
-                  this.logger.error(`Error writing final result to stream`, {
-                    networkName: this.name,
-                    runId,
-                    error: error.message,
-                  });
+          // Create a data stream for the agent step
+          const agentStep = createDataStream({
+            execute: async agentDataStream => {
+              // If input is a CoreMessage[] array, pass it directly
+              if (Array.isArray(agentInput) && agentInput.length > 0 && agentInput?.[0] && 'role' in agentInput[0]) {
+                // Use stream instead of generate to get real-time updates
+                const streamResult = await nextAgent.stream(agentInput, {
+                  runId,
+                  resourceId,
+                  threadId,
                 });
-            }
 
-            // Get the final result
-            agentResult = await streamResult.text;
-          } else {
-            // Otherwise, convert to string if needed and stream
-            const stringInput = typeof agentInput === 'string' ? agentInput : JSON.stringify(agentInput);
+                agentDataStream.merge(streamResult);
 
-            const streamResult = await nextAgent.stream(stringInput, {
-              runId,
-              resourceId,
-              threadId,
-            });
+                // Forward the agent's stream chunks to our stream
+                for await (const chunk of streamResult.textStream) {
+                  const chunkData = {
+                    type: 'agentChunk',
+                    agent: nextAgent.name,
+                    chunk,
+                    step: callCount,
+                  };
 
-            // Forward the agent's stream chunks to our stream
-            for await (const chunk of streamResult.textStream) {
-              writer
-                .write({
-                  type: 'agentChunk',
-                  agent: nextAgent.name,
-                  chunk,
-                  step: callCount,
-                })
-                .catch(error => {
-                  this.logger.error(`Error writing final result to stream`, {
-                    networkName: this.name,
-                    runId,
-                    error: error.message,
-                  });
+                  dataStream.writeData(chunkData);
+                  // Also write to the agent data stream
+                  agentDataStream.writeData(chunk);
+                }
+
+                return await streamResult.text;
+              } else {
+                // Otherwise, convert to string if needed and stream
+                const stringInput = typeof agentInput === 'string' ? agentInput : JSON.stringify(agentInput);
+
+                const streamResult = await nextAgent.stream(stringInput, {
+                  runId,
+                  resourceId,
+                  threadId,
                 });
-            }
 
-            // Get the final result
-            agentResult = await streamResult.text;
+                // Forward the agent's stream chunks to our stream
+                for await (const chunk of streamResult.textStream) {
+                  const chunkData = {
+                    type: 'agentChunk',
+                    agent: nextAgent.name,
+                    chunk,
+                    step: callCount,
+                  };
+
+                  dataStream.writeData(chunkData);
+                  // Also write to the agent data stream
+                  agentDataStream.writeData(chunk);
+                }
+
+                return await streamResult.text;
+              }
+            },
+            onError: error => {
+              // This is called when the execute function throws an error
+              return `Error: ${error instanceof Error ? error.message : 'Unknown error in agent execution'}`;
+            },
+          });
+
+          // Get the final result from the agent data stream
+          const reader = agentStep.getReader();
+          let agentResultText = '';
+
+          // Read all chunks from the stream
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            // Accumulate the text
+            if (typeof value === 'string') {
+              agentResultText += value;
+            }
           }
+
+          agentResult = agentResultText;
         } catch (error) {
           this.logger.error(`Error in agent execution during stream`, {
             networkName: this.name,
@@ -565,18 +523,8 @@ If another agent should be called, respond with the agent's name exactly as list
             error,
           });
 
-          if (error instanceof Error) {
-            // Write the error to the stream
-            writer.write({
-              type: 'error',
-              agent: nextAgent.name,
-              error: error.message || 'Unknown error in agent execution',
-              step: callCount,
-            });
-
-            // Convert the error to a string result so we can continue
-            agentResult = `Error: ${error.message || 'Unknown error in agent execution'}`;
-          }
+          // Convert the error to a string result so we can continue
+          agentResult = `Error: ${error instanceof Error ? error.message : 'Unknown error in agent execution'}`;
         }
 
         // Store result
@@ -608,7 +556,7 @@ If another agent should be called, respond with the agent's name exactly as list
         });
 
         // Write the step finish to the stream
-        writer.write({
+        await dataStream.writeData({
           type: 'stepFinish',
           result: stepResult,
         });
@@ -631,7 +579,7 @@ If another agent should be called, respond with the agent's name exactly as list
         });
 
         // Write the max steps warning to the stream
-        writer.write({
+        await dataStream.writeData({
           type: 'warning',
           message: `Network reached maximum steps (${maxSteps})`,
         });
