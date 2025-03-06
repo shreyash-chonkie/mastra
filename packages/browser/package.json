@@ -1,9 +1,12 @@
 {
-  "name": "browser",
-  "version": "1.0.0",
+  "name": "@mastra/browser",
+  "version": "0.0.0",
   "description": "",
   "type": "module",
   "main": "index.js",
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "lint": "eslint .",
     "build": "del-cli dist && pnpm build:browser && pnpm build:node",
@@ -30,11 +33,11 @@
   "license": "ISC",
   "packageManager": "pnpm@10.4.1",
   "dependencies": {
-    "@mastra/core": "workspace:*"
+    "@mastra/core": "workspace:*",
+    "zod": "^3.24.2"
   },
   "peerDependencies": {
-    "playwright": "^1.49.0",
-    "zod": "^3.23.8"
+    "playwright": "^1.49.0"
   },
   "devDependencies": {
     "@internal/lint": "workspace:*",
@@ -45,7 +48,6 @@
     "get-xpath": "^3.3.0",
     "playwright": "^1.49.1",
     "tsup": "^8.4.0",
-    "typescript": "^5.7.3",
-    "zod": "^3.24.2"
+    "typescript": "^5.7.3"
   }
 }

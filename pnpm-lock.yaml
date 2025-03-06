@@ -1263,6 +1263,28 @@ importers:
         specifier: ^5.7.3
         version: 5.7.3
 
+  examples/browser:
+    dependencies:
+      '@ai-sdk/openai':
+        specifier: ^1.2.1
+        version: 1.2.1(zod@3.24.2)
+      '@mastra/browser':
+        specifier: workspace:^
+        version: link:../../packages/browser
+      '@mastra/core':
+        specifier: workspace:^
+        version: link:../../packages/core
+      playwright:
+        specifier: ^1.49.1
+        version: 1.50.1
+      zod:
+        specifier: ^3.24.2
+        version: 3.24.2
+    devDependencies:
+      mastra:
+        specifier: workspace:^
+        version: link:../../packages/cli
+
   examples/crypto-chatbot:
     dependencies:
       '@ai-sdk/openai':
@@ -2536,6 +2558,9 @@ importers:
       '@mastra/core':
         specifier: workspace:*
         version: link:../core
+      zod:
+        specifier: ^3.24.2
+        version: 3.24.2
     devDependencies:
       '@internal/lint':
         specifier: workspace:*
@@ -2543,6 +2568,9 @@ importers:
       '@microsoft/api-extractor':
         specifier: ^7.49.2
         version: 7.50.0(@types/node@22.13.5)
+      ai:
+        specifier: ^4.1.54
+        version: 4.1.54(react@19.0.0)(zod@3.24.2)
       del-cli:
         specifier: ^6.0.0
         version: 6.0.0
@@ -2561,9 +2589,6 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.7.3
-      zod:
-        specifier: ^3.24.2
-        version: 3.24.2
 
   packages/cli:
     dependencies:
