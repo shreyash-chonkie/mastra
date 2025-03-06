@@ -23,6 +23,7 @@ export function MastraRuntimeProvider({
   memory,
   threadId,
   baseUrl,
+  type = 'agent',
   refreshThreadList,
 }: Readonly<{
   children: ReactNode;
@@ -53,17 +54,33 @@ export function MastraRuntimeProvider({
     setIsRunning(true);
 
     try {
-      const agent = mastra.getAgent(agentId);
-      const response = await agent.stream({
-        messages: [
-          {
-            role: 'user',
-            content: input,
-          },
-        ],
-        runId: agentId,
-        ...(memory ? { threadId, resourceId: agentId } : {}),
-      });
+      let response;
+
+      if (type === 'network') {
+        const network = mastra.getNetwork(agentId);
+        response = await network.stream({
+          messages: [
+            {
+              role: 'user',
+              content: input,
+            },
+          ],
+          runId: agentId,
+          ...(memory ? { threadId, resourceId: agentId } : {}),
+        });
+      } else {
+        const agent = mastra.getAgent(agentId);
+        response = await agent.stream({
+          messages: [
+            {
+              role: 'user',
+              content: input,
+            },
+          ],
+          runId: agentId,
+          ...(memory ? { threadId, resourceId: agentId } : {}),
+        });
+      }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();

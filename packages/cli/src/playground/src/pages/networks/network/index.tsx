@@ -1,4 +1,3 @@
-// Import the NetworkChat component from domains instead of chat-ui
 import { NetworkChat } from '@mastra/playground-ui';
 import { useParams } from 'react-router';
 import { cn } from '@/lib/utils';

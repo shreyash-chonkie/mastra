@@ -1,26 +1,27 @@
 import { Thread } from '@/components/assistant-ui/thread';
 
 import { MastraRuntimeProvider } from '@/services/mastra-runtime-provider';
-import { NetworkChatProps } from '@/types';
+import { ChatProps } from '@/types';
 
 export const NetworkChat = ({
-  networkId,
-  networkName,
+  agentId,
+  agentName,
   threadId,
   initialMessages,
   memory,
-  buildUrl,
+  baseUrl,
   refreshThreadList,
-}: NetworkChatProps) => {
+}: ChatProps) => {
   return (
     <MastraRuntimeProvider
-      agentId={networkId}
-      agentName={networkName}
+      agentId={agentId}
+      agentName={agentName}
       threadId={threadId}
       initialMessages={initialMessages}
       memory={memory}
-      baseUrl={buildUrl}
+      baseUrl={baseUrl}
       refreshThreadList={refreshThreadList}
+      type="network"
     >
       <Thread memory={memory} />
     </MastraRuntimeProvider>
