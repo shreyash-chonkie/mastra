@@ -74,8 +74,8 @@ function Network() {
             ) : null} */}
       <div className="relative overflow-y-hidden">
         <NetworkChat
-          networkId={networkId!}
-          networkName={network?.name}
+          agentId={networkId!}
+          agentName={network?.name}
           threadId={threadId!}
           initialMessages={isMessagesLoading ? undefined : (messages as Message[])}
         />

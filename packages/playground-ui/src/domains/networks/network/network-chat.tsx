@@ -1,7 +1,24 @@
 import { Thread } from '@/components/assistant-ui/thread';
-
+import { makeAssistantToolUI } from '@assistant-ui/react';
 import { MastraRuntimeProvider } from '@/services/mastra-runtime-provider';
 import { ChatProps } from '@/types';
+
+type WebSearchArgs = {
+  query: string;
+};
+
+type WebSearchResult = {
+  title: string;
+  description: string;
+  url: string;
+};
+
+export const WebSearchToolUI = makeAssistantToolUI<WebSearchArgs, WebSearchResult>({
+  toolName: 'Research_Strategist',
+  render: ({ args, status }) => {
+    return <p>Research Strategist({args.query})</p>;
+  },
+});
 
 export const NetworkChat = ({
   agentId,
@@ -23,6 +40,7 @@ export const NetworkChat = ({
       refreshThreadList={refreshThreadList}
       type="network"
     >
+      <WebSearchToolUI />
       <Thread memory={memory} />
     </MastraRuntimeProvider>
   );

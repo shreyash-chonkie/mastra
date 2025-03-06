@@ -28,10 +28,12 @@ export function NetworkAgents({ networkId }: { networkId: string }) {
         {network.agents.map((agent, index) => (
           <div key={index} className="bg-mastra-bg-2 p-3 rounded-md">
             <div className="flex justify-between items-center mb-2">
-              <h4 className="text-sm font-medium text-mastra-el-5">{agent.name}</h4>
-              <div className="flex items-center gap-2">
+              <div className="flex gap-2">
                 <Brain className="h-4 w-4 text-mastra-el-4" />
-                <Badge className="border-none text-xs">
+                <h4 className="text-sm font-medium text-mastra-el-5">{agent.name}</h4>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge className="border-none text-xs min-w-[120px]">
                   {agent.provider}/{agent.modelId}
                 </Badge>
               </div>

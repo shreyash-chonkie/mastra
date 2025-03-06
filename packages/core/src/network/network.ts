@@ -274,10 +274,10 @@ export class AgentNetwork extends MastraBase {
       const router = await this.buildRouter();
 
       // Get response from router - pass options directly without modification
-      const result = await router.generate(
-        messages,
-        args as AgentGenerateOptions<Z> & { output?: never; experimental_output?: never },
-      );
+      const result = await router.generate(messages, {
+        maxSteps: this.agents?.length * 10,
+        ...args,
+      } as AgentGenerateOptions<Z> & { output?: never; experimental_output?: never });
 
       // Update state with the result
       if (this.current_state) {
@@ -324,10 +324,10 @@ export class AgentNetwork extends MastraBase {
       const router = await this.buildRouter();
 
       // Get streaming response from router - pass options directly without modification
-      const streamResult = await router.stream(
-        messages,
-        args as AgentStreamOptions<Z> & { output?: never; experimental_output?: never },
-      );
+      const streamResult = await router.stream(messages, {
+        maxSteps: this.agents?.length * 10,
+        ...args,
+      } as AgentStreamOptions<Z> & { output?: never; experimental_output?: never });
 
       // Update state (note: we can't access the full text yet as it's streaming)
       if (this.current_state) {
