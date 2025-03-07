@@ -1,6 +1,7 @@
 import { useNetwork } from '@/hooks/use-networks';
 import { Badge } from '@/components/ui/badge';
 import { Brain, Users } from 'lucide-react';
+import { Agent } from '@/components/ui/AgentLogo';
 
 export function NetworkDetails({ networkId }: { networkId: string }) {
   const { network, isLoading } = useNetwork(networkId);
@@ -30,13 +31,15 @@ export function NetworkDetails({ networkId }: { networkId: string }) {
 
       <div>
         <h3 className="text-sm font-medium text-mastra-el-5 mb-1">Instructions</h3>
-        <p className="text-sm text-mastra-el-4">{network.instructions || 'No instructions provided'}</p>
+        <div className="max-h-36 overflow-auto rounded border border-mastra-el-2 bg-mastra-bg-2 p-2">
+          <p className="text-sm text-mastra-el-4">{network.instructions || 'No instructions provided'}</p>
+        </div>
       </div>
 
       <div>
         <h3 className="text-sm font-medium text-mastra-el-5 mb-1">Agents</h3>
         <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-mastra-el-4" />
+          <Agent />
           <Badge variant="outline" className="text-xs">
             {network.agents?.length || 0} agents
           </Badge>
