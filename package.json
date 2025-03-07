@@ -52,7 +52,7 @@
     "dev:services:up": "docker compose -f .dev/docker-compose.yaml up -d",
     "dev:services:down": "docker compose -f .dev/docker-compose.yaml down",
     "setup": "pnpm install --ignore-scripts && pnpm run build:cli && pnpm install --shamefully-hoist",
-    "build:raw-api-docs": "tsx typedoc/scripts/build-docs.ts",
+    "generate:raw-api-docs": "tsx typedoc/scripts/generate-docs.ts",
     "raw-api-docs:serve": "pnpm dlx http-server typedoc/generated"
   },
   "lint-staged": {
