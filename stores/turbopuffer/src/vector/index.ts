@@ -1,5 +1,10 @@
-import type { Filter } from '@mastra/core/filter';
-import type { IndexStats, QueryResult } from '@mastra/core/vector';
+import type {
+  CreateIndexParams,
+  IndexStats,
+  QueryResult,
+  QueryVectorParams,
+  UpsertVectorParams,
+} from '@mastra/core/vector';
 import { MastraVector } from '@mastra/core/vector';
 import {
   Turbopuffer,
@@ -61,18 +66,13 @@ export class TurbopufferVector extends MastraVector {
   // with how the index was "created"
   private createIndexCache: Map<
     string,
-    {
-      dimension: number;
-      metric: 'cosine' | 'euclidean' | 'dotproduct';
+    CreateIndexParams & {
       tpufDistanceMetric: DistanceMetric;
     }
   > = new Map();
   private opts: TurbopufferVectorOptions;
 
   constructor(opts: TurbopufferVectorOptions) {
-    console.log(
-      `DEBUG turbopuffer constructor apiKey=${opts.apiKey ? '[REDACTED]' : undefined} baseUrl=${opts.baseUrl}`,
-    );
     super();
     this.filterTranslator = new TurbopufferFilterTranslator();
     this.opts = opts;
@@ -88,11 +88,8 @@ export class TurbopufferVector extends MastraVector {
       }) ?? baseClient;
   }
 
-  async createIndex(
-    indexName: string,
-    dimension: number,
-    metric: 'cosine' | 'euclidean' | 'dotproduct' = 'cosine',
-  ): Promise<void> {
+  async createIndex({ indexName, dimension, metric }: CreateIndexParams): Promise<void> {
+    metric = metric ?? 'cosine'; // default to cosine distance
     if (this.createIndexCache.has(indexName)) {
       // verify that the dimensions and distance metric match what we expect
       const expected = this.createIndexCache.get(indexName)!;
@@ -118,18 +115,14 @@ export class TurbopufferVector extends MastraVector {
         throw new Error('dotproduct is not supported in Turbopuffer');
     }
     this.createIndexCache.set(indexName, {
+      indexName,
       dimension,
       metric,
       tpufDistanceMetric: distanceMetric,
     });
   }
 
-  async upsert(
-    indexName: string,
-    vectors: number[][],
-    metadata?: Record<string, any>[],
-    ids?: string[],
-  ): Promise<string[]> {
+  async upsert({ indexName, vectors, metadata, ids }: UpsertVectorParams): Promise<string[]> {
     try {
       if (vectors.length === 0) {
         throw new Error('upsert() called with empty vectors');
@@ -182,13 +175,7 @@ export class TurbopufferVector extends MastraVector {
     }
   }
 
-  async query(
-    indexName: string,
-    queryVector: number[],
-    topK: number = 10,
-    filter?: Filter,
-    includeVector: boolean = false,
-  ): Promise<QueryResult[]> {
+  async query({ indexName, queryVector, topK, filter, includeVector }: QueryVectorParams): Promise<QueryResult[]> {
     const schemaConfig = this.opts.schemaConfigForIndex?.(indexName);
     if (schemaConfig) {
       if (queryVector.length !== schemaConfig.dimensions) {

@@ -1,10 +1,10 @@
-import type { Filter } from '@mastra/core/filter';
+import type { VectorFilter } from '@mastra/core/vector/filter';
 import { Filters } from '@turbopuffer/turbopuffer';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TurbopufferFilterTranslator } from './filter';
 
 describe('TurbopufferFilterTranslator', () => {
-  let translate: (filter?: Filter) => Filters | undefined;
+  let translate: (filter?: VectorFilter) => Filters | undefined;
 
   beforeEach(() => {
     const translator = new TurbopufferFilterTranslator();

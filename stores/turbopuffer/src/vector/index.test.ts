@@ -64,7 +64,7 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       // Create test index
-      await vectorDB.createIndex(testIndexName, dimension);
+      await vectorDB.createIndex({ indexName: testIndexName, dimension });
       console.log(`Successfully created index: ${testIndexName}`);
     } catch (error) {
       console.error(`Error in test setup: ${error.message}`);
@@ -109,7 +109,7 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
     let vectorIds: string[];
 
     it('should upsert vectors with metadata', async () => {
-      vectorIds = await vectorDB.upsert(testIndexName, testVectors, testMetadata);
+      vectorIds = await vectorDB.upsert({ indexName: testIndexName, vectors: testVectors, metadata: testMetadata });
       expect(vectorIds).toHaveLength(3);
       // Wait for vectors to be indexed
       await waitUntilVectorsIndexed(vectorDB, testIndexName, 3);
@@ -117,7 +117,7 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
 
     it('should query vectors and return nearest neighbors', async () => {
       const queryVector = [1.0, 0.1, 0.1];
-      const results = await vectorDB.query(testIndexName, queryVector, 3);
+      const results = await vectorDB.query({ indexName: testIndexName, queryVector, topK: 3 });
 
       expect(results).toHaveLength(3);
       expect(results[0]!.score).toBeGreaterThan(0);
@@ -128,7 +128,7 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       const queryVector = [0.0, 1.0, 0.0];
       const filter = { label: 'y-axis' };
 
-      const results = await vectorDB.query(testIndexName, queryVector, 1, filter);
+      const results = await vectorDB.query({ indexName: testIndexName, queryVector, topK: 1, filter });
 
       expect(results).toHaveLength(1);
       expect(results?.[0]?.metadata?.label).toBe('y-axis');
@@ -136,7 +136,7 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
 
     it('should query vectors and return vectors in results', async () => {
       const queryVector = [0.0, 1.0, 0.0];
-      const results = await vectorDB.query(testIndexName, queryVector, 1, undefined, true);
+      const results = await vectorDB.query({ indexName: testIndexName, queryVector, topK: 1, includeVector: true });
 
       expect(results).toHaveLength(1);
       expect(results?.[0]?.vector).toBeDefined();
@@ -161,12 +161,14 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
   describe('Error Handling', () => {
     it('should handle non-existent index query gracefully', async () => {
       const nonExistentIndex = 'non-existent-index';
-      await expect(vectorDB.query(nonExistentIndex, [1, 0, 0])).rejects.toThrow(/createIndex\(\) not called/);
+      await expect(vectorDB.query({ indexName: nonExistentIndex, queryVector: [1, 0, 0] })).rejects.toThrow(
+        /createIndex\(\) not called/,
+      );
     }, 500000);
 
     it('should handle incorrect dimension vectors', async () => {
       const wrongDimVector = [[1, 0]]; // 2D vector for 3D index
-      await expect(vectorDB.upsert(testIndexName, wrongDimVector)).rejects.toThrow();
+      await expect(vectorDB.upsert({ indexName: testIndexName, vectors: wrongDimVector })).rejects.toThrow();
     }, 500000);
   });
 
@@ -184,7 +186,7 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       const metadata = vectors.map((_, i) => ({ item_id: i }));
 
       const start = Date.now();
-      const ids = await vectorDB.upsert(testIndexName, vectors, metadata);
+      const ids = await vectorDB.upsert({ indexName: testIndexName, vectors, metadata });
       const duration = Date.now() - start;
 
       expect(ids).toHaveLength(batchSize);
@@ -198,7 +200,7 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       const start = Date.now();
       const promises = Array(numQueries)
         .fill(null)
-        .map(() => vectorDB.query(testIndexName, queryVector));
+        .map(() => vectorDB.query({ indexName: testIndexName, queryVector }));
 
       const results = await Promise.all(promises);
       const duration = Date.now() - start;
@@ -211,14 +213,15 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
   describe('Filter Validation in Queries', () => {
     it('rejects queries with null values', async () => {
       await expect(
-        vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          field: null,
-        }),
+        vectorDB.query({ indexName: testIndexName, queryVector: [1, 0, 0], topK: 10, filter: { field: null } }),
       ).rejects.toThrow(/filter error/);
 
       await expect(
-        vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          other: { $eq: null },
+        vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { other: { $eq: null } },
         }),
       ).rejects.toThrow(/filter error/);
     });
@@ -229,8 +232,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       for (const op of ['$in', '$nin']) {
         for (const val of invalidValues) {
           await expect(
-            vectorDB.query(testIndexName, [1, 0, 0], 10, {
-              field: { [op]: val },
+            vectorDB.query({
+              indexName: testIndexName,
+              queryVector: [1, 0, 0],
+              topK: 10,
+              filter: { field: { [op]: val } },
             }),
           ).rejects.toThrow(/filter error|Failed to deserialize/);
         }
@@ -243,8 +249,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       for (const op of numOps) {
         for (const val of invalidNumericValues) {
           await expect(
-            vectorDB.query(testIndexName, [1, 0, 0], 10, {
-              field: { [op]: val },
+            vectorDB.query({
+              indexName: testIndexName,
+              queryVector: [1, 0, 0],
+              topK: 10,
+              filter: { field: { [op]: val } },
             }),
           ).rejects.toThrow(/filter error|Failed to deserialize/);
         }
@@ -253,39 +262,49 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
 
     it('rejects multiple invalid values', async () => {
       await expect(
-        vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          field1: { $in: 'not-array' },
-          field2: { $exists: 'not-boolean' },
-          field3: { $gt: 'not-number' },
+        vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { field1: { $in: 'not-array' }, field2: { $exists: 'not-boolean' }, field3: { $gt: 'not-number' } },
         }),
       ).rejects.toThrow(/filter error|Failed to deserialize/);
     });
 
     it('rejects invalid array values', async () => {
       await expect(
-        vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          field: { $in: [null] },
+        vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { field: { $in: [null] } },
         }),
       ).rejects.toThrow(/filter error|Failed to deserialize|\$in operator/);
 
       await expect(
-        vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          field: { $in: [undefined] },
+        vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { field: { $in: [undefined] } },
         }),
       ).rejects.toThrow(/filter error|Failed to deserialize|\$in operator/);
 
       await expect(
-        vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          field: { $all: 'not-an-array' },
+        vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { field: { $all: 'not-an-array' } },
         }),
       ).rejects.toThrow(/filter error|Failed to deserialize|\$all operator/);
     });
 
     it('handles empty object filters', async () => {
       // Test empty object at top level
-      await expect(vectorDB.query(testIndexName, [1, 0, 0], 10, { field: { $eq: {} } })).rejects.toThrow(
-        /filter error|Failed to deserialize/,
-      );
+      await expect(
+        vectorDB.query({ indexName: testIndexName, queryVector: [1, 0, 0], topK: 10, filter: { field: { $eq: {} } } }),
+      ).rejects.toThrow(/filter error|Failed to deserialize/);
     });
 
     it('handles empty/undefined filters by returning all results', async () => {
@@ -296,7 +315,7 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       for (const filter of noFilterCases) {
         // Update to not expect results, just verify it doesn't error
         try {
-          await vectorDB.query(testIndexName, [1, 0, 0], 10, filter);
+          await vectorDB.query({ indexName: testIndexName, queryVector: [1, 0, 0], topK: 10, filter });
           // Test passes if no error is thrown
         } catch (error) {
           // If there's an error, it should be about the filter format, not API authorization
@@ -307,7 +326,7 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
 
     it('handles queries with empty object filter', async () => {
       // In Turbopuffer, an empty object filter returns all results
-      const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {});
+      const results = await vectorDB.query({ indexName: testIndexName, queryVector: [1, 0, 0], topK: 10, filter: {} });
       expect(results.length).toBeGreaterThan(0);
     });
 
@@ -316,7 +335,7 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       // but our implementation or Turbopuffer currently doesn't enforce this
       // We're skipping for now until we decide how to handle empty filters
       try {
-        await vectorDB.query(testIndexName, [1, 0, 0], 10, {});
+        await vectorDB.query({ indexName: testIndexName, queryVector: [1, 0, 0], topK: 10, filter: {} });
         // If no error is thrown, test passes
       } catch (error) {
         // If an error is thrown, it should match the expected format
@@ -352,7 +371,7 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
     beforeAll(async () => {
       try {
         console.log(`Upserting test vectors with metadata for filter tests`);
-        await vectorDB.upsert(testIndexName, testVectors, testMetadata);
+        await vectorDB.upsert({ indexName: testIndexName, vectors: testVectors, metadata: testMetadata });
         console.log(`Successfully upserted test vectors with metadata`);
 
         // Wait for vectors to be indexed
@@ -371,8 +390,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
 
     describe('Comparison Operators', () => {
       it('should filter with implict $eq', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          category: 'electronics',
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { category: 'electronics' },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -380,8 +402,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
         });
       });
       it('should filter with $eq operator', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          category: { $eq: 'electronics' },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { category: { $eq: 'electronics' } },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -390,8 +415,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should filter with $gt operator', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          price: { $gt: 500 },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { price: { $gt: 500 } },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -400,8 +428,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should filter with $gte operator', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          price: { $gte: 500 },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { price: { $gte: 500 } },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -410,8 +441,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should filter with $lt operator', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          price: { $lt: 500 },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { price: { $lt: 500 } },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -425,8 +459,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should filter with $lte operator', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          price: { $lte: 500 },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { price: { $lte: 500 } },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -440,8 +477,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should filter with $ne operator', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          category: { $ne: 'electronics' },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { category: { $ne: 'electronics' } },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -450,8 +490,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('filters with $gte, $lt, $lte operators', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          price: { $gte: 25, $lte: 30 },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { price: { $gte: 25, $lte: 30 } },
         });
         expect(results.length).toBe(2);
         results.forEach(result => {
@@ -463,8 +506,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
 
     describe('Array Operators', () => {
       it('should filter with $in operator for strings', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          category: { $in: ['electronics', 'books'] },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { category: { $in: ['electronics', 'books'] } },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -473,8 +519,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should filter with $in operator for numbers', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          price: { $in: [50, 75, 1000] },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { price: { $in: [50, 75, 1000] } },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -483,8 +532,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should filter with $nin operator', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          category: { $nin: ['electronics', 'books'] },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { category: { $nin: ['electronics', 'books'] } },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -493,8 +545,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should filter with $all operator', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          tags: { $all: ['premium', 'new'] },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { tags: { $all: ['premium', 'new'] } },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -506,10 +561,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
 
     describe('Logical Operators', () => {
       it('should filter with implict $and', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          category: 'electronics',
-          price: { $gt: 700 },
-          inStock: true,
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { category: 'electronics', price: { $gt: 700 }, inStock: true },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -519,8 +575,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
         });
       });
       it('should filter with $and operator', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          $and: [{ category: 'electronics' }, { price: { $gt: 700 } }, { inStock: true }],
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { category: 'electronics', price: { $gt: 700 }, inStock: true },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -531,8 +590,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should filter with $or operator', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          $or: [{ price: { $gt: 900 } }, { tags: { $all: ['bestseller'] } }],
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { $or: [{ price: { $gt: 900 } }, { tags: { $all: ['bestseller'] } }] },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -543,14 +605,17 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should handle nested logical operators', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          $and: [
-            {
-              $or: [{ category: 'electronics' }, { category: 'books' }],
-            },
-            { price: { $lt: 100 } },
-            { inStock: true },
-          ],
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: {
+            $and: [
+              { $or: [{ category: 'electronics' }, { category: 'books' }] },
+              { price: { $lt: 100 } },
+              { inStock: true },
+            ],
+          },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -563,8 +628,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
 
     describe('Complex Filter Combinations', () => {
       it('should combine comparison and array operators', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          $and: [{ price: { $gte: 500 } }, { tags: { $in: ['premium', 'refurbished'] } }],
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { $and: [{ price: { $gte: 500 } }, { tags: { $in: ['premium', 'refurbished'] } }] },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -574,8 +642,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should handle multiple conditions on same field', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          $and: [{ price: { $gte: 30 } }, { price: { $lte: 800 } }],
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { $and: [{ price: { $gte: 30 } }, { price: { $lte: 800 } }] },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -586,15 +657,16 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should handle complex nested conditions', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          $or: [
-            {
-              $and: [{ category: 'electronics' }, { price: { $gt: 700 } }, { tags: { $all: ['premium'] } }],
-            },
-            {
-              $and: [{ category: 'books' }, { price: { $lt: 50 } }, { tags: { $in: ['paperback'] } }],
-            },
-          ],
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: {
+            $or: [
+              { $and: [{ category: 'electronics' }, { price: { $gt: 700 } }, { tags: { $all: ['premium'] } }] },
+              { $and: [{ category: 'books' }, { price: { $lt: 50 } }, { tags: { $in: ['paperback'] } }] },
+            ],
+          },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -620,7 +692,7 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
             // Use a field we know exists and check if rating is > 40
             rating: { $gt: 40 },
           };
-          const results = await vectorDB.query(testIndexName, testVectors[0], 5, filter);
+          const results = await vectorDB.query({ indexName: testIndexName, queryVector: [1, 0, 0], topK: 10, filter });
 
           expect(results.length).toBeGreaterThan(0);
           results.forEach(result => {
@@ -637,9 +709,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
         // For Turbopuffer, we need to make sure the field exists in at least some documents
         // before checking for its existence
         try {
-          const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-            category: 'clothing',
-            tags: { $exists: true },
+          const results = await vectorDB.query({
+            indexName: testIndexName,
+            queryVector: [1, 0, 0],
+            topK: 10,
+            filter: { category: 'clothing', tags: { $exists: true } },
           });
           expect(results.length).toBeGreaterThan(0);
           results.forEach(result => {
@@ -656,8 +730,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
 
     describe('Edge Cases', () => {
       it('should handle numeric comparisons with integers for rating', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          rating: { $gt: 45 },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { rating: { $gt: 45 } },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -666,8 +743,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should handle boolean values', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          inStock: { $eq: false },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { inStock: { $eq: false } },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -676,15 +756,21 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
       });
 
       it('should handle empty array in $in operator', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          category: { $in: [] },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { category: { $in: [] } },
         });
         expect(results).toHaveLength(0);
       });
 
       it('should handle single value in $all operator', async () => {
-        const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          tags: { $all: ['premium'] },
+        const results = await vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { tags: { $all: ['premium'] } },
         });
         expect(results.length).toBeGreaterThan(0);
         results.forEach(result => {
@@ -697,38 +783,57 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
   describe('Additional Validation Tests', () => {
     it('should reject non-numeric values in numeric comparisons', async () => {
       await expect(
-        vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          price: { $gt: '500' }, // string instead of number
+        vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { price: { $gt: '500' } },
         }),
       ).rejects.toThrow(/filter error|Failed to deserialize/);
     });
 
     it('should reject invalid types in $in operator', async () => {
       await expect(
-        vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          price: { $in: [true, false] }, // booleans instead of numbers
+        vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { price: { $in: [true, false] } },
         }),
       ).rejects.toThrow(/filter error|Failed to deserialize/);
     });
 
     it('should reject mixed types in $in operator', async () => {
       await expect(
-        vectorDB.query(testIndexName, [1, 0, 0], 10, {
-          field: { $in: ['string', 123] }, // mixed string and number
+        vectorDB.query({
+          indexName: testIndexName,
+          queryVector: [1, 0, 0],
+          topK: 10,
+          filter: { field: { $in: ['string', 123] } },
         }),
       ).rejects.toThrow(/filter error|Failed to deserialize/);
     });
 
     it('should handle undefined filter', async () => {
-      const results1 = await vectorDB.query(testIndexName, [1, 0, 0], 10, undefined);
-      const results2 = await vectorDB.query(testIndexName, [1, 0, 0], 10);
+      const results1 = await vectorDB.query({
+        indexName: testIndexName,
+        queryVector: [1, 0, 0],
+        topK: 10,
+        filter: undefined,
+      });
+      const results2 = await vectorDB.query({ indexName: testIndexName, queryVector: [1, 0, 0], topK: 10 });
       expect(results1).toEqual(results2);
       expect(results1.length).toBeGreaterThan(0);
     });
 
     it('should handle null filter', async () => {
-      const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, null as any);
-      const results2 = await vectorDB.query(testIndexName, [1, 0, 0], 10);
+      const results = await vectorDB.query({
+        indexName: testIndexName,
+        queryVector: [1, 0, 0],
+        topK: 10,
+        filter: null as any,
+      });
+      const results2 = await vectorDB.query({ indexName: testIndexName, queryVector: [1, 0, 0], topK: 10 });
       expect(results).toEqual(results2);
       expect(results.length).toBeGreaterThan(0);
     });
@@ -737,11 +842,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
   describe('Additional Edge Cases', () => {
     it('should handle exact boundary conditions', async () => {
       // Test exact boundary values from our test data
-      const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-        $and: [
-          { price: { $gte: 25 } }, // lowest price in our data
-          { price: { $lte: 1000 } }, // highest price in our data
-        ],
+      const results = await vectorDB.query({
+        indexName: testIndexName,
+        queryVector: [1, 0, 0],
+        topK: 10,
+        filter: { $and: [{ price: { $gte: 25 } }, { price: { $lte: 1000 } }] },
       });
       expect(results.length).toBeGreaterThan(0);
       // Should include both boundary values
@@ -750,8 +855,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
     });
 
     it('should handle multiple $all conditions on same array field', async () => {
-      const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-        $and: [{ tags: { $all: ['premium'] } }, { tags: { $all: ['new'] } }],
+      const results = await vectorDB.query({
+        indexName: testIndexName,
+        queryVector: [1, 0, 0],
+        topK: 10,
+        filter: { $and: [{ tags: { $all: ['premium'] } }, { tags: { $all: ['new'] } }] },
       });
       expect(results.length).toBeGreaterThan(0);
       results.forEach(result => {
@@ -761,8 +869,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
     });
 
     it('should handle multiple array operator combinations', async () => {
-      const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-        $and: [{ tags: { $all: ['premium'] } }, { tags: { $in: ['new', 'refurbished'] } }],
+      const results = await vectorDB.query({
+        indexName: testIndexName,
+        queryVector: [1, 0, 0],
+        topK: 10,
+        filter: { $and: [{ tags: { $all: ['premium'] } }, { tags: { $in: ['new', 'refurbished'] } }] },
       });
       expect(results.length).toBeGreaterThan(0);
       results.forEach(result => {
@@ -774,15 +885,20 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
 
   describe('Additional Complex Logical Combinations', () => {
     it('should handle deeply nested $or conditions', async () => {
-      const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-        $or: [
-          {
-            $and: [{ category: 'electronics' }, { $or: [{ price: { $gt: 900 } }, { tags: { $all: ['premium'] } }] }],
-          },
-          {
-            $and: [{ category: 'books' }, { $or: [{ price: { $lt: 30 } }, { tags: { $all: ['bestseller'] } }] }],
-          },
-        ],
+      const results = await vectorDB.query({
+        indexName: testIndexName,
+        queryVector: [1, 0, 0],
+        topK: 10,
+        filter: {
+          $or: [
+            {
+              $and: [{ category: 'electronics' }, { $or: [{ price: { $gt: 900 } }, { tags: { $all: ['premium'] } }] }],
+            },
+            {
+              $and: [{ category: 'books' }, { $or: [{ price: { $lt: 30 } }, { tags: { $all: ['bestseller'] } }] }],
+            },
+          ],
+        },
       });
       expect(results.length).toBeGreaterThan(0);
       results.forEach(result => {
@@ -795,8 +911,11 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
     });
 
     it('should handle multiple field comparisons with same value', async () => {
-      const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-        $or: [{ price: { $gt: 500 } }, { rating: { $gt: 45 } }],
+      const results = await vectorDB.query({
+        indexName: testIndexName,
+        queryVector: [1, 0, 0],
+        topK: 10,
+        filter: { $or: [{ price: { $gt: 500 } }, { rating: { $gt: 45 } }] },
       });
       expect(results.length).toBeGreaterThan(0);
       results.forEach(result => {
@@ -805,11 +924,16 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
     });
 
     it('should handle combination of array and numeric comparisons', async () => {
-      const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-        $and: [
-          { tags: { $in: ['premium', 'bestseller'] } },
-          { $or: [{ price: { $gt: 500 } }, { rating: { $gt: 45 } }] },
-        ],
+      const results = await vectorDB.query({
+        indexName: testIndexName,
+        queryVector: [1, 0, 0],
+        topK: 10,
+        filter: {
+          $and: [
+            { tags: { $in: ['premium', 'bestseller'] } },
+            { $or: [{ price: { $gt: 500 } }, { rating: { $gt: 45 } }] },
+          ],
+        },
       });
       expect(results.length).toBeGreaterThan(0);
       results.forEach(result => {
@@ -821,12 +945,17 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
 
   describe('Performance Edge Cases', () => {
     it('should handle filters with many conditions', async () => {
-      const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-        $and: Array(10)
-          .fill(null)
-          .map(() => ({
-            $or: [{ price: { $gt: 100 } }, { rating: { $gt: 40 } }],
-          })),
+      const results = await vectorDB.query({
+        indexName: testIndexName,
+        queryVector: [1, 0, 0],
+        topK: 10,
+        filter: {
+          $and: Array(10)
+            .fill(null)
+            .map(() => ({
+              $or: [{ price: { $gt: 100 } }, { rating: { $gt: 40 } }],
+            })),
+        },
       });
       expect(results.length).toBeGreaterThan(0);
       results.forEach(result => {
@@ -835,12 +964,17 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
     });
 
     it('should handle deeply nested conditions efficiently', async () => {
-      const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-        $or: Array(5)
-          .fill(null)
-          .map(() => ({
-            $and: [{ category: { $in: ['electronics', 'books'] } }, { price: { $gt: 50 } }, { rating: { $gt: 40 } }],
-          })),
+      const results = await vectorDB.query({
+        indexName: testIndexName,
+        queryVector: [1, 0, 0],
+        topK: 10,
+        filter: {
+          $or: Array(5)
+            .fill(null)
+            .map(() => ({
+              $and: [{ category: { $in: ['electronics', 'books'] } }, { price: { $gt: 50 } }, { rating: { $gt: 40 } }],
+            })),
+        },
       });
       expect(results.length).toBeGreaterThan(0);
       results.forEach(result => {
@@ -851,19 +985,24 @@ function waitUntilVectorsIndexed(vectorDB: TurbopufferVector, indexName: string,
     });
 
     it('should handle large number of $or conditions', async () => {
-      const results = await vectorDB.query(testIndexName, [1, 0, 0], 10, {
-        $or: [
-          ...Array(5)
-            .fill(null)
-            .map((_, i) => ({
-              price: { $gt: i * 100 },
-            })),
-          ...Array(5)
-            .fill(null)
-            .map((_, i) => ({
-              rating: { $gt: 40 + i },
-            })),
-        ],
+      const results = await vectorDB.query({
+        indexName: testIndexName,
+        queryVector: [1, 0, 0],
+        topK: 10,
+        filter: {
+          $or: [
+            ...Array(5)
+              .fill(null)
+              .map((_, i) => ({
+                price: { $gt: i * 100 },
+              })),
+            ...Array(5)
+              .fill(null)
+              .map((_, i) => ({
+                rating: { $gt: 40 + i },
+              })),
+          ],
+        },
       });
       expect(results.length).toBeGreaterThan(0);
     });

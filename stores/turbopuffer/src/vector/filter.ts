@@ -1,5 +1,5 @@
-import type { FieldCondition, Filter, OperatorSupport } from '@mastra/core/filter';
-import { BaseFilterTranslator } from '@mastra/core/filter';
+import type { FieldCondition, VectorFilter as Filter, OperatorSupport } from '@mastra/core/vector/filter';
+import { BaseFilterTranslator } from '@mastra/core/vector/filter';
 import type { FilterCondition, FilterConnective, FilterOperator, Filters } from '@turbopuffer/turbopuffer';
 
 /**
