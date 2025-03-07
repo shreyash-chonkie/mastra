@@ -5,9 +5,11 @@ description: Overview of agent networks in Mastra, detailing how to create, conf
 
 # Creating and Using Agent Networks
 
-Agent Networks in Mastra allow you to create and orchestrate networks of specialized agents that work together to solve complex tasks. Each agent in the network can focus on a specific aspect of a problem, with a router determining which agent to call next based on the current state and previous results.
+Agent Networks in Mastra allow you to create and orchestrate networks of specialized agents that work together to solve complex tasks. Each agent in the network can focus on a specific aspect of a problem, with an AI-powered router determining which agent to call next based on the current state and previous results.
 
-Networks are ideal for complex workflows where different specialized skills are needed at different stages of a task, or when you want to break down a complex problem into smaller, more manageable parts.
+Networks are ideal for complex workflows where different specialized skills are needed at different stages of a task, or when you want the AI to dynamically determine the best path through your agents to solve a problem.
+
+> **Important:** Agent Networks are inherently undeterministic since they rely on an LLM to decide which agent to call next. This provides flexibility and adaptability, but may result in different execution paths for the same input. If you need deterministic, predictable execution flows with explicit control over which agent is called when, use [Workflows](../workflows/00-overview.mdx) instead.
 
 ## 1. Creating a Network
 
@@ -31,16 +33,12 @@ const summaryAgent = new Agent({
   model: openai("gpt-4o"),
 });
 
-// Create a network with a custom router
+// Create a network with LLM-based routing
 export const researchNetwork = new AgentNetwork({
   name: "Research Assistant",
+  instructions: "This network researches topics and provides summarized information.",
   agents: [researchAgent, summaryAgent],
   routingModel: openai("gpt-4o"),
-  router: async ({ callCount }) => {
-    if (callCount === 0) return researchAgent;
-    if (callCount === 1) return summaryAgent;
-    return undefined; // Done after two calls
-  },
 });
 ```
 
@@ -73,122 +71,35 @@ export const mastra = new Mastra({
 
 Once you've created a network, you can use it to generate responses:
 
-```ts showLineNumbers filename="src/app/api/research/route.ts" copy
-import { researchNetwork } from "@/mastra/networks";
-
-export async function POST(req: Request) {
-  const { query } = await req.json();
-  
-  // Generate a response from the network
-  const result = await researchNetwork.generate(query);
-  
-  return Response.json({ result: result.output });
-}
-```
-
-### Network Results
-
-The `generate` method returns a `NetworkResult` object with the following properties:
-
-- `output`: The final output from the network
-- `steps`: Number of steps executed
-- `history`: Array of step results, each containing:
-  - `agent`: Name of the agent that was called
-  - `input`: Input that was passed to the agent
-  - `output`: Output from the agent
-  - `timestamp`: When the step was executed
-  - `step`: Step number
-  - `state`: State of the network at that point
-
-## 3. Network Configuration Options
-
-When creating a network, you can configure several options:
-
 ```ts showLineNumbers copy
-const network = new AgentNetwork({
-  // Required options
-  name: "My Network",
-  agents: [agent1, agent2, agent3],
-  
-  // Either router or routingModel is required
-  router: async ({ callCount, state, lastResult, input }) => {
-    // Custom routing logic
-    return callCount < 2 ? agent1 : undefined;
-  },
-  routingModel: openai("gpt-4o"), // Used if no router function is provided
-  
-  // Optional settings
-  initialState: new NetworkState({ counter: 0 }), // Initial state
-  maxSteps: 5, // Maximum number of steps (default: 10)
-  logger: customLogger, // Custom logger
-});
-```
+import { mastra } from "./mastra";
 
-## 4. Advanced Network Features
+const researchNetwork = mastra.getNetwork('researchNetwork');
 
-Agent Networks provide several advanced features:
+// Basic usage with a string input
+const result = await researchNetwork.generate("What are the latest advancements in quantum computing?");
+console.log(result.soutput); // The final output from the network
 
-### Message-Based Input
-
-Networks can accept either string inputs or arrays of `CoreMessage` objects:
-
-```ts copy
-// String input
-const result1 = await network.generate("Research quantum computing");
-
-// Message-based input
-const result2 = await network.generate([
-  { role: "user", content: "I need information about quantum computing." },
-  { role: "assistant", content: "I can help with that. What specific aspects are you interested in?" },
-  { role: "user", content: "Focus on recent breakthroughs in the last 2 years." },
-]);
-```
-
-### Custom Run IDs
-
-You can provide custom IDs for tracking and telemetry:
-
-```ts copy
-const result = await network.generate("Process this data", {
-  runId: "custom-run-id",
-  threadId: "custom-thread-id",
-  resourceId: "custom-resource-id",
-  maxSteps: 3, // Override the default maximum steps
-});
-```
-
-### Streaming Responses
-
-For real-time updates during network execution, use the `stream` method:
-
-```ts copy
-const streamResult = await network.stream("Research quantum computing", {
-  onStepStart: (agent, step) => console.log(`Starting step ${step} with ${agent.name}`),
-  onStepFinish: (result) => console.log(`Finished step with output: ${result.output}`),
-  onFinish: (result) => console.log(`Network execution complete with ${result.steps} steps`),
-});
-
-// Process the stream
-for await (const chunk of streamResult.stream) {
-  if (chunk.type === "agentChunk") {
-    process.stdout.write(chunk.chunk); // Display incremental output
-  }
+const streamResult = await researchNetwork.stream("Tell me about machine learning algorithms");
+for await (const chunk of streamResult.textStream) {
+    process.stdout.write(chunk);
 }
-
-// Get the final result
-const finalResult = await streamResult.done();
 ```
 
-## 5. Best Practices
+## 3. Best Practices
 
 - **Specialized Agents**: Design each agent with a specific role and clear instructions
-- **Efficient Routing**: Keep routing logic simple and deterministic
+- **Clear Network Instructions**: Provide detailed instructions to guide the LLM router in determining which agent to use
+- **Complementary Agent Skills**: Create agents with distinct but complementary capabilities
 - **State Management**: Use state to share information between agents
-- **Error Handling**: Implement proper error handling in your router function
 - **Timeout Management**: Set appropriate `maxSteps` to prevent infinite loops
+
+## When to Use Networks vs. Workflows
+
+- **Use Agent Networks** when you want the AI to dynamically determine the best path through your agents
+- **Use Workflows** when you need explicit control over execution paths and agent selection
 
 ## Next Steps
 
-- Learn about [Custom Routing](./01-custom-routing.mdx) for more advanced routing strategies
 - Explore [State Management](./02-state-management.mdx) to share data between agents
 - Discover [Streaming](./03-streaming.mdx) for real-time updates during network execution
