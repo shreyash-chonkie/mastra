@@ -19,20 +19,20 @@ const vectorStore = new TurbopufferVector({
 });
 
 // Create a new index
-await vectorStore.createIndex('my-index', 1536, 'cosine');
+await vectorStore.createIndex({ indexName: 'my-index', dimension: 1536, metric: 'cosine' });
 
 // Add vectors
 const vectors = [[0.1, 0.2, ...], [0.3, 0.4, ...]];
 const metadata = [{ text: 'doc1' }, { text: 'doc2' }];
-const ids = await vectorStore.upsert('my-index', vectors, metadata);
+const ids = await vectorStore.upsert({ indexName: 'my-index', vectors, metadata });
 
 // Query vectors
-const results = await vectorStore.query(
-  'my-index',
-  [0.1, 0.2, ...],
-  10, // topK
-  { text: { $eq: 'doc1' } }, // optional filter
-  false // includeValues
+const results = await vectorStore.query({
+  indexName: 'my-index',
+  queryVector: [0.1, 0.2, ...],
+  topK: 10,
+  filter: { text: { $eq: 'doc1' } },
+  includeVector: false,
 );
 ```
 
@@ -49,6 +49,7 @@ Optional:
 - `connectionIdleTimeout`: Socket idle timeout, in ms (default: 60_000)
 - `warmConnections`: Number of connections to open initially (default: 0)
 - `compression`: Whether to compress requests and accept compressed responses (default: true)
+- `schemaConfigForIndex`: A function that returns a Turbopuffer schema config for an index (default: undefined).
 
 ## Related Links
 
