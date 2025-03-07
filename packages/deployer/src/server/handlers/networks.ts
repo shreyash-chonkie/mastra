@@ -10,7 +10,7 @@ export async function getNetworksHandler(c: Context) {
     const mastra: Mastra = c.get('mastra');
     const networks = mastra.getNetworks();
 
-    const serializedNetworks = Object.entries(networks).reduce<Record<string, any>>((acc, [_id, _network]) => {
+    const serializedNetworks = Object.entries(networks || {}).reduce<Record<string, any>>((acc, [_id, _network]) => {
       const network = _network as any;
       acc[_id] = {
         name: network.routingAgent.name,
