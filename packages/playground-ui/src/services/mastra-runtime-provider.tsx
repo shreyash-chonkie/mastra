@@ -31,6 +31,9 @@ export function MastraRuntimeProvider({
   ChatProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [messages, setMessages] = useState<ThreadMessageLike[]>([]);
+
+  console.log(messages);
+
   const [currentThreadId, setCurrentThreadId] = useState<string | undefined>(threadId);
 
   useEffect(() => {
@@ -47,6 +50,7 @@ export function MastraRuntimeProvider({
   });
 
   const onNew = async (message: AppendMessage) => {
+    console.log('ON NEW', message);
     if (message.content[0]?.type !== 'text') throw new Error('Only text messages are supported');
 
     const input = message.content[0].text;
@@ -67,6 +71,9 @@ export function MastraRuntimeProvider({
           ],
           runId: agentId,
           ...(memory ? { threadId, resourceId: agentId } : {}),
+          onStepFinish: step => {
+            console.log('Step finished', JSON.parse(step));
+          },
         });
       } else {
         const agent = mastra.getAgent(agentId);
@@ -100,41 +107,8 @@ export function MastraRuntimeProvider({
           if (done) break;
 
           const chunk = decoder.decode(value);
+          console.log(chunk, 'CHUNK');
           buffer += chunk;
-          const matches = buffer.matchAll(/0:"((?:\\.|(?!").)*?)"/g);
-          const errorMatches = buffer.matchAll(/3:"((?:\\.|(?!").)*?)"/g);
-
-          if (errorMatches) {
-            for (const match of errorMatches) {
-              const content = match[1];
-              errorMessage += content;
-              setMessages(currentConversation => [
-                ...currentConversation.slice(0, -1),
-                {
-                  role: 'assistant',
-                  content: [{ type: 'text', text: errorMessage }],
-                  isError: true,
-                },
-              ]);
-            }
-          }
-
-          for (const match of matches) {
-            const content = match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
-            assistantMessage += content;
-            setMessages(currentConversation => {
-              const message: ThreadMessageLike = {
-                role: 'assistant',
-                content: [{ type: 'text', text: assistantMessage }],
-              };
-
-              if (!assistantMessageAdded) {
-                assistantMessageAdded = true;
-                return [...currentConversation, message];
-              }
-              return [...currentConversation.slice(0, -1), message];
-            });
-          }
           buffer = '';
         }
       } finally {

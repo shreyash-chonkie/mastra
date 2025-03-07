@@ -1,6 +1,6 @@
 import { useNetwork } from '@/hooks/use-networks';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Network, Users } from 'lucide-react';
+import { Brain, Users } from 'lucide-react';
 
 export function NetworkDetails({ networkId }: { networkId: string }) {
   const { network, isLoading } = useNetwork(networkId);
@@ -26,6 +26,11 @@ export function NetworkDetails({ networkId }: { networkId: string }) {
           <Brain className="h-4 w-4 text-mastra-el-4" />
           <Badge className="border-none text-xs">{network.routingModel?.modelId || 'Unknown'}</Badge>
         </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-mastra-el-5 mb-1">Instructions</h3>
+        <p className="text-sm text-mastra-el-4">{network.instructions || 'No instructions provided'}</p>
       </div>
 
       <div>

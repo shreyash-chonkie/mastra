@@ -52,6 +52,7 @@ export type StreamParams<T extends JSONSchema7 | ZodSchema | undefined = undefin
 
 export interface GetNetworkResponse {
   name: string;
+  instructions: string;
   agents: Array<{
     name: string;
     provider: string;

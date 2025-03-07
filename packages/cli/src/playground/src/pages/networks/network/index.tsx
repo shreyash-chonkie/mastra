@@ -76,6 +76,7 @@ function Network() {
         <NetworkChat
           agentId={networkId!}
           agentName={network?.name}
+          agents={network?.agents?.map(a => a.name.replace(/[^a-zA-Z0-9_-]/g, '_')) || []}
           threadId={threadId!}
           initialMessages={isMessagesLoading ? undefined : (messages as Message[])}
         />
