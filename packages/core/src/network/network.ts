@@ -9,13 +9,13 @@ import type {
 import type { JSONSchema7 } from 'json-schema';
 import { z } from 'zod';
 import type { ZodSchema } from 'zod';
-import type { MastraPrimitives } from '../action';
 import { Agent } from '../agent';
 import type { AgentGenerateOptions, AgentStreamOptions } from '../agent/types';
 import { MastraBase } from '../base';
 import { createTool } from '../tools';
 import { NetworkState } from './state';
 import type { NetworkConfig } from './types';
+import type { Mastra } from '../mastra';
 
 interface CurrentNetworkState {
   state: NetworkState;
@@ -348,19 +348,13 @@ export class AgentNetwork extends MastraBase {
     }
   }
 
-  __registerPrimitives(p: MastraPrimitives) {
-    if (p.telemetry) {
-      this.__setTelemetry(p.telemetry);
-    }
-
-    if (p.logger) {
-      this.__setLogger(p.logger);
-    }
+  __registerMastra(p: Mastra) {
+    this.routingAgent.__registerMastra(p);
 
     // Register primitives for each agent in the network
     for (const agent of this.agents) {
-      if (typeof agent.__registerPrimitives === 'function') {
-        agent.__registerPrimitives(p);
+      if (typeof agent.__registerMastra === 'function') {
+        agent.__registerMastra(p);
       }
     }
   }
