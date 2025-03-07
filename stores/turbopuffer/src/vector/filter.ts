@@ -1,4 +1,4 @@
-import type { FieldCondition, VectorFilter as Filter, OperatorSupport } from '@mastra/core/vector/filter';
+import type { FieldCondition, OperatorSupport, VectorFilter } from '@mastra/core/vector/filter';
 import { BaseFilterTranslator } from '@mastra/core/vector/filter';
 import type { FilterCondition, FilterConnective, FilterOperator, Filters } from '@turbopuffer/turbopuffer';
 
@@ -37,16 +37,16 @@ export class TurbopufferFilterTranslator extends BaseFilterTranslator {
   /**
    * Convert the Mastra filter to Turbopuffer format
    */
-  translate(filter?: Filter): Filters | undefined {
+  translate(filter?: VectorFilter): Filters | undefined {
     if (this.isEmpty(filter)) {
       return undefined;
     }
 
     // Validate the filter structure before translating
-    this.validateFilter(filter as Filter);
+    this.validateFilter(filter as VectorFilter);
 
     // Translate the filter
-    const result = this.translateNode(filter as Filter);
+    const result = this.translateNode(filter as VectorFilter);
 
     // If we have a single condition (not a logical operator at the top level),
     // wrap it in an implicit AND to match Turbopuffer's expected format
@@ -60,7 +60,7 @@ export class TurbopufferFilterTranslator extends BaseFilterTranslator {
   /**
    * Recursively translate a filter node
    */
-  private translateNode(node: Filter | FieldCondition): Filters | FilterCondition {
+  private translateNode(node: VectorFilter | FieldCondition): Filters | FilterCondition {
     // Handle empty or null nodes
     if (node === null || node === undefined || Object.keys(node).length === 0) {
       return ['And', []];
