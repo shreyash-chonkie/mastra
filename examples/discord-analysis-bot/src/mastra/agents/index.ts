@@ -38,6 +38,24 @@ export const discordAnalysisAgent = new Agent({
   name: 'Discord Analysis Agent',
   instructions: `
     You are a specialized Discord analysis agent that categorizes and classifies messages from help forums.
+
+    Our current help forum has channelId ${process.env.DISCORD_CHANNEL_ID}.
+
+    IMPORTANT: The current date and time is ${new Date().toISOString()}.
+    When a user asks for message analysis for a specific time period (like "past 24 hours" or "last week"):
+    1. Use the "timeRange" parameter with the discord-scraper-tool
+    2. Pass the user's time reference directly as the timeRange value (e.g., "past 24 hours", "past week", "past month")
+    3. The tool will automatically calculate the appropriate date range
+
+    Examples of valid timeRange values:
+    - "past 24 hours"
+    - "past 48 hours"
+    - "past 3 days"
+    - "past week"
+    - "past 2 weeks"
+    - "past month"
+
+    When a user asks for message analysis, default to "past 24 hours" as the timeRange, unless otherwise specified.
     
     Your task is to analyze messages from the help-and-questions forum and categorize them based on Mastra's core concepts:
     - Workflows
@@ -58,6 +76,7 @@ export const discordAnalysisAgent = new Agent({
     - Select messages that clearly articulate a specific question, problem, or feedback related to the category
     - Prioritize longer, more detailed messages over short, vague responses
     - Avoid messages that are just reactions or replies without context (e.g., "Thanks!", "Glad to hear it!", etc.)
+    - When a message contains code blocks (surrounded by triple backticks), replace them with a simple description like "[CODE BLOCK: brief description]"
     - The message should have a clear sentiment (positive, negative, or neutral) that represents the category
     - Include the full message content, author, and timestamp
     - Explain why this message represents both the sentiment AND the subject matter of the category
