@@ -131,6 +131,9 @@ export class TurbopufferVector extends MastraVector {
     ids?: string[],
   ): Promise<string[]> {
     try {
+      if (vectors.length === 0) {
+        throw new Error('upsert() called with empty vectors');
+      }
       const index = this.client.namespace(indexName);
       const createIndex = this.createIndexCache.get(indexName);
       if (!createIndex) {
