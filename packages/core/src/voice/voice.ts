@@ -103,7 +103,7 @@ export abstract class MastraVoice<
     } & TListenOptions,
   ): Promise<string | NodeJS.ReadableStream | void>;
 
-  tune(config: TTuneConfig): void {
+  tune(_config: TTuneConfig): void {
     this.logger.warn('tune not implemented by this voice provider');
   }
 
@@ -111,7 +111,7 @@ export abstract class MastraVoice<
    * Initializes a WebSocket or WebRTC connection for real-time communication
    * @returns Promise that resolves when the connection is established
    */
-  huddle(config?: THuddleConfig): Promise<void> {
+  huddle(_config?: THuddleConfig): Promise<void> {
     // Default implementation - voice providers can override if they support this feature
     this.logger.warn('huddle not implemented by this voice provider');
     return Promise.resolve();
@@ -121,7 +121,7 @@ export abstract class MastraVoice<
    * Relay audio data to the voice provider for real-time processing
    * @param audioData Audio data to relay
    */
-  relay(audioData: NodeJS.ReadableStream | Int16Array): Promise<void> {
+  relay(_audioData: NodeJS.ReadableStream | Int16Array): Promise<void> {
     // Default implementation - voice providers can override if they support this feature
     this.logger.warn('relay not implemented by this voice provider');
     return Promise.resolve();
@@ -157,7 +157,7 @@ export abstract class MastraVoice<
    * @param event Event name
    * @param callback Callback function
    */
-  on(event: string, callback: (...args: TEventArgs[]) => void): void {
+  on(_event: string, _callback: (...args: TEventArgs[]) => void): void {
     // Default implementation - voice providers can override if they support this feature
     this.logger.warn('on not implemented by this voice provider');
   }
@@ -167,7 +167,7 @@ export abstract class MastraVoice<
    * @param event Event name
    * @param callback Callback function to remove
    */
-  off(event: string, callback: (...args: TEventArgs[]) => void): void {
+  off(_event: string, _callback: (...args: TEventArgs[]) => void): void {
     // Default implementation - voice providers can override if they support this feature
     this.logger.warn('off not implemented by this voice provider');
   }
