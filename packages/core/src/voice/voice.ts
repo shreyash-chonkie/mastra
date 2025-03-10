@@ -1,6 +1,19 @@
 import { MastraBase } from '../base';
 import { InstrumentClass } from '../telemetry';
 
+// Define standard voice events
+export type VoiceEventType = 'speaking' | 'writing' | 'error' | string;
+
+// Define event data structure for each event type
+export interface VoiceEventMap {
+  speaking: { text: string; audioStream?: NodeJS.ReadableStream };
+  writing: { text: string };
+  error: { message: string; code?: string; details?: unknown };
+  thinking: { prompt?: string };
+  listening: { audioStream?: NodeJS.ReadableStream };
+  [key: string]: unknown; // Allow for custom events
+}
+
 interface BuiltInModelConfig {
   provider: string;
   name: string;
@@ -30,7 +43,7 @@ export abstract class MastraVoice<
   TTuneConfig = unknown,
   THuddleConfig = unknown,
   TTools = unknown,
-  TEventArgs = unknown,
+  TEventArgs extends VoiceEventMap = VoiceEventMap,
   TSpeakerMetadata = unknown,
 > extends MastraBase {
   protected listeningModel?: BuiltInModelConfig;
@@ -154,20 +167,26 @@ export abstract class MastraVoice<
 
   /**
    * Register an event listener
-   * @param event Event name
-   * @param callback Callback function
+   * @param event Event name (e.g., 'speaking', 'writing', 'error')
+   * @param callback Callback function that receives event data
    */
-  on(_event: string, _callback: (...args: TEventArgs[]) => void): void {
+  on<E extends VoiceEventType>(
+    _event: E,
+    _callback: (data: E extends keyof TEventArgs ? TEventArgs[E] : unknown) => void,
+  ): void {
     // Default implementation - voice providers can override if they support this feature
     this.logger.warn('on not implemented by this voice provider');
   }
 
   /**
    * Remove an event listener
-   * @param event Event name
+   * @param event Event name (e.g., 'speaking', 'writing', 'error')
    * @param callback Callback function to remove
    */
-  off(_event: string, _callback: (...args: TEventArgs[]) => void): void {
+  off<E extends VoiceEventType>(
+    _event: E,
+    _callback: (data: E extends keyof TEventArgs ? TEventArgs[E] : unknown) => void,
+  ): void {
     // Default implementation - voice providers can override if they support this feature
     this.logger.warn('off not implemented by this voice provider');
   }
