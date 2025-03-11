@@ -495,17 +495,17 @@ export class OpenAIRealtimeVoice extends MastraVoice {
 
     this.client.on('conversation.item.completed', ({ item, delta }) => {
       if (
+        item.formatted &&
         item.formatted.audio &&
         item.formatted.audio.length > 0 &&
         item.type === 'message' &&
-        item.role === 'assistant' &&
-        item.formatted
+        item.role === 'assistant'
       ) {
         this.emit('speaking', { audio: item.formatted.audio });
       }
 
       if (item.formatted.transcript) {
-        this.emit('listening', { text: item.formatted.transcript });
+        this.emit('listening', { text: item.formatted.transcript, role: item.role });
       }
 
       this.emit('openAIRealtime:conversation.item.completed', { item, delta });
