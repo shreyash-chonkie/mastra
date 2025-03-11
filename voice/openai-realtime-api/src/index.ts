@@ -160,14 +160,11 @@ export class OpenAIRealtimeVoice extends MastraVoice {
 
     this.state = 'leave';
     this.events = {} as EventMap;
-    console.log('RealtimeClient initialized', this.client);
     this.setupEventListeners();
 
     if (chatModel?.tools) {
       this.equip(chatModel.tools);
     }
-
-    console.log('OpenAIRealtimeVoice initialized');
   }
 
   /**
