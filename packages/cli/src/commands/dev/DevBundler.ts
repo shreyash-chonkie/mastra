@@ -13,8 +13,11 @@ export class DevBundler extends Bundler {
     super('Dev');
   }
 
-  getEnvFiles(): Promise<string[]> {
+  getEnvFiles(envFile?: string): Promise<string[]> {
     const possibleFiles = ['.env.development', '.env'];
+    if (envFile) {
+      possibleFiles.push(envFile);
+    }
 
     try {
       const fileService = new FileService();
@@ -50,11 +53,16 @@ export class DevBundler extends Bundler {
     });
   }
 
-  async watch(entryFile: string, outputDirectory: string, toolsPaths?: string[]): ReturnType<typeof createWatcher> {
+  async watch(
+    entryFile: string,
+    outputDirectory: string,
+    toolsPaths?: string[],
+    envFile?: string,
+  ): ReturnType<typeof createWatcher> {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = dirname(__filename);
 
-    const envFiles = await this.getEnvFiles();
+    const envFiles = await this.getEnvFiles(envFile);
     const inputOptions = await getWatcherInputOptions(entryFile, 'node');
 
     await writeTelemetryConfig(entryFile, join(outputDirectory, this.outputDir));

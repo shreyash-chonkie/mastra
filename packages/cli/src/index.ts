@@ -137,6 +137,7 @@ program
       dir: args?.dir,
       root: args?.root,
       tools: args?.tools ? args.tools.split(',') : [],
+      envFile: args?.env,
     }).catch(err => {
       logger.error(err.message);
     });

@@ -10,7 +10,7 @@ import { DevBundler } from './DevBundler';
 let currentServerProcess: ChildProcess | undefined;
 let isRestarting = false;
 
-const startServer = async (dotMastraPath: string, port: number, env: Map<string, string>) => {
+const startServer = async (dotMastraPath: string, port: number, env: Map<string, string>, envFile?: string) => {
   try {
     // Restart server
     logger.info('[Mastra Dev] - Starting server...');
@@ -96,7 +96,19 @@ async function rebundleAndRestart(dotMastraPath: string, port: number, bundler: 
   }
 }
 
-export async function dev({ port, dir, root, tools }: { dir?: string; root?: string; port: number; tools?: string[] }) {
+export async function dev({
+  port,
+  dir,
+  root,
+  tools,
+  envFile,
+}: {
+  dir?: string;
+  root?: string;
+  port: number;
+  tools?: string[];
+  envFile?: string;
+}) {
   const rootDir = root || process.cwd();
   const mastraDir = join(rootDir, dir || 'src/mastra');
   const dotMastraPath = join(rootDir, '.mastra');
@@ -111,11 +123,11 @@ export async function dev({ port, dir, root, tools }: { dir?: string; root?: str
 
   await bundler.prepare(dotMastraPath);
 
-  const watcher = await bundler.watch(entryFile, dotMastraPath, discoveredTools);
+  const watcher = await bundler.watch(entryFile, dotMastraPath, discoveredTools, envFile);
 
   const env = await bundler.loadEnvVars();
 
-  await startServer(join(dotMastraPath, 'output'), port, env);
+  await startServer(join(dotMastraPath, 'output'), port, env, envFile);
 
   watcher.on('event', event => {
     if (event.code === 'BUNDLE_END') {
