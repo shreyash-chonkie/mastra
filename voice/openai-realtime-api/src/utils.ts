@@ -36,7 +36,6 @@ export const transformTools = (tools?: TTools) => {
       console.warn(`Tool ${name} has neither inputSchema nor parameters, skipping`);
       continue;
     }
-    console.log(JSON.stringify(parameters, null, 2));
     const openaiTool = {
       name,
       description: tool.description || `Tool: ${name}`,
