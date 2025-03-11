@@ -81,8 +81,8 @@ export function AgentEvals({ agentId, baseUrl }: { agentId: string; baseUrl?: st
         onValueChange={value => setActiveTab(value as 'live' | 'ci')}
         className="grid grid-rows-[auto_1fr] h-full min-h-0 pb-2"
       >
-        <div className="bg-mastra-bg-2 border-b border-mastra-border/10">
-          <TabsList className="bg-transparent border-0 h-auto mx-4 pt-5">
+        <div className="border-b border-mastra-border/10">
+          <TabsList className="bg-transparent border-0 h-auto mx-4">
             <TabsTrigger value="live" className={tabIndicatorClass}>
               Live
             </TabsTrigger>
@@ -130,7 +130,7 @@ function EvalTable({ evals, isCIMode = false }: { evals: Evals[]; isCIMode?: boo
 
   return (
     <div className="min-h-0 grid grid-rows-[auto_1fr]">
-      <div className="flex items-center gap-4 p-4 bg-mastra-bg-2 rounded-lg">
+      <div className="flex items-center gap-4 p-4 rounded-lg">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-mastra-el-3" />
           <Input

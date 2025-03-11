@@ -1,13 +1,14 @@
 'use client';
 
 import {
-  useExternalStoreRuntime,
-  ThreadMessageLike,
   AppendMessage,
   AssistantRuntimeProvider,
+  SpeechSynthesisAdapter,
+  ThreadMessageLike,
+  useExternalStoreRuntime,
 } from '@assistant-ui/react';
 import { MastraClient } from '@mastra/client-js';
-import { useState, ReactNode, useEffect, useMemo, useCallback } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 
 import { ChatProps } from '@/types';
 
@@ -31,6 +32,11 @@ export function MastraRuntimeProvider({
   const [isRunning, setIsRunning] = useState(false);
   const [messages, setMessages] = useState<ThreadMessageLike[]>([]);
   const [currentThreadId, setCurrentThreadId] = useState<string | undefined>(threadId);
+  const [speechAdapter, setSpeechAdapter] = useState<SpeechSynthesisAdapter | null>(null);
+
+  const mastra = new MastraClient({
+    baseUrl: baseUrl || '',
+  });
 
   useEffect(() => {
     if (messages.length === 0 || currentThreadId !== threadId) {
@@ -41,9 +47,24 @@ export function MastraRuntimeProvider({
     }
   }, [initialMessages, threadId, memory, messages]);
 
-  const mastra = new MastraClient({
-    baseUrl: baseUrl || '',
-  });
+  useEffect(() => {
+    async function initSpeechAdapter() {
+      try {
+        const agent = mastra.getAgent(agentId);
+        console.log('Agent:', agent); // Debug the agent object
+
+        const provider = await agent.getSpeechProvider();
+        const speakers = await agent.getSpeakers();
+
+        console.log('Speech provider before setting:', {}); // Debug the provider
+
+        setSpeechAdapter(provider);
+      } catch (error) {
+        console.error('Failed to initialize speech adapter:', error);
+      }
+    }
+    initSpeechAdapter();
+  }, [agentId]);
 
   const onNew = async (message: AppendMessage) => {
     if (message.content[0]?.type !== 'text') throw new Error('Only text messages are supported');
@@ -136,6 +157,13 @@ export function MastraRuntimeProvider({
     messages,
     convertMessage,
     onNew,
+    ...(speechAdapter
+      ? {
+          adapters: {
+            speech: speechAdapter,
+          },
+        }
+      : {}),
   });
 
   return <AssistantRuntimeProvider runtime={runtime}> {children} </AssistantRuntimeProvider>;

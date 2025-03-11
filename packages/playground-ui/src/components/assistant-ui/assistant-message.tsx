@@ -1,5 +1,5 @@
 import { ActionBarPrimitive, BranchPickerPrimitive, MessagePrimitive } from '@assistant-ui/react';
-import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, CopyIcon } from 'lucide-react';
+import { AudioLinesIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CopyIcon, StopCircleIcon } from 'lucide-react';
 import { FC } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -52,7 +52,7 @@ const AssistantActionBar: FC = () => {
       autohideFloat="single-branch"
       className="text-muted-foreground flex gap-1 col-start-3 row-start-2 -ml-1"
     >
-      {/* <MessagePrimitive.If speaking={false}>
+      <MessagePrimitive.If speaking={false}>
         <ActionBarPrimitive.Speak asChild>
           <TooltipIconButton tooltip="Read aloud">
             <AudioLinesIcon />
@@ -65,7 +65,7 @@ const AssistantActionBar: FC = () => {
             <StopCircleIcon />
           </TooltipIconButton>
         </ActionBarPrimitive.StopSpeaking>
-      </MessagePrimitive.If> */}
+      </MessagePrimitive.If>
       <ActionBarPrimitive.Copy asChild>
         <TooltipIconButton tooltip="Copy">
           <MessagePrimitive.If copied>
