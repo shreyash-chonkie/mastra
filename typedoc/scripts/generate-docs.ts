@@ -16,7 +16,6 @@ import {
   VOICE_PACKAGES,
   ALL_PACKAGES,
 } from './packages.js';
-import { DarkTheme } from '../theme/dark-theme.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -59,7 +58,6 @@ async function buildDocsForVersion(packageInfo: PackageInfo, version: string) {
     excludePrivate: true,
     excludeProtected: true,
     excludeInternal: true,
-    // theme: 'dark',
     entryPoints: [path.join(packagePath, 'src/index.ts')],
     entryPointStrategy: 'resolve',
     tsconfig: path.join(packagePath, 'tsconfig.json'),
@@ -69,9 +67,6 @@ async function buildDocsForVersion(packageInfo: PackageInfo, version: string) {
     readme: 'none',
     skipErrorChecking: true,
   });
-
-  // // Register our dark theme
-  // app.renderer.defineTheme('dark', DarkTheme);
 
   try {
     const project = await app.convert();
@@ -142,9 +137,6 @@ async function buildCategoryDocs(packages: PackageInfo[], categoryName: string, 
 
     // Return to original branch
     // execSync(`git checkout ${currentBranch}`);
-
-    // // Generate the landing page
-    // await generateLandingPage();
 
     console.log('\nAll documentation generated successfully!');
     console.log('\nTo preview the documentation, run:');
