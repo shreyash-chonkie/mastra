@@ -73,7 +73,6 @@ export const transformTools = (tools?: TTools) => {
       console.warn(`Tool ${name} has no execute function, skipping`);
     }
   }
-  console.log(`Transformed tools:`, openaiTools);
   return openaiTools;
 };
 
