@@ -53,6 +53,7 @@ function Agent() {
       <div className="relative overflow-y-hidden">
         <Chat
           agentId={agentId!}
+          baseUrl="http://localhost:4111"
           agentName={agent?.name}
           threadId={threadId!}
           initialMessages={isMessagesLoading ? undefined : (messages as Message[])}

@@ -178,3 +178,18 @@ export interface GetTelemetryParams {
   perPage?: number;
   attribute?: Record<string, string>;
 }
+
+export type GetSpeakerResponse = {
+  voiceId: string;
+  [key: string]: any; // This represents additionalProperties: true
+}[];
+
+export type SpeakRequest = {
+  input: string | NodeJS.ReadableStream;
+  options?: { speaker?: string; [key: string]: any };
+};
+
+export type ListenRequest = {
+  audioStream: NodeJS.ReadableStream;
+  options?: { [key: string]: any };
+};

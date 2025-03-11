@@ -10,6 +10,7 @@ import { AgentHeader } from './agent-header';
 export const AgentLayout = ({ children }: { children: React.ReactNode }) => {
   const { agentId } = useParams();
   const { agent, isLoading: isAgentLoading } = useAgent(agentId!);
+  console.log(agentId, agent?.name);
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {isAgentLoading ? (

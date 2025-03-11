@@ -1,4 +1,5 @@
 import type { GenerateReturn, StreamReturn } from '@mastra/core';
+import type { MastraVoice, SpeechSynthesisAdapter } from '@mastra/core/voice';
 import type { JSONSchema7 } from 'json-schema';
 import { ZodSchema } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
@@ -10,6 +11,9 @@ import type {
   GetToolResponse,
   ClientOptions,
   StreamParams,
+  GetSpeakerResponse,
+  SpeakRequest,
+  ListenRequest,
 } from '../types';
 
 import { BaseResource } from './base';
@@ -120,5 +124,41 @@ export class Agent extends BaseResource {
    */
   liveEvals(): Promise<GetEvalsByAgentIdResponse> {
     return this.request(`/api/agents/${this.agentId}/evals/live`);
+  }
+
+  /**
+   * Retrieves available speakers for the agent
+   * @returns Promise containing available speakers
+   */
+  getSpeakers(): Promise<GetSpeakerResponse> {
+    return this.request(`/api/agents/${this.agentId}/speakers`);
+  }
+
+  /**
+   * Converts text to speech using the agent's voice provider
+   * @param params - Parameters including text and speaker ID
+   * @returns Promise containing the speech response
+   */
+  speak(params: SpeakRequest): Promise<NodeJS.ReadableStream> {
+    return this.request(`/api/agents/${this.agentId}/speak`, {
+      method: 'POST',
+      body: params,
+    });
+  }
+
+  /**
+   * Converts speech to text using the agent's voice provider
+   * @param params - Parameters including audio stream
+   * @returns Promise containing the text response
+   */
+  listen(params: ListenRequest): Promise<string | NodeJS.ReadableStream> {
+    return this.request(`/api/agents/${this.agentId}/listen`, {
+      method: 'POST',
+      body: params,
+    });
+  }
+
+  getSpeechProvider(): Promise<SpeechSynthesisAdapter> {
+    return this.request(`/api/agents/${this.agentId}/speech-provider`);
   }
 }

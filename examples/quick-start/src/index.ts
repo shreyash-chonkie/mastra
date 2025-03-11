@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { mastra } from './mastra';
+import { mastra } from './mastra/index.js';
 
 const specieSchema = z.object({
   species: z.string(),

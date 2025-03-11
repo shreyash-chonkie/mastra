@@ -23,6 +23,7 @@
     "@mastra/core": "workspace:*",
     "@mastra/loggers": "workspace:*",
     "@mastra/memory": "workspace:*",
+    "@mastra/voice-openai": "workspace:*",
     "ai": "latest"
   },
   "version": "0.0.1"

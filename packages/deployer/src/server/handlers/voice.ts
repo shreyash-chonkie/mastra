@@ -31,6 +31,31 @@ export async function getSpeakersHandler(c: Context) {
 }
 
 /**
+ * Get the speech provider for an agent
+ */
+export async function getSpeechProviderHandler(c: Context) {
+  try {
+    const mastra: Mastra = c.get('mastra');
+    const agentId = c.req.param('agentId');
+    const agent = mastra.getAgent(agentId);
+
+    if (!agent) {
+      throw new HTTPException(404, { message: 'Agent not found' });
+    }
+
+    if (!agent.voice) {
+      throw new HTTPException(400, { message: 'Agent does not have voice capabilities' });
+    }
+
+    const speechProvider = agent.getSpeechProvider();
+    console.log({ speechProvider });
+    return c.json(speechProvider);
+  } catch (error) {
+    return handleError(error, 'Error getting speech provider');
+  }
+}
+
+/**
  * Convert text to speech using the agent's voice provider
  */
 export async function speakHandler(c: Context) {

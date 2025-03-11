@@ -6,6 +6,30 @@ interface BuiltInModelConfig {
   apiKey?: string;
 }
 
+export type Unsubscribe = () => void;
+
+export namespace SpeechSynthesisAdapter {
+  export type Status =
+    | {
+        type: 'starting' | 'running';
+      }
+    | {
+        type: 'ended';
+        reason: 'finished' | 'cancelled' | 'error';
+        error?: unknown;
+      };
+
+  export type Utterance = {
+    status: Status;
+    cancel: () => void;
+    subscribe: (callback: () => void) => Unsubscribe;
+  };
+}
+
+export type SpeechSynthesisAdapter = {
+  speak: (text: string) => SpeechSynthesisAdapter.Utterance;
+};
+
 export interface VoiceConfig {
   listeningModel?: BuiltInModelConfig;
   speechModel?: BuiltInModelConfig;
@@ -78,4 +102,6 @@ export abstract class MastraVoice extends MastraBase {
       [key: string]: any;
     }>
   >;
+
+  abstract getSpeechProvider(): SpeechSynthesisAdapter;
 }

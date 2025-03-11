@@ -47,7 +47,7 @@ import {
   describeIndex,
   deleteIndex,
 } from './handlers/vector.js';
-import { getSpeakersHandler, speakHandler, listenHandler } from './handlers/voice.js';
+import { getSpeakersHandler, speakHandler, listenHandler, getSpeechProviderHandler } from './handlers/voice.js';
 import {
   executeWorkflowHandler,
   getWorkflowByIdHandler,
@@ -612,6 +612,46 @@ export async function createHonoServer(
       },
     }),
     listenHandler,
+  );
+
+  app.get(
+    `/api/agents/:agentId/speech-provider`,
+    describeRoute({
+      description: 'Get the speech provider for an agent',
+      tags: ['agents'],
+      parameters: [
+        {
+          name: 'agentId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Speech provider',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  speak: {
+                    type: 'object',
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          description: 'Agent does not have voice capabilities',
+        },
+        404: {
+          description: 'Agent not found',
+        },
+      },
+    }),
+    getSpeechProviderHandler,
   );
 
   app.post(

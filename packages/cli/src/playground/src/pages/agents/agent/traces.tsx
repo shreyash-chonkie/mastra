@@ -23,7 +23,13 @@ function AgentTracesPage() {
     );
   }
 
-  return <AgentTraces agentName={agent?.name!} baseUrl="" sidebarChild={<AgentInformation agentId={agentId!} />} />;
+  return (
+    <AgentTraces
+      agentName={agent?.name!}
+      baseUrl="http://localhost:4111"
+      sidebarChild={<AgentInformation agentId={agentId!} />}
+    />
+  );
 }
 
 export default AgentTracesPage;
