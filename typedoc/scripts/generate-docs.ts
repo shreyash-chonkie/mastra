@@ -3,8 +3,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
-import { generateSidebar } from './utils/generateSidebar.js';
-import { setupVitePress } from './utils/setupVitePress.js';
+import { generateSidebar } from '../utils/generateSidebar.js';
 import {
   PackageInfo,
   DEPLOYERS,
@@ -93,54 +92,31 @@ async function buildCategoryDocs(packages: PackageInfo[], categoryName: string, 
 // Main execution
 (async () => {
   try {
-    await fs.rm(path.resolve(__dirname, '../generated'), { recursive: true, force: true }).catch(() => {});
+    // Clean and create output directory
+    const outputDir = path.resolve(__dirname, '../generated');
+    await fs.rm(outputDir, { recursive: true, force: true });
+    await fs.mkdir(outputDir, { recursive: true });
 
-    // Store current branch
-    // const currentBranch = execSync('git rev-parse --abbrev-ref HEAD').toString().trim();
-
-    // Get all versions
-    // const versions = await getGitVersions();
-    // console.log(versions);
-    const versions = ['v1.0.0'];
-
-    const sidebar = {} as Record<string, any>;
+    const versions = ['v1.0.0', 'v0.9.0', 'v0.8.0'];
 
     // Generate docs for each version
     for (const version of versions) {
-      console.log(`\nGenerating documentation for version ${version}`);
+      console.log(`\nGenerating documentation for version ${version}...`);
 
-      // Build all categories sequentially for this version
+      const versionDir = path.join(outputDir, 'docs', version);
+      await fs.mkdir(versionDir, { recursive: true });
+
+      // Generate docs for each category
+      await buildCategoryDocs(CORE_PACKAGES, 'Core Packages', version);
+      await buildCategoryDocs(CLIENT_SDKS, 'Client SDKs', version);
       await buildCategoryDocs(DEPLOYERS, 'Deployers', version);
       await buildCategoryDocs(INTEGRATIONS, 'Integrations', version);
-      await buildCategoryDocs(CLIENT_SDKS, 'Client SDKs', version);
-      await buildCategoryDocs(CORE_PACKAGES, 'Core Packages', version);
       await buildCategoryDocs(SPEECH_PACKAGES, 'Speech Packages', version);
       await buildCategoryDocs(STORE_PACKAGES, 'Store Packages', version);
       await buildCategoryDocs(VOICE_PACKAGES, 'Voice Packages', version);
-
-      // Generate sidebar for all packages after docs are generated
-      for (const pkg of ALL_PACKAGES) {
-        const docsPath = path.resolve(__dirname, '../generated/docs', version, pkg.name);
-        const sidebarItems = await generateSidebar(docsPath, `${version}/${pkg.name}`);
-        const sideBarKey = `/${version}/${pkg.name}`;
-        sidebar[sideBarKey] = sidebarItems;
-      }
-
-      // Write the complete sidebar configuration
-      const sidebarPath = path.resolve(__dirname, '../generated/sidebar.json');
-      await fs.writeFile(sidebarPath, JSON.stringify(sidebar, null, 2));
-
-      // Setup VitePress with all packages
-      const packageNames = ALL_PACKAGES.map(pkg => pkg.name);
-      await setupVitePress(version, packageNames);
     }
 
-    // Return to original branch
-    // execSync(`git checkout ${currentBranch}`);
-
-    console.log('\nAll documentation generated successfully!');
-    console.log('\nTo preview the documentation, run:');
-    console.log('pnpm docs:dev');
+    console.log('\nDocumentation generation complete!');
   } catch (error) {
     console.error('Fatal error:', error);
     process.exit(1);

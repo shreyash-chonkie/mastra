@@ -54,11 +54,12 @@
     "dev:services:up": "docker compose -f .dev/docker-compose.yaml up -d",
     "dev:services:down": "docker compose -f .dev/docker-compose.yaml down",
     "setup": "pnpm install --ignore-scripts && pnpm run build:cli && pnpm install --shamefully-hoist",
-    "generate:raw-api-docs": "tsx typedoc/scripts/generate-docs.ts",
-    "raw-api-docs:serve": "pnpm dlx http-server typedoc/generated",
-    "docs:dev": "vitepress dev typedoc/generated",
-    "docs:build": "vitepress build typedoc/generated",
-    "docs:preview": "vitepress preview typedoc/generated"
+    "raw-api-docs:generate": "tsx typedoc/scripts/generate-docs.ts",
+    "raw-api-docs:setup": "tsx typedoc/scripts/setup-site.ts",
+    "raw-api-docs:dev": "vitepress dev typedoc/site",
+    "raw-api-docs:build": "vitepress build typedoc/site",
+    "raw-api-docs:preview": "vitepress preview typedoc/site",
+    "raw-api-docs:all": "pnpm raw-api-docs:generate && pnpm raw-api-docs:setup && pnpm raw-api-docs:dev"
   },
   "lint-staged": {
     "*.{js,ts,tsx,md,json,graphql,gql}": [
