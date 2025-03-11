@@ -10,7 +10,7 @@ import { DevBundler } from './DevBundler';
 let currentServerProcess: ChildProcess | undefined;
 let isRestarting = false;
 
-const startServer = async (dotMastraPath: string, port: number, env: Map<string, string>, envFile?: string) => {
+const startServer = async (dotMastraPath: string, port: number, env: Map<string, string>) => {
   try {
     // Restart server
     logger.info('[Mastra Dev] - Starting server...');
@@ -75,7 +75,7 @@ const startServer = async (dotMastraPath: string, port: number, env: Map<string,
   }
 };
 
-async function rebundleAndRestart(dotMastraPath: string, port: number, bundler: DevBundler, tools?: string[]) {
+async function rebundleAndRestart(dotMastraPath: string, port: number, bundler: DevBundler, envFile?: string) {
   if (isRestarting) {
     return;
   }
@@ -88,7 +88,7 @@ async function rebundleAndRestart(dotMastraPath: string, port: number, bundler: 
       currentServerProcess.kill('SIGINT');
     }
 
-    const env = await bundler.loadEnvVars();
+    const env = await bundler.loadEnvVars(envFile);
 
     await startServer(join(dotMastraPath, 'output'), port, env);
   } finally {
@@ -125,9 +125,9 @@ export async function dev({
 
   const watcher = await bundler.watch(entryFile, dotMastraPath, discoveredTools, envFile);
 
-  const env = await bundler.loadEnvVars();
+  const env = await bundler.loadEnvVars(envFile);
 
-  await startServer(join(dotMastraPath, 'output'), port, env, envFile);
+  await startServer(join(dotMastraPath, 'output'), port, env);
 
   watcher.on('event', event => {
     if (event.code === 'BUNDLE_END') {

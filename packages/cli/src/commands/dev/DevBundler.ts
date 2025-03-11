@@ -31,8 +31,8 @@ export class DevBundler extends Bundler {
     return Promise.resolve([]);
   }
 
-  async loadEnvVars(): Promise<Map<string, string>> {
-    const superEnvVars = await super.loadEnvVars();
+  async loadEnvVars(envFile?: string): Promise<Map<string, string>> {
+    const superEnvVars = await super.loadEnvVars(envFile);
 
     superEnvVars.set('MASTRA_TOOLS_PATH', this.mastraToolsPaths.join(','));
 

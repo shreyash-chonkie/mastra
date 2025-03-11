@@ -16,10 +16,10 @@ export abstract class MastraBundler extends MastraBase implements IBundler {
     super({ component, name });
   }
 
-  async loadEnvVars(): Promise<Map<string, string>> {
+  async loadEnvVars(envFile?: string): Promise<Map<string, string>> {
     const envVars = new Map();
 
-    for (const file of await this.getEnvFiles()) {
+    for (const file of await this.getEnvFiles(envFile)) {
       const content = await readFile(file, 'utf-8');
       const config = parse(content);
 
