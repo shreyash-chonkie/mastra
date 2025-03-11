@@ -1,0 +1,148 @@
+/* Base theme variables */
+:root {
+    --background-color: #ffffff;
+    --text-color: #000000;
+    --color-background: #0a0a0a;
+    --color-text: #e4e4e4;
+    --color-text-aside: #a3a3a3;
+    --color-link: #ffffff;
+    --color-menu-divider: #2d2d2d;
+    --color-background-secondary: #141415;
+    --color-background-warning: #333;
+    --color-card-background: #252525;
+    --color-card-border: #2d2d2d;
+}
+
+/* Dark theme styles */
+.dark-theme {
+    background: var(--color-background);
+    color: var(--color-text);
+    font-size: 14px;
+}
+
+/* Navigation */
+.dark-theme .tsd-navigation.primary {
+    padding: 8px 16px;
+    background: var(--color-background-secondary);
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+    font-size: 14px;
+}
+
+.dark-theme .tsd-navigation.primary a {
+    color: var(--color-text);
+    font-weight: 400;
+    padding: 8px 16px;
+}
+
+.dark-theme .tsd-navigation.primary li.current > a {
+    color: var(--color-link);
+    border-radius: 0.375rem;
+}
+
+/* Header */
+.dark-theme .tsd-page-toolbar {
+    background: var(--color-background);
+    border-bottom: none;
+}
+
+.dark-theme .tsd-page-toolbar .tsd-toolbar-contents {
+    border-bottom: 1px solid var(--color-menu-divider);
+}
+
+/* Content */
+.dark-theme .tsd-panel {
+    background: var(--color-background-secondary);
+    border: 1px solid var(--color-card-border);
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+}
+
+.dark-theme .tsd-panel h1,
+.dark-theme .tsd-panel h2,
+.dark-theme .tsd-panel h3,
+.dark-theme .tsd-panel h4 {
+    color: #ffffff;
+    font-weight: 500;
+    border-bottom: none;
+}
+
+/* Code blocks */
+.dark-theme .tsd-signature {
+    background: var(--color-background);
+    border: 1px solid var(--color-card-border);
+    border-radius: 0.375rem;
+    font-size: 13px;
+}
+
+.dark-theme pre {
+    background: var(--color-background);
+    border-radius: 0.375rem;
+    font-size: 13px;
+}
+
+.dark-theme code {
+    background: var(--color-background);
+    border-radius: 0.375rem;
+    padding: 0.2em 0.4em;
+    font-size: 13px;
+}
+
+/* Links and hover states */
+.dark-theme a {
+    color: #ffffff;
+    text-decoration: none;
+    background: transparent !important;
+}
+
+.dark-theme a:hover {
+    text-decoration: none;
+    color: #5ca9ff;
+}
+
+/* Search box */
+.dark-theme #tsd-search .field input {
+    background: var(--color-background-secondary);
+    color: var(--color-text);
+    border: 1px solid var(--color-card-border);
+    border-radius: 0.375rem;
+}
+
+/* Member signatures */
+.dark-theme .tsd-signatures .tsd-signature {
+    background: var(--color-background);
+}
+
+/* Tables */
+.dark-theme .tsd-parameters {
+    background: var(--color-background-secondary);
+    border-radius: 0.375rem;
+}
+
+.dark-theme .tsd-parameters th {
+    color: var(--color-text);
+    border-bottom: 0.5px solid hsl(0, 0%, 20%);
+}
+
+.dark-theme .tsd-parameters td {
+    border-bottom: 0.5px solid hsl(0, 0%, 20%);
+}
+
+/* Member icons */
+.dark-theme .tsd-kind-icon {
+    filter: invert(1);
+}
+
+/* Theme toggle button */
+.dark-theme .theme-toggle {
+    background: var(--color-background-secondary);
+    color: var(--color-text);
+    border: 1px solid var(--color-card-border);
+    border-radius: 0.375rem;
+    padding: 8px 16px;
+    cursor: pointer;
+}
+
+.dark-theme .theme-toggle:hover {
+    border-color: var(--color-link);
+} 

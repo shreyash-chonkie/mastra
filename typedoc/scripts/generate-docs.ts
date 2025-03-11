@@ -3,7 +3,6 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
-import { generateSidebar } from '../utils/generateSidebar.js';
 import {
   PackageInfo,
   DEPLOYERS,
@@ -13,8 +12,9 @@ import {
   SPEECH_PACKAGES,
   STORE_PACKAGES,
   VOICE_PACKAGES,
-  ALL_PACKAGES,
 } from './packages.js';
+import { DarkTheme } from '../theme/dark-theme.js';
+import { generateLandingPage } from './landing-page.js';
 
 // Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -41,14 +41,17 @@ async function getGitVersions() {
   return tags;
 }
 
+async function generateVersionIndex(versions: string[], version: string) {
+  // Use the same landing page generator but with version-specific paths
+  await generateLandingPage(versions, version, path.resolve(__dirname, '../generated/docs', version, 'index.html'));
+}
+
 async function buildDocsForVersion(packageInfo: PackageInfo, version: string) {
   console.log(`\nProcessing ${packageInfo.name} documentation for version ${version}...`);
 
-  // Checkout specific version
-  // execSync(`git checkout ${version}`);
-
+  const projectRoot = path.resolve(__dirname, '..', '..');
   const outputPath = path.resolve(__dirname, '../generated/docs', version, packageInfo.name);
-  const packagePath = path.join(process.cwd(), packageInfo.path);
+  const packagePath = path.join(projectRoot, packageInfo.path);
 
   await fs.mkdir(outputPath, { recursive: true });
 
@@ -57,15 +60,16 @@ async function buildDocsForVersion(packageInfo: PackageInfo, version: string) {
     excludePrivate: true,
     excludeProtected: true,
     excludeInternal: true,
+    theme: 'dark',
     entryPoints: [path.join(packagePath, 'src/index.ts')],
     entryPointStrategy: 'resolve',
     tsconfig: path.join(packagePath, 'tsconfig.json'),
     out: outputPath,
-    plugin: ['typedoc-plugin-markdown'],
-    theme: 'markdown',
-    readme: 'none',
     skipErrorChecking: true,
   });
+
+  // Register our dark theme
+  app.renderer.defineTheme('dark', DarkTheme);
 
   try {
     const project = await app.convert();
@@ -106,7 +110,6 @@ async function buildCategoryDocs(packages: PackageInfo[], categoryName: string, 
       const versionDir = path.join(outputDir, 'docs', version);
       await fs.mkdir(versionDir, { recursive: true });
 
-      // Generate docs for each category
       await buildCategoryDocs(CORE_PACKAGES, 'Core Packages', version);
       await buildCategoryDocs(CLIENT_SDKS, 'Client SDKs', version);
       await buildCategoryDocs(DEPLOYERS, 'Deployers', version);
@@ -114,7 +117,13 @@ async function buildCategoryDocs(packages: PackageInfo[], categoryName: string, 
       await buildCategoryDocs(SPEECH_PACKAGES, 'Speech Packages', version);
       await buildCategoryDocs(STORE_PACKAGES, 'Store Packages', version);
       await buildCategoryDocs(VOICE_PACKAGES, 'Voice Packages', version);
+
+      // Generate version-specific index
+      await generateVersionIndex(versions, version);
     }
+
+    // Generate landing page
+    await generateLandingPage(versions);
 
     console.log('\nDocumentation generation complete!');
   } catch (error) {
