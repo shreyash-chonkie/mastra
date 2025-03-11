@@ -72,3 +72,13 @@ export const VOICE_PACKAGES: PackageInfo[] = [
   { name: 'playai-voice', displayName: 'Play.ai Voice', path: 'voice/playai' },
   { name: 'speechify-voice', displayName: 'Speechify Voice', path: 'voice/speechify' },
 ];
+
+export const ALL_PACKAGES = [
+  ...DEPLOYERS,
+  ...INTEGRATIONS,
+  ...CLIENT_SDKS,
+  ...CORE_PACKAGES,
+  ...SPEECH_PACKAGES,
+  ...STORE_PACKAGES,
+  ...VOICE_PACKAGES,
+];

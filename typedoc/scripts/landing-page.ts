@@ -14,7 +14,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export async function generateLandingPage() {
+export async function generateLandingPage(currentVersion: string) {
   const categories = [
     { name: 'Deployers', packages: DEPLOYERS },
     { name: 'Integrations', packages: INTEGRATIONS },
@@ -24,6 +24,10 @@ export async function generateLandingPage() {
     { name: 'Store Packages', packages: STORE_PACKAGES },
     { name: 'Voice Packages', packages: VOICE_PACKAGES },
   ];
+
+  // Get list of available versions
+  const versionsDir = path.resolve(__dirname, '..', 'generated');
+  const versions = await fs.readdir(versionsDir);
 
   const html = `
 <!DOCTYPE html>
@@ -115,10 +119,42 @@ export async function generateLandingPage() {
             color: #ffffff;
             text-decoration: none;
         }
+
+        .version-selector {
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .version-selector select {
+            background: var(--color-background-secondary);
+            color: var(--color-text);
+            border: 1px solid var(--color-card-border);
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     <h1>Mastra Documentation</h1>
+    
+    <div class="version-selector">
+        <label>Version:</label>
+        <select onchange="window.location.href = '/generated/' + this.value + '/index.html'">
+            ${versions
+              .map(
+                v => `
+                <option value="${v}" ${v === currentVersion ? 'selected' : ''}>
+                    ${v}
+                </option>
+            `,
+              )
+              .join('')}
+        </select>
+    </div>
+    
     ${categories
       .map(
         category => `
@@ -144,7 +180,7 @@ export async function generateLandingPage() {
 </html>
   `;
 
-  const outputPath = path.resolve(__dirname, '..', 'generated', 'index.html');
+  const outputPath = path.resolve(__dirname, '..', 'generated', currentVersion, 'index.html');
   await fs.writeFile(outputPath, html);
   console.log('✓ Generated landing page');
 }
