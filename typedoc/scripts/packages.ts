@@ -6,18 +6,18 @@ export interface PackageInfo {
 
 // Deployers
 export const DEPLOYERS: PackageInfo[] = [
-  { name: 'cloudflare', displayName: 'Cloudflare Deployer', path: 'deployers/cloudflare' },
-  { name: 'netlify', displayName: 'Netlify Deployer', path: 'deployers/netlify' },
-  { name: 'vercel', displayName: 'Vercel Deployer', path: 'deployers/vercel' },
+  { name: '@mastra/deployer-cloudflare', displayName: 'Cloudflare Deployer', path: 'deployers/cloudflare' },
+  { name: '@mastra/deployer-netlify', displayName: 'Netlify Deployer', path: 'deployers/netlify' },
+  { name: '@mastra/deployer-vercel', displayName: 'Vercel Deployer', path: 'deployers/vercel' },
 ];
 
 // Integrations
 export const INTEGRATIONS: PackageInfo[] = [
-  { name: 'composio', displayName: 'Compos.io Integration', path: 'integrations/composio' },
-  { name: 'firecrawl', displayName: 'Firecrawl Integration', path: 'integrations/firecrawl' },
-  { name: 'github', displayName: 'GitHub Integration', path: 'integrations/github' },
-  { name: 'ragie', displayName: 'Ragie Integration', path: 'integrations/ragie' },
-  { name: 'stabilityai', displayName: 'Stability AI Integration', path: 'integrations/stabilityai' },
+  { name: '@mastra/composio', displayName: 'Compos.io Integration', path: 'integrations/composio' },
+  { name: '@mastra/firecrawl', displayName: 'Firecrawl Integration', path: 'integrations/firecrawl' },
+  { name: '@mastra/github', displayName: 'GitHub Integration', path: 'integrations/github' },
+  { name: '@mastra/ragie', displayName: 'Ragie Integration', path: 'integrations/ragie' },
+  { name: '@mastra/stabilityai', displayName: 'Stability AI Integration', path: 'integrations/stabilityai' },
 ];
 
 // Client SDKs
@@ -26,51 +26,51 @@ export const CLIENT_SDKS: PackageInfo[] = [{ name: 'js', displayName: 'Client JS
 // Packages
 export const CORE_PACKAGES: PackageInfo[] = [
   { name: 'cli', displayName: 'CLI', path: 'packages/cli' },
-  { name: 'core', displayName: 'Core', path: 'packages/core' },
+  { name: '@mastra/core', displayName: 'Core', path: 'packages/core' },
   { name: 'create-mastra', displayName: 'Create Mastra', path: 'packages/create-mastra' },
-  { name: 'deployer', displayName: 'Deployer', path: 'packages/deployer' },
-  { name: 'evals', displayName: 'Evals', path: 'packages/evals' },
-  { name: 'loggers', displayName: 'Loggers', path: 'packages/loggers' },
-  { name: 'mcp', displayName: 'MCP', path: 'packages/mcp' },
-  { name: 'memory', displayName: 'Memory', path: 'packages/memory' },
-  { name: 'playground-ui', displayName: 'Playground UI', path: 'packages/playground-ui' },
-  { name: 'rag', displayName: 'RAG', path: 'packages/rag' },
+  { name: '@mastra/deployer', displayName: 'Deployer', path: 'packages/deployer' },
+  { name: '@mastra/evals', displayName: 'Evals', path: 'packages/evals' },
+  { name: '@mastra/loggers', displayName: 'Loggers', path: 'packages/loggers' },
+  { name: '@mastra/mcp', displayName: 'MCP', path: 'packages/mcp' },
+  { name: '@mastra/memory', displayName: 'Memory', path: 'packages/memory' },
+  { name: '@mastra/playground-ui', displayName: 'Playground UI', path: 'packages/playground-ui' },
+  { name: '@mastra/rag', displayName: 'RAG', path: 'packages/rag' },
 ];
 
 // Speech
 export const SPEECH_PACKAGES: PackageInfo[] = [
-  { name: 'azure-speech', displayName: 'Azure Speech', path: 'speech/azure' },
-  { name: 'deepgram-speech', displayName: 'Deepgram Speech', path: 'speech/deepgram' },
-  { name: 'elevenlabs-speech', displayName: 'ElevenLabs Speech', path: 'speech/elevenlabs' },
-  { name: 'google-speech', displayName: 'Google Speech', path: 'speech/google' },
-  { name: 'ibm-speech', displayName: 'IBM Speech', path: 'speech/ibm' },
-  { name: 'murf-speech', displayName: 'Murf Speech', path: 'speech/murf' },
-  { name: 'openai-speech', displayName: 'OpenAI Speech', path: 'speech/openai' },
-  { name: 'playai-speech', displayName: 'Play.ai Speech', path: 'speech/playai' },
-  { name: 'replicate-speech', displayName: 'Replicate Speech', path: 'speech/replicate' },
-  { name: 'speechify-speech', displayName: 'Speechify Speech', path: 'speech/speechify' },
+  { name: '@mastra/speech-azure', displayName: 'Azure Speech', path: 'speech/azure' },
+  { name: '@mastra/speech-deepgram', displayName: 'Deepgram Speech', path: 'speech/deepgram' },
+  { name: '@mastra/speech-elevenlabs', displayName: 'ElevenLabs Speech', path: 'speech/elevenlabs' },
+  { name: '@mastra/speech-google', displayName: 'Google Speech', path: 'speech/google' },
+  { name: '@mastra/speech-ibm', displayName: 'IBM Speech', path: 'speech/ibm' },
+  { name: '@mastra/speech-murf', displayName: 'Murf Speech', path: 'speech/murf' },
+  { name: '@mastra/speech-openai', displayName: 'OpenAI Speech', path: 'speech/openai' },
+  { name: '@mastra/speech-playai', displayName: 'Play.ai Speech', path: 'speech/playai' },
+  { name: '@mastra/speech-replicate', displayName: 'Replicate Speech', path: 'speech/replicate' },
+  { name: '@mastra/speech-speechify', displayName: 'Speechify Speech', path: 'speech/speechify' },
 ];
 
 // Stores
 export const STORE_PACKAGES: PackageInfo[] = [
-  { name: 'astra', displayName: 'Astra Store', path: 'stores/astra' },
-  { name: 'chroma', displayName: 'Chroma Store', path: 'stores/chroma' },
-  { name: 'pg', displayName: 'PostgreSQL Store', path: 'stores/pg' },
-  { name: 'pinecone', displayName: 'Pinecone Store', path: 'stores/pinecone' },
-  { name: 'qdrant', displayName: 'Qdrant Store', path: 'stores/qdrant' },
-  { name: 'upstash', displayName: 'Upstash Store', path: 'stores/upstash' },
-  { name: 'vectorize', displayName: 'Vectorize Store', path: 'stores/vectorize' },
+  { name: '@mastra/astra', displayName: 'Astra Store', path: 'stores/astra' },
+  { name: '@mastra/chroma', displayName: 'Chroma Store', path: 'stores/chroma' },
+  { name: '@mastra/pg', displayName: 'PostgreSQL Store', path: 'stores/pg' },
+  { name: '@mastra/pinecone', displayName: 'Pinecone Store', path: 'stores/pinecone' },
+  { name: '@mastra/qdrant', displayName: 'Qdrant Store', path: 'stores/qdrant' },
+  { name: '@mastra/upstash', displayName: 'Upstash Store', path: 'stores/upstash' },
+  { name: '@mastra/vectorize', displayName: 'Vectorize Store', path: 'stores/vectorize' },
 ];
 
 // Voice
 export const VOICE_PACKAGES: PackageInfo[] = [
-  { name: 'deepgram-voice', displayName: 'Deepgram Voice', path: 'voice/deepgram' },
-  { name: 'elevenlabs-voice', displayName: 'ElevenLabs Voice', path: 'voice/elevenlabs' },
-  { name: 'google-voice', displayName: 'Google Voice', path: 'voice/google' },
-  { name: 'murf-voice', displayName: 'Murf Voice', path: 'voice/murf' },
-  { name: 'openai-voice', displayName: 'OpenAI Voice', path: 'voice/openai' },
-  { name: 'playai-voice', displayName: 'Play.ai Voice', path: 'voice/playai' },
-  { name: 'speechify-voice', displayName: 'Speechify Voice', path: 'voice/speechify' },
+  { name: '@mastra/voice-deepgram', displayName: 'Deepgram Voice', path: 'voice/deepgram' },
+  { name: '@mastra/voice-elevenlabs', displayName: 'ElevenLabs Voice', path: 'voice/elevenlabs' },
+  { name: '@mastra/voice-google', displayName: 'Google Voice', path: 'voice/google' },
+  { name: '@mastra/voice-murf', displayName: 'Murf Voice', path: 'voice/murf' },
+  { name: '@mastra/voice-openai', displayName: 'OpenAI Voice', path: 'voice/openai' },
+  { name: '@mastra/voice-playai', displayName: 'Play.ai Voice', path: 'voice/playai' },
+  { name: '@mastra/voice-speechify', displayName: 'Speechify Voice', path: 'voice/speechify' },
 ];
 
 export const ALL_PACKAGES = [

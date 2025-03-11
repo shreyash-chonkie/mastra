@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs/promises';
+import { fileURLToPath } from 'url';
 import {
   CORE_PACKAGES,
   CLIENT_SDKS,
@@ -9,33 +10,26 @@ import {
   STORE_PACKAGES,
   VOICE_PACKAGES,
 } from './packages.js';
-import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export async function generateLandingPage(versions: string[], currentVersion?: string, outputPath?: string) {
-  // If no categories provided, use the default ones
+export async function generateLandingPage() {
   const categories = [
+    { name: 'Core Packages', packages: CORE_PACKAGES },
+    { name: 'Client SDKs', packages: CLIENT_SDKS },
     { name: 'Deployers', packages: DEPLOYERS },
     { name: 'Integrations', packages: INTEGRATIONS },
-    { name: 'Client SDKs', packages: CLIENT_SDKS },
-    { name: 'Core Packages', packages: CORE_PACKAGES },
     { name: 'Speech Packages', packages: SPEECH_PACKAGES },
     { name: 'Store Packages', packages: STORE_PACKAGES },
     { name: 'Voice Packages', packages: VOICE_PACKAGES },
   ];
 
-  // Default to root path if not specified
-  if (!outputPath) {
-    outputPath = path.resolve(__dirname, '../generated/docs/index.html');
-  }
-
   const html = `
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Mastra Documentation${currentVersion ? ` (${currentVersion})` : ''}</title>
+    <title>Mastra Documentation</title>
     <style>
         :root {
             --color-background: #0a0a0a;
@@ -47,7 +41,7 @@ export async function generateLandingPage(versions: string[], currentVersion?: s
             --color-card-border: #2d2d2d;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
             max-width: 1200px;
             margin: 0 auto;
@@ -110,63 +104,10 @@ export async function generateLandingPage(versions: string[], currentVersion?: s
             color: #ffffff;
             text-decoration: none;
         }
-        .version-select {
-            position: relative;
-            display: inline-block;
-            margin-bottom: 2rem;
-        }
-        .version-select select {
-            appearance: none;
-            background: var(--color-background-secondary);
-            color: var(--color-text);
-            border: 1px solid var(--color-card-border);
-            border-radius: 0.375rem;
-            padding: 0.5rem 2.5rem 0.5rem 1rem;
-            font-size: 14px;
-            cursor: pointer;
-            min-width: 150px;
-        }
-        .version-select select:hover {
-            border-color: var(--color-link);
-        }
-        .version-select::after {
-            content: "▼";
-            position: absolute;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--color-text);
-            pointer-events: none;
-            font-size: 0.8em;
-        }
-        .package-card a {
-            display: block;
-            width: 100%;
-            height: 100%;
-            text-decoration: none;
-        }
     </style>
-    <script>
-        function changeVersion(select) {
-            window.location.href = select.value;
-        }
-    </script>
 </head>
 <body>
-    <h1>Mastra Documentation${currentVersion ? ` (${currentVersion})` : ''}</h1>
-    <div class="version-select">
-        <select onChange="changeVersion(this)">
-            ${versions
-              .map(
-                v => `
-                <option value="${currentVersion ? '../' : ''}${v}" ${v === currentVersion ? 'selected' : ''}>
-                    ${v}
-                </option>
-            `,
-              )
-              .join('')}
-        </select>
-    </div>
+    <h1>Mastra Documentation</h1>
     ${categories
       .map(
         category => `
@@ -177,7 +118,7 @@ export async function generateLandingPage(versions: string[], currentVersion?: s
                   .map(
                     pkg => `
                     <div class="package-card">
-                        <a href="${currentVersion ? '' : versions[0] + '/'}${pkg.name}/index.html">
+                        <a href="${pkg.name}/wrapper.html">
                             <h3>${pkg.displayName}</h3>
                             <p>${pkg.path}</p>
                         </a>
@@ -194,6 +135,7 @@ export async function generateLandingPage(versions: string[], currentVersion?: s
 </html>
   `;
 
+  const outputPath = path.resolve(__dirname, '../generated/docs/index.html');
   await fs.writeFile(outputPath, html);
-  console.log(`✓ Generated landing page${currentVersion ? ` for ${currentVersion}` : ''}`);
+  console.log('✓ Generated landing page');
 }
