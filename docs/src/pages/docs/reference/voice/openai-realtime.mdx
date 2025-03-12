@@ -5,12 +5,7 @@ description: "Documentation for the OpenAIRealtimeVoice class, providing real-ti
 
 # OpenAI Realtime Voice
 
-The OpenAIRealtimeVoice class in Mastra provides real-time voice interaction capabilities using OpenAI's WebSocket-based API. It supports real-time text-to-speech, speech-to-text transcription, voice activity detection, and event-based audio streaming.
-
-## Current Limitations
-
-- **WebSockets Only**: Currently only supports WebSocket connections
-- **No Speech Interruption**: Does not support interrupting speech in progress
+The OpenAIRealtimeVoice class provides real-time voice interaction capabilities using OpenAI's WebSocket-based API. It supports real time speech to speech, voice activity detection, and event-based audio streaming.
 
 ## Usage Example
 
@@ -39,15 +34,15 @@ const voiceWithConfig = new OpenAIRealtimeVoice({
 });
 
 // Establish connection
-await voice.huddle();
+await voice.connect();
 
 // Set up event listeners
-voice.on('speaking', (audioData) => {
-  // Handle audio data (Int16Array)
-  playAudio(audioData.audio);
+voice.on('speaking', ({ audio }) => {
+  // Handle audio data (Int16Array) pcm format by default
+  playAudio(audio);
 });
 
-voice.on('listening', ({ text, role }) => {
+voice.on('writing', ({ text, role }) => {
   // Handle transcribed text
   console.log(`${role}: ${text}`);
 });
@@ -59,10 +54,10 @@ await voice.speak('Hello, how can I help you today?', {
 
 // Process audio input
 const microphoneStream = getMicrophoneStream();
-await voice.listen(microphoneStream);
+await voice.send(microphoneStream);
 
 // When done, disconnect
-voice.leave();
+voice.connect();
 ```
 
 ## Configuration
@@ -108,7 +103,7 @@ voice.leave();
     {
       name: "tools",
       type: "ToolsInput",
-      description: "Tools configuration for extending model capabilities.",
+      description: "Tools configuration for extending model capabilities. When OpenAIRealtimeVoice is added to an Agent, any tools configured for the Agent will automatically be available to the voice interface.",
       isOptional: true,
     },
     {
@@ -190,9 +185,9 @@ voice.leave();
 
 ## Methods
 
-### huddle()
+### connect()
 
-Establishes a connection to the OpenAI realtime service. Must be called before using speak, listen, or relay functions.
+Establishes a connection to the OpenAI realtime service. Must be called before using speak, listen, or send functions.
 
 <PropertiesTable
   content={[
@@ -245,16 +240,16 @@ Processes audio input for speech recognition. Takes a readable stream of audio d
 
 Returns: `Promise<void>`
 
-### relay()
+### send()
 
-Streams audio data in real-time to the OpenAI service. Useful for continuous audio streaming scenarios like live microphone input.
+Streams audio data in real-time to the OpenAI service for continuous audio streaming scenarios like live microphone input.
 
 <PropertiesTable
   content={[
     {
       name: "audioData",
       type: "NodeJS.ReadableStream",
-      description: "Audio stream to relay to the service.",
+      description: "Audio stream to send to the service.",
       isOptional: false,
     },
   ]}
@@ -262,7 +257,7 @@ Streams audio data in real-time to the OpenAI service. Useful for continuous aud
 
 Returns: `Promise<void>`
 
-### tune()
+### updateConfig()
 
 Updates the session configuration for the voice instance. This can be used to modify voice settings, turn detection, and other parameters.
 
@@ -279,9 +274,9 @@ Updates the session configuration for the voice instance. This can be used to mo
 
 Returns: `void`
 
-### equip()
+### addTools()
 
-Equips the voice instance with a set of tools. Tools allow the model to perform additional actions during conversations.
+Adds a set of tools to the voice instance. Tools allow the model to perform additional actions during conversations. When OpenAIRealtimeVoice is added to an Agent, any tools configured for the Agent will automatically be available to the voice interface.
 
 <PropertiesTable
   content={[
@@ -296,7 +291,7 @@ Equips the voice instance with a set of tools. Tools allow the model to perform 
 
 Returns: `void`
 
-### leave()
+### close()
 
 Disconnects from the OpenAI realtime session and cleans up resources. Should be called when you're done with the voice instance.
 
@@ -380,7 +375,7 @@ The OpenAIRealtimeVoice class emits the following events:
 
 ### OpenAI Realtime Events
 
-You can also listen to raw OpenAI Realtime events by prefixing with 'openAIRealtime:':
+You can also listen to [OpenAI Realtime utility events](https://github.com/openai/openai-realtime-api-beta#reference-client-utility-events) by prefixing with 'openAIRealtime:':
 
 <PropertiesTable
   content={[
@@ -431,5 +426,6 @@ The following voice options are available:
 - The OpenAI Realtime Voice API uses WebSockets for real-time communication
 - Server-side Voice Activity Detection (VAD) provides better accuracy for speech detection
 - All audio data is processed as Int16Array format
-- The voice instance must be connected with `huddle()` before using other methods
-- Always call `leave()` when done to properly clean up resources
+- The voice instance must be connected with `connect()` before using other methods
+- Always call `close()` when done to properly clean up resources
+- Memory management is handled by OpenAI Realtime API
