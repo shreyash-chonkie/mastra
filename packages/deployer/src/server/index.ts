@@ -55,6 +55,7 @@ import {
 } from './handlers/vector.js';
 import { getSpeakersHandler, speakHandler, listenHandler } from './handlers/voice.js';
 import {
+  startWorkflowRunHandler,
   executeWorkflowHandler,
   getWorkflowByIdHandler,
   getWorkflowsHandler,
@@ -114,6 +115,15 @@ export async function createHonoServer(
   }
 
   app.onError(errorHandler);
+
+  // Apply custom server middleware from Mastra instance
+  const serverMiddleware = mastra.getServerMiddleware?.();
+
+  if (serverMiddleware && serverMiddleware.length > 0) {
+    for (const m of serverMiddleware) {
+      app.use(m.path, m.handler);
+    }
+  }
 
   // Add Mastra to context
   app.use('*', async (c, next) => {
@@ -1177,6 +1187,12 @@ export async function createHonoServer(
           required: true,
           schema: { type: 'string' },
         },
+        {
+          name: 'runId',
+          in: 'query',
+          required: true,
+          schema: { type: 'string' },
+        },
       ],
       requestBody: {
         required: true,
@@ -1186,7 +1202,6 @@ export async function createHonoServer(
               type: 'object',
               properties: {
                 stepId: { type: 'string' },
-                runId: { type: 'string' },
                 context: { type: 'object' },
               },
             },
@@ -1195,6 +1210,31 @@ export async function createHonoServer(
       },
     }),
     resumeWorkflowHandler,
+  );
+
+  app.post(
+    '/api/workflows/:workflowId/startRun',
+    describeRoute({
+      description: 'Create and start a new workflow run',
+      tags: ['workflows'],
+      parameters: [
+        {
+          name: 'workflowId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      responses: {
+        200: {
+          description: 'New workflow run created and started',
+        },
+        404: {
+          description: 'Workflow not found',
+        },
+      },
+    }),
+    startWorkflowRunHandler,
   );
 
   app.get(
@@ -1206,6 +1246,12 @@ export async function createHonoServer(
           name: 'workflowId',
           in: 'path',
           required: true,
+          schema: { type: 'string' },
+        },
+        {
+          name: 'runId',
+          in: 'query',
+          required: false,
           schema: { type: 'string' },
         },
       ],

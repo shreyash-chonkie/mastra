@@ -8,4 +8,12 @@ export const mastra = new Mastra({
   agents: { chefAgent },
   logger: createLogger({ name: 'Chef', level: 'info' }),
   networks: { researchNetwork },
+  serverMiddleware: [
+    {
+      handler: (c, next) => {
+        console.log('Middleware called');
+        return next();
+      },
+    },
+  ],
 });
