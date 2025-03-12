@@ -158,4 +158,38 @@ export class CloudflareVector extends MastraVector {
 
     return res?.metadataIndexes ?? [];
   }
+
+  async updateIndexById(
+    indexName: string,
+    id: string,
+    update: {
+      vector?: number[];
+      metadata?: Record<string, any>;
+    },
+  ): Promise<void> {
+    if (!update.vector && !update.metadata) {
+      throw new Error('No update data provided');
+    }
+
+    const updatePayload: any = {};
+    if (update.vector) {
+      updatePayload.vector = update.vector;
+    }
+    if (update.metadata) {
+      updatePayload.metadata = update.metadata;
+    }
+
+    await this.upsert({
+      indexName: indexName,
+      vectors: update.vector ? [update.vector] : [],
+      metadata: update.metadata ? [update.metadata] : [],
+    });
+  }
+
+  async deleteIndexById(indexName: string, id: string): Promise<void> {
+    await this.client.vectorize.indexes.deleteByIds(indexName, {
+      ids: [id],
+      account_id: this.accountId,
+    });
+  }
 }
