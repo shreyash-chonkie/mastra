@@ -1,19 +1,18 @@
-import type { GenerateReturn, StreamReturn } from '@mastra/core';
-import type { MastraVoice, SpeechSynthesisAdapter } from '@mastra/core/voice';
+import type { GenerateReturn } from '@mastra/core';
 import type { JSONSchema7 } from 'json-schema';
 import { ZodSchema } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import type {
+  ClientOptions,
   GenerateParams,
   GetAgentResponse,
   GetEvalsByAgentIdResponse,
-  GetToolResponse,
-  ClientOptions,
-  StreamParams,
   GetSpeakerResponse,
-  SpeakRequest,
+  GetToolResponse,
   ListenRequest,
+  SpeakRequest,
+  StreamParams,
 } from '../types';
 
 import { BaseResource } from './base';
@@ -156,9 +155,5 @@ export class Agent extends BaseResource {
       method: 'POST',
       body: params,
     });
-  }
-
-  getSpeechProvider(): Promise<SpeechSynthesisAdapter> {
-    return this.request(`/api/agents/${this.agentId}/speech-provider`);
   }
 }

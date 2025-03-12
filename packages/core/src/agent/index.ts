@@ -31,7 +31,7 @@ import type { MemoryConfig, StorageThreadType } from '../memory/types';
 import { InstrumentClass } from '../telemetry';
 import type { CoreTool } from '../tools/types';
 import { makeCoreTool, createMastraProxy, ensureToolProperties } from '../utils';
-import type { CompositeVoice, SpeechSynthesisAdapter } from '../voice';
+import type { CompositeVoice } from '../voice';
 
 import type { AgentConfig, AgentGenerateOptions, AgentStreamOptions, ToolsetsInput, ToolsInput } from './types';
 
@@ -1121,24 +1121,6 @@ export class Agent<
       return this.voice.speak(input, options);
     } catch (e) {
       this.logger.error('Error during agent speak', {
-        error: e,
-      });
-      throw e;
-    }
-  }
-
-  /**
-   * Get the speech provider for the agent
-   * @returns Speech provider
-   */
-  getSpeechProvider(): SpeechSynthesisAdapter {
-    if (!this.voice) {
-      throw new Error('No voice provider configured');
-    }
-    try {
-      return this.voice.getSpeechProvider();
-    } catch (e) {
-      this.logger.error('Error getting speech provider', {
         error: e,
       });
       throw e;

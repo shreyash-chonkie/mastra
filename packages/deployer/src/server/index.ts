@@ -5,8 +5,8 @@ import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { swaggerUI } from '@hono/swagger-ui';
 import type { Mastra } from '@mastra/core';
-import { Hono } from 'hono';
 import type { Context } from 'hono';
+import { Hono } from 'hono';
 
 import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
@@ -40,14 +40,14 @@ import { rootHandler } from './handlers/root.js';
 import { getTelemetryHandler } from './handlers/telemetry.js';
 import { executeAgentToolHandler, executeToolHandler, getToolByIdHandler, getToolsHandler } from './handlers/tools.js';
 import {
-  upsertVectors,
   createIndex,
-  queryVectors,
-  listIndexes,
-  describeIndex,
   deleteIndex,
+  describeIndex,
+  listIndexes,
+  queryVectors,
+  upsertVectors,
 } from './handlers/vector.js';
-import { getSpeakersHandler, speakHandler, listenHandler, getSpeechProviderHandler } from './handlers/voice.js';
+import { getSpeakersHandler, listenHandler, speakHandler } from './handlers/voice.js';
 import {
   executeWorkflowHandler,
   getWorkflowByIdHandler,
@@ -612,46 +612,6 @@ export async function createHonoServer(
       },
     }),
     listenHandler,
-  );
-
-  app.get(
-    `/api/agents/:agentId/speech-provider`,
-    describeRoute({
-      description: 'Get the speech provider for an agent',
-      tags: ['agents'],
-      parameters: [
-        {
-          name: 'agentId',
-          in: 'path',
-          required: true,
-          schema: { type: 'string' },
-        },
-      ],
-      responses: {
-        200: {
-          description: 'Speech provider',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  speak: {
-                    type: 'object',
-                  },
-                },
-              },
-            },
-          },
-        },
-        400: {
-          description: 'Agent does not have voice capabilities',
-        },
-        404: {
-          description: 'Agent not found',
-        },
-      },
-    }),
-    getSpeechProviderHandler,
   );
 
   app.post(

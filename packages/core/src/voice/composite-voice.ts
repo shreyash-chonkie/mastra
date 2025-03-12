@@ -30,11 +30,4 @@ export class CompositeVoice extends MastraVoice {
     }
     return this.speakProvider.getSpeakers();
   }
-
-  getSpeechProvider() {
-    if (!this.speakProvider) {
-      throw new Error('No speak provider configured');
-    }
-    return this.speakProvider.getSpeechProvider();
-  }
 }
