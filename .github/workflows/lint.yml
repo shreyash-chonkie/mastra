@@ -8,8 +8,6 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    # Run on main repository or for trusted bot PRs
-    if: ${{ github.repository == 'mastra-ai/mastra' || github.actor == 'github-actions[bot]' }}
     env:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
