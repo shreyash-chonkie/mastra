@@ -175,66 +175,6 @@ export class OpenAIVoice extends MastraVoice {
   }
 
   /**
-   * Returns a speech provider for the OpenAI voice.
-   * @returns {SpeechSynthesisAdapter} The speech provider.
-   * @throws {Error} If the speech model is not configured.
-   */
-  getSpeechProvider(): SpeechSynthesisAdapter {
-    if (!this.speechClient) {
-      throw new Error('Speech model not configured');
-    }
-    return {
-      speak: (text: string) => {
-        let currentStatus: SpeechSynthesisAdapter.Status = { type: 'starting' };
-        const subscribers: Array<() => void> = [];
-
-        const notifySubscribers = () => {
-          subscribers.forEach(callback => callback());
-        };
-
-        // Start the speech synthesis
-        this.speak(text)
-          .then(stream => {
-            currentStatus = { type: 'running' };
-            notifySubscribers();
-
-            // Set up event handling for the stream
-            stream.on('end', () => {
-              currentStatus = { type: 'ended', reason: 'finished' };
-              notifySubscribers();
-            });
-
-            stream.on('error', error => {
-              currentStatus = { type: 'ended', reason: 'error', error };
-              notifySubscribers();
-            });
-          })
-          .catch(error => {
-            currentStatus = { type: 'ended', reason: 'error', error };
-            notifySubscribers();
-          });
-
-        return {
-          status: currentStatus,
-          cancel: () => {
-            currentStatus = { type: 'ended', reason: 'cancelled' };
-            notifySubscribers();
-          },
-          subscribe: (callback: () => void) => {
-            subscribers.push(callback);
-            return () => {
-              const index = subscribers.indexOf(callback);
-              if (index !== -1) {
-                subscribers.splice(index, 1);
-              }
-            };
-          },
-        };
-      },
-    };
-  }
-
-  /**
    * Transcribes audio from a given stream using the configured listening model.
    *
    * @param {NodeJS.ReadableStream} audioStream - The audio stream to be transcribed.
