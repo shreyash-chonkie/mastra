@@ -50,15 +50,117 @@ export function MastraRuntimeProvider({
   useEffect(() => {
     async function initSpeechAdapter() {
       try {
-        const agent = mastra.getAgent(agentId);
-        console.log('Agent:', agent); // Debug the agent object
+        setSpeechAdapter({
+          speak: (text: string) => {
+            let currentStatus: SpeechSynthesisAdapter.Status = { type: 'starting' };
+            const subscribers = new Set<() => void>();
+            let audioElement: HTMLAudioElement | null = null;
 
-        const provider = await agent.getSpeechProvider();
-        const speakers = await agent.getSpeakers();
+            const handleStatusChange = (status: SpeechSynthesisAdapter.Status, immediate = false) => {
+              currentStatus = status;
+              const notify = () => {
+                subscribers.forEach(callback => callback());
+              };
 
-        console.log('Speech provider before setting:', {}); // Debug the provider
+              if (immediate) {
+                notify();
+              } else {
+                queueMicrotask(notify);
+              }
+            };
 
-        setSpeechAdapter(provider);
+            const utterance = {
+              get status() {
+                return currentStatus;
+              },
+              cancel: () => {
+                if (audioElement) {
+                  audioElement.pause();
+                  audioElement.currentTime = 0;
+                  if (audioElement.src) {
+                    URL.revokeObjectURL(audioElement.src);
+                  }
+                }
+                handleStatusChange({ type: 'ended', reason: 'cancelled' });
+              },
+              subscribe: (callback: () => void) => {
+                if (currentStatus.type === 'ended') {
+                  let cancelled = false;
+                  queueMicrotask(() => {
+                    if (!cancelled) callback();
+                  });
+                  return () => {
+                    cancelled = true;
+                  };
+                } else {
+                  subscribers.add(callback);
+                  callback(); // Call immediately with current status
+                  return () => {
+                    subscribers.delete(callback);
+                  };
+                }
+              },
+            };
+
+            // Use the existing speak endpoint
+            fetch(`${baseUrl}/api/agents/${agentId}/speak`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                input: text,
+                options: {},
+              }),
+            })
+              .then(async response => {
+                if (!response.ok) {
+                  throw new Error('Failed to get audio stream');
+                }
+                const blob = await response.blob();
+                audioElement = new Audio();
+                audioElement.src = URL.createObjectURL(blob);
+
+                audioElement.onloadeddata = () => {
+                  handleStatusChange({ type: 'running' });
+                };
+
+                audioElement.onplay = () => {
+                  if (currentStatus.type !== 'running') {
+                    handleStatusChange({ type: 'running' });
+                  }
+                };
+
+                audioElement.onpause = () => {
+                  if (currentStatus.type === 'running') {
+                    handleStatusChange({ type: 'ended', reason: 'cancelled' });
+                  }
+                };
+
+                audioElement.onended = () => {
+                  handleStatusChange({ type: 'ended', reason: 'finished' });
+                  if (audioElement?.src) {
+                    URL.revokeObjectURL(audioElement.src);
+                  }
+                };
+
+                audioElement.onerror = error => {
+                  handleStatusChange({ type: 'ended', reason: 'error', error });
+                  if (audioElement?.src) {
+                    URL.revokeObjectURL(audioElement.src);
+                  }
+                };
+
+                return audioElement.play();
+              })
+              .catch(error => {
+                console.error('Speech synthesis error:', error);
+                handleStatusChange({ type: 'ended', reason: 'error', error });
+              });
+
+            return utterance;
+          },
+        });
       } catch (error) {
         console.error('Failed to initialize speech adapter:', error);
       }
