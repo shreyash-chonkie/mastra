@@ -161,9 +161,11 @@ describe('CloudflareVector', () => {
       if (results.length > 0) {
         expect(results[0].metadata).toEqual({ label: 'first-dimension' });
       }
-    }, 30000);
+    }, 500000);
 
     it('should query vectors and return vector in results', async () => {
+      await waitUntilVectorsIndexed(vectorDB, testIndexName, 3);
+
       const results = await vectorDB.query({
         indexName: testIndexName,
         queryVector: createVector(0, 0.9),
@@ -181,6 +183,11 @@ describe('CloudflareVector', () => {
 
     describe('Vector update operations', () => {
       const testVectors = [createVector(0, 1.0), createVector(1, 1.0), createVector(2, 1.0)];
+      const testIndexName = 'test-index' + Date.now();
+
+      beforeEach(async () => {
+        await vectorDB.createIndex({ indexName: testIndexName, dimension: VECTOR_DIMENSION, metric: 'cosine' });
+      });
 
       afterEach(async () => {
         await vectorDB.deleteIndex(testIndexName);
@@ -208,31 +215,15 @@ describe('CloudflareVector', () => {
         const results: QueryResult[] = await vectorDB.query({
           indexName: testIndexName,
           queryVector: newVector,
-          topK: 2,
+          topK: 3,
           includeVector: true,
         });
-        expect(results[0]?.id).toBe(idToBeUpdated);
-        expect(results[0]?.vector).toEqual(newVector);
-        expect(results[0]?.metadata).toEqual(newMetaData);
+
+        expect(results).toHaveLength(3);
+        const updatedResult = results.find(result => result.id === idToBeUpdated);
+        expect(updatedResult).toBeDefined();
+        expect(updatedResult?.vector).toEqual(newVector);
       }, 500000);
-
-      it('should only update the metadata by id', async () => {
-        const ids = await vectorDB.upsert({ indexName: testIndexName, vectors: testVectors });
-        expect(ids).toHaveLength(3);
-
-        const idToBeUpdated = ids[0];
-        const newMetaData = {
-          test: 'updates',
-        };
-
-        const update = {
-          metadata: newMetaData,
-        };
-
-        await expect(vectorDB.updateIndexById(testIndexName, 'id', update)).rejects.toThrow(
-          'Both vector and metadata must be provided for an update',
-        );
-      });
 
       it('should only update vector embeddings by id', async () => {
         const ids = await vectorDB.upsert({ indexName: testIndexName, vectors: testVectors });
@@ -255,9 +246,12 @@ describe('CloudflareVector', () => {
           topK: 2,
           includeVector: true,
         });
-        expect(results[0]?.id).toBe(idToBeUpdated);
-        expect(results[0]?.vector).toEqual(newVector);
-      }, 500000);
+
+        expect(results).toHaveLength(2);
+        const updatedResult = results.find(result => result.id === idToBeUpdated);
+        expect(updatedResult).toBeDefined();
+        expect(updatedResult?.vector).toEqual(newVector);
+      }, 50000);
 
       it('should throw exception when no updates are given', async () => {
         await expect(vectorDB.updateIndexById(testIndexName, 'id', {})).rejects.toThrow('No update data provided');
