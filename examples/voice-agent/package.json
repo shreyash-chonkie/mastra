@@ -1,0 +1,29 @@
+{
+  "name": "voice-agent",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "mastra dev",
+    "start": "tsx src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@ai-sdk/openai": "^1.2.1",
+    "@mastra/voice-openai-realtime": "workspace:*",
+    "@mastra/core": "workspace:*",
+    "mastra": "workspace:*",
+    "node-mic": "^1.0.1",
+    "speaker": "github:YujohnNattrass/node-speaker",
+    "tsx": "^4.19.3",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "dotenv": "^16.4.7"
+  }
+}
