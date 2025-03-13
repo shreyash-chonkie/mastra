@@ -199,7 +199,7 @@ export interface WorkflowRunResult<
       : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
   };
   runId: string;
-  activePaths: Map<string, { status: string; suspendPayload?: any }>;
+  activePaths: Map<keyof StepsRecord<TSteps>, { status: string; suspendPayload?: any }>;
 }
 
 // Update WorkflowContext
@@ -216,6 +216,7 @@ export interface WorkflowContext<
   triggerData: z.infer<TTrigger>;
   resumeData?: any; // TODO: once we have a resume schema plug that in here
   attempts: Record<string, number>;
+  getStepResult(stepId: 'trigger'): z.infer<TTrigger>;
   getStepResult<T extends keyof StepsRecord<TSteps> | unknown>(
     stepId: T extends keyof StepsRecord<TSteps> ? T : string,
   ): T extends keyof StepsRecord<TSteps>
@@ -263,6 +264,7 @@ export type SubscriberFunctionOutput = {
 export type DependencyCheckOutput =
   | { type: 'CONDITIONS_MET' }
   | { type: 'CONDITIONS_SKIPPED' }
+  | { type: 'CONDITIONS_SKIP_TO_COMPLETED' }
   | { type: 'CONDITION_FAILED'; error: string }
   | { type: 'SUSPENDED' }
   | { type: 'WAITING' }

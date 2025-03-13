@@ -5,8 +5,8 @@ import type { Logger } from '../logger';
 import type { MastraMemory } from '../memory/memory';
 import type { AgentNetwork } from '../network';
 import type { MastraStorage } from '../storage';
-import { DefaultStorage } from '../storage/libsql';
-import { InstrumentClass, OTLPStorageExporter, Telemetry } from '../telemetry';
+import { DefaultProxyStorage } from '../storage/default-proxy-storage';
+import { InstrumentClass, Telemetry } from '../telemetry';
 import type { OtelConfig } from '../telemetry';
 import type { MastraTTS } from '../tts';
 import type { MastraVector } from '../vector';
@@ -66,14 +66,8 @@ export class Mastra<
     path: string;
   }> = [];
   #telemetry?: Telemetry;
-  /**
-   * @deprecated use getStorage() instead
-   */
-  storage?: MastraStorage;
-  /**
-   * @deprecated use getMemory() instead
-   */
-  memory?: MastraMemory;
+  #storage?: MastraStorage;
+  #memory?: MastraMemory;
   #networks?: TNetworks;
 
   /**
@@ -81,6 +75,20 @@ export class Mastra<
    */
   get telemetry() {
     return this.#telemetry;
+  }
+
+  /**
+   * @deprecated use getStorage() instead
+   */
+  get storage() {
+    return this.#storage;
+  }
+
+  /**
+   * @deprecated use getMemory() instead
+   */
+  get memory() {
+    return this.#memory;
   }
 
   constructor(config?: Config<TAgents, TWorkflows, TVectors, TTTS, TLogger, TNetworks>) {
@@ -111,7 +119,7 @@ export class Mastra<
 
     let storage = config?.storage;
     if (!storage) {
-      storage = new DefaultStorage({
+      storage = new DefaultProxyStorage({
         config: {
           url: process.env.MASTRA_DEFAULT_STORAGE_URL || `:memory:`,
         },
@@ -121,46 +129,18 @@ export class Mastra<
     /*
     Telemetry
     */
-    // if storage is a libsql instance, we need to default the telemetry exporter to OTLPStorageExporter
-    if (storage instanceof DefaultStorage && config?.telemetry?.export?.type !== 'custom') {
-      const newTelemetry = {
-        ...(config?.telemetry || {}),
-        export: {
-          type: 'custom',
-          exporter: new OTLPStorageExporter({
-            logger: this.getLogger(),
-            storage,
-          }),
-        },
-      };
-      this.#telemetry = Telemetry.init(newTelemetry as OtelConfig);
-    } else if (config?.telemetry) {
-      this.#telemetry = Telemetry.init(config?.telemetry);
-    }
-
-    /**
-     * Deployer
-     **/
-    if (config?.deployer) {
-      this.#deployer = config.deployer;
-      if (this.#telemetry) {
-        this.#deployer = this.#telemetry.traceClass(config.deployer, {
-          excludeMethods: ['__setTelemetry', '__getTelemetry'],
-        });
-        this.#deployer.__setTelemetry(this.#telemetry);
-      }
-    }
+    this.#telemetry = Telemetry.init(config?.telemetry);
 
     /*
       Storage
     */
     if (this.#telemetry) {
-      this.storage = this.#telemetry.traceClass(storage, {
+      this.#storage = this.#telemetry.traceClass(storage, {
         excludeMethods: ['__setTelemetry', '__getTelemetry'],
       });
-      this.storage.__setTelemetry(this.#telemetry);
+      this.#storage.__setTelemetry(this.#telemetry);
     } else {
-      this.storage = storage;
+      this.#storage = storage;
     }
 
     /*
@@ -187,12 +167,12 @@ export class Mastra<
     }
 
     if (config?.memory) {
-      this.memory = config.memory;
+      this.#memory = config.memory;
       if (this.#telemetry) {
-        this.memory = this.#telemetry.traceClass(config.memory, {
+        this.#memory = this.#telemetry.traceClass(config.memory, {
           excludeMethods: ['__setTelemetry', '__getTelemetry'],
         });
-        this.memory.__setTelemetry(this.#telemetry);
+        this.#memory.__setTelemetry(this.#telemetry);
       }
     }
 
@@ -359,7 +339,7 @@ This is a warning for now, but will throw an error in the future
   }
 
   public setStorage(storage: MastraStorage) {
-    this.storage = storage;
+    this.#storage = storage;
   }
 
   public setLogger({ logger }: { logger: TLogger }) {
@@ -371,8 +351,8 @@ This is a warning for now, but will throw an error in the future
       });
     }
 
-    if (this.memory) {
-      this.memory.__setLogger(this.#logger);
+    if (this.#memory) {
+      this.#memory.__setLogger(this.#logger);
     }
 
     if (this.#deployer) {
@@ -385,8 +365,8 @@ This is a warning for now, but will throw an error in the future
       });
     }
 
-    if (this.storage) {
-      this.storage.__setLogger(this.#logger);
+    if (this.#storage) {
+      this.#storage.__setLogger(this.#logger);
     }
 
     if (this.#vectors) {
@@ -407,11 +387,11 @@ This is a warning for now, but will throw an error in the future
       });
     }
 
-    if (this.memory) {
-      this.memory = this.#telemetry.traceClass(this.memory, {
+    if (this.#memory) {
+      this.#memory = this.#telemetry.traceClass(this.#memory, {
         excludeMethods: ['__setTelemetry', '__getTelemetry'],
       });
-      this.memory.__setTelemetry(this.#telemetry);
+      this.#memory.__setTelemetry(this.#telemetry);
     }
 
     if (this.#deployer) {
@@ -434,11 +414,11 @@ This is a warning for now, but will throw an error in the future
       this.#tts = tts as TTTS;
     }
 
-    if (this.storage) {
-      this.storage = this.#telemetry.traceClass(this.storage, {
+    if (this.#storage) {
+      this.#storage = this.#telemetry.traceClass(this.#storage, {
         excludeMethods: ['__setTelemetry', '__getTelemetry'],
       });
-      this.storage.__setTelemetry(this.#telemetry);
+      this.#storage.__setTelemetry(this.#telemetry);
     }
 
     if (this.#vectors) {
@@ -468,11 +448,11 @@ This is a warning for now, but will throw an error in the future
   }
 
   public getMemory() {
-    return this.memory;
+    return this.#memory;
   }
 
   public getStorage() {
-    return this.storage;
+    return this.#storage;
   }
 
   public getServerMiddleware() {
