@@ -21,7 +21,7 @@ class MyVoiceProvider extends MastraVoice {
     realtimeConfig?: {
       model?: string;
       apiKey?: string;
-      options?: any;
+      options?: unknown;
     };
   }) {
     super({
@@ -37,28 +37,28 @@ class MyVoiceProvider extends MastraVoice {
     // Implement text-to-speech conversion
   }
 
-  async listen(audioStream: NodeJS.ReadableStream, options?: any): Promise<string | NodeJS.ReadableStream | void> {
+  async listen(audioStream: NodeJS.ReadableStream, options?: unknown): Promise<string | NodeJS.ReadableStream | void> {
     // Implement speech-to-text conversion
   }
 
-  async getSpeakers(): Promise<Array<{ voiceId: string; [key: string]: any }>> {
+  async getSpeakers(): Promise<Array<{ voiceId: string; [key: string]: unknown }>> {
     // Return list of available voices
   }
   
-  // Optional real-time methods
+  // Optional speech-to-speech methods
   async connect(): Promise<void> {
-    // Establish WebSocket connection for real-time communication
+    // Establish WebSocket connection for speech-to-speech communication
   }
   
   async send(audioData: NodeJS.ReadableStream | Int16Array): Promise<void> {
-    // Stream audio data in real-time
+    // Stream audio data in speech-to-speech
   }
   
   async answer(): Promise<void> {
     // Trigger voice provider to respond
   }
   
-  addTools(tools: Array<any>): void {
+  addTools(tools: Array<unknown>): void {
     // Add tools for the voice provider to use
   }
   
@@ -66,11 +66,11 @@ class MyVoiceProvider extends MastraVoice {
     // Close WebSocket connection
   }
   
-  on(event: string, callback: (data: any) => void): void {
+  on(event: string, callback: (data: unknown) => void): void {
     // Register event listener
   }
   
-  off(event: string, callback: (data: any) => void): void {
+  off(event: string, callback: (data: unknown) => void): void {
     // Remove event listener
   }
 }
@@ -156,7 +156,7 @@ class MyVoiceProvider extends MastraVoice {
     },
     {
       name: "options",
-      type: "any",
+      type: "unknown",
       description: "Provider-specific options for real-time capabilities",
       isOptional: true,
     },
@@ -165,7 +165,7 @@ class MyVoiceProvider extends MastraVoice {
 
 ## Abstract Methods
 
-These methods must be implemented by any class extending MastraVoice.
+These methods must be implemented by unknown class extending MastraVoice.
 
 ### speak()
 
@@ -176,12 +176,12 @@ abstract speak(
   input: string | NodeJS.ReadableStream,
   options?: {
     speaker?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   }
 ): Promise<NodeJS.ReadableStream | void>
 ```
 
-#### Purpose
+Purpose:
 - Takes text input and converts it to speech using the provider's text-to-speech service
 - Supports both string and stream input for flexibility
 - Allows overriding the default speaker/voice through options
@@ -196,12 +196,12 @@ Converts speech to text using the configured listening model.
 abstract listen(
   audioStream: NodeJS.ReadableStream,
   options?: {
-    [key: string]: any;
+    [key: string]: unknown;
   }
 ): Promise<string | NodeJS.ReadableStream | void>
 ```
 
-#### Purpose
+Purpose:
 - Takes an audio stream and converts it to text using the provider's speech-to-text service
 - Supports provider-specific options for transcription configuration
 - Can return either a complete text transcription or a stream of transcribed text
@@ -213,10 +213,10 @@ abstract listen(
 Returns a list of available voices supported by the provider.
 
 ```typescript
-abstract getSpeakers(): Promise<Array<{ voiceId: string; [key: string]: any }>>
+abstract getSpeakers(): Promise<Array<{ voiceId: string; [key: string]: unknown }>>
 ```
 
-#### Purpose
+Purpose:
 - Retrieves the list of available voices/speakers from the provider
 - Each voice must have at least a voiceId property
 - Providers can include additional metadata about each voice
@@ -231,10 +231,10 @@ These methods have default implementations but can be overridden by voice provid
 Establishes a WebSocket or WebRTC connection for communication.
 
 ```typescript
-connect(config?: any): Promise<void>
+connect(config?: unknown): Promise<void>
 ```
 
-#### Purpose
+Purpose:
 - Initializes a connection to the voice service for communication
 - Must be called before using features like send() or answer()
 - Returns a Promise that resolves when the connection is established
@@ -248,7 +248,7 @@ Streams audio data in real-time to the voice provider.
 send(audioData: NodeJS.ReadableStream | Int16Array): Promise<void>
 ```
 
-#### Purpose
+Purpose:
 - Sends audio data to the voice provider for real-time processing
 - Useful for continuous audio streaming scenarios like live microphone input
 - Supports both ReadableStream and Int16Array audio formats
@@ -262,7 +262,7 @@ Triggers the voice provider to generate a response.
 answer(): Promise<void>
 ```
 
-#### Purpose
+Purpose:
 - Sends a signal to the voice provider to generate a response
 - Used in real-time conversations to prompt the AI to respond
 - Response will be emitted through the event system (e.g., 'speaking' event)
@@ -275,7 +275,7 @@ Equips the voice provider with tools that can be used during conversations.
 addTools(tools: Array<Tool>): void
 ```
 
-#### Purpose
+Purpose:
 - Adds tools that the voice provider can use during conversations
 - Tools can extend the capabilities of the voice provider
 - Implementation is provider-specific
@@ -288,7 +288,7 @@ Disconnects from the WebSocket or WebRTC connection.
 close(): void
 ```
 
-#### Purpose
+Purpose:
 - Closes the connection to the voice service
 - Cleans up resources and stops any ongoing real-time processing
 - Should be called when you're done with the voice instance
@@ -304,7 +304,7 @@ on<E extends VoiceEventType>(
 ): void
 ```
 
-#### Purpose
+Purpose:
 - Registers a callback function to be called when the specified event occurs
 - Standard events include 'speaking', 'writing', and 'error'
 - Providers can emit custom events as well
@@ -321,7 +321,7 @@ off<E extends VoiceEventType>(
 ): void
 ```
 
-#### Purpose
+Purpose:
 - Removes a previously registered event listener
 - Used to clean up event handlers when they're no longer needed
 
@@ -373,7 +373,7 @@ The MastraVoice class includes an event system for real-time communication. Stan
     },
     {
       name: "realtimeConfig",
-      type: "{ model?: string; apiKey?: string; options?: any } | undefined",
+      type: "{ model?: string; apiKey?: string; options?: unknown } | undefined",
       description: "Configuration for real-time speech-to-speech capabilities",
       isOptional: true,
     },
