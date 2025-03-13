@@ -33,7 +33,14 @@ import type { CoreTool } from '../tools/types';
 import { makeCoreTool, createMastraProxy, ensureToolProperties } from '../utils';
 import type { CompositeVoice } from '../voice';
 
-import type { AgentConfig, AgentGenerateOptions, AgentStreamOptions, ToolsetsInput, ToolsInput } from './types';
+import type {
+  AgentConfig,
+  AgentGenerateOptions,
+  AgentStreamOptions,
+  MastraLanguageModel,
+  ToolsetsInput,
+  ToolsInput,
+} from './types';
 
 export * from './types';
 
@@ -48,7 +55,7 @@ export class Agent<
   public name: string;
   readonly llm: MastraLLMBase;
   instructions: string;
-  readonly model?: LanguageModelV1;
+  readonly model?: MastraLanguageModel;
   #mastra?: Mastra;
   #memory?: MastraMemory;
   tools: TTools;
@@ -101,6 +108,8 @@ export class Agent<
 
     if (config.voice) {
       this.voice = config.voice;
+      this.voice?.addTools(this.tools);
+      this.voice?.updateConfig({ instructions: config.instructions });
     }
   }
 
@@ -1119,7 +1128,7 @@ export class Agent<
       throw new Error('No voice provider configured');
     }
 
-    console.warn('Warning: agent.speak() is deprecated. Please use agent.voice.speak() instead.');
+    this.logger.warn('Warning: agent.speak() is deprecated. Please use agent.voice.speak() instead.');
 
     try {
       return this.voice.speak(input, options);
@@ -1148,7 +1157,7 @@ export class Agent<
       throw new Error('No voice provider configured');
     }
 
-    console.warn('Warning: agent.listen() is deprecated. Please use agent.voice.listen() instead');
+    this.logger.warn('Warning: agent.listen() is deprecated. Please use agent.voice.listen() instead');
 
     try {
       return this.voice.listen(audioStream, options);
@@ -1171,7 +1180,7 @@ export class Agent<
       throw new Error('No voice provider configured');
     }
 
-    console.warn('Warning: agent.getSpeakers() is deprecated. Please use agent.voice.getSpeakers() instead.');
+    this.logger.warn('Warning: agent.getSpeakers() is deprecated. Please use agent.voice.getSpeakers() instead.');
 
     try {
       return await this.voice.getSpeakers();
