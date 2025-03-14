@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { mastra } from './mastra';
 
 const agent = mastra.getAgent('chefAgent');
+const responsesAgent = mastra.getAgent('chefAgentResponses');
 
 async function writeToStdout(textStream) {
   console.log(`\n👨‍🍳 Chef Michel: `);
@@ -97,7 +98,47 @@ async function main() {
     }),
   });
 
-  await writeToStdout(lasagnaStreamResponse);
+  console.log('\n👨‍🍳 Chef Michel: ');
+
+  // Handle the stream
+  for await (const chunk of lasagnaStreamResponse.textStream) {
+    // Write each chunk without a newline to create a continuous stream
+    process.stdout.write(chunk);
+  }
+
+  console.log('\n\n✅ Recipe complete!');
+}
+
+async function main() {
+  // await text();
+
+  // await experimentalTextObject();
+
+  // await generateExperimentalStreamObject();
+
+  // await generateText();
+
+  // await textStream();
+
+  // await generateStream();
+
+  // await textObject();
+
+  // await textObjectJsonSchema();
+
+  // await generateObject();
+
+  // await streamObject();
+
+  // await generateStreamObject();
+
+  const query1 = 'What happened in San Francisco last week?';
+
+  const pastaResponse = await responsesAgent.generate(query1, {
+    instructions: 'You take every recipe you get an exaggerate it and use weird ingredients.',
+  });
+
+  console.log(pastaResponse.text);
 }
 
 main();
