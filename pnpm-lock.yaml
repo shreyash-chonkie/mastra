@@ -2101,15 +2101,15 @@ importers:
       '@mastra/voice-openai-realtime':
         specifier: workspace:*
         version: link:../../voice/openai-realtime-api
+      '@yujohnnattrass/speaker-no-underflow-logs':
+        specifier: 0.5.6
+        version: 0.5.6
       mastra:
         specifier: workspace:*
         version: link:../../packages/cli
       node-mic:
         specifier: ^1.0.1
         version: 1.0.1
-      speaker:
-        specifier: github:YujohnNattrass/node-speaker
-        version: https://codeload.github.com/YujohnNattrass/node-speaker/tar.gz/73473b53862e56d5c0be0adca398af4d8e7030f1
       tsx:
         specifier: ^4.19.3
         version: 4.19.3
@@ -11630,6 +11630,10 @@ packages:
   '@xyflow/system@0.0.52':
     resolution: {integrity: sha512-pJBMaoh/GEebIABWEIxAai0yf57dm+kH7J/Br+LnLFPuJL87Fhcmm4KFWd/bCUy/kCWUg+2/yFAGY0AUHRPOnQ==}
 
+  '@yujohnnattrass/speaker-no-underflow-logs@0.5.6':
+    resolution: {integrity: sha512-lX6x4SxeEPJG83MRXxB9UxbbSUT4vMOJWdKfcldtbap86JoZmr/HasyQ5Y9jSASy6nbQiXNXtTtACedVo5slrA==}
+    engines: {node: '>=8.6'}
+
   '@zilliz/milvus2-sdk-node@2.5.5':
     resolution: {integrity: sha512-vKDbNu6auOTV0PZSvjKhdXR4wEs+ldREmYA3Ffll2kqJxaljAXmTcDXCw7arFa+/n+xDsg+nP1KTpuZATYDZ8g==}
 
@@ -19723,11 +19727,6 @@ packages:
 
   spdx-license-ids@3.0.21:
     resolution: {integrity: sha512-Bvg/8F5XephndSK3JffaRqdT+gyhfqIPwDHpX80tJrF8QQRYMo8sNMeaZ2Dp5+jhwKnUmIOyFFQfHRkjJm5nXg==}
-
-  speaker@https://codeload.github.com/YujohnNattrass/node-speaker/tar.gz/73473b53862e56d5c0be0adca398af4d8e7030f1:
-    resolution: {tarball: https://codeload.github.com/YujohnNattrass/node-speaker/tar.gz/73473b53862e56d5c0be0adca398af4d8e7030f1}
-    version: 0.5.5
-    engines: {node: '>=8.6'}
 
   spex@3.4.0:
     resolution: {integrity: sha512-8JeZJ7QlEBnSj1W1fKXgbB2KUPA8k4BxFMf6lZX/c1ZagU/1b9uZWZK0yD6yjfzqAIuTNG4YlRmtMpQiXuohsg==}
@@ -31121,6 +31120,14 @@ snapshots:
       d3-selection: 3.0.0
       d3-zoom: 3.0.0
 
+  '@yujohnnattrass/speaker-no-underflow-logs@0.5.6':
+    dependencies:
+      bindings: 1.5.0
+      buffer-alloc: 1.2.0
+      debug: 4.4.0(supports-color@8.1.1)
+    transitivePeerDependencies:
+      - supports-color
+
   '@zilliz/milvus2-sdk-node@2.5.5':
     dependencies:
       '@grpc/grpc-js': 1.12.6
@@ -41673,14 +41680,6 @@ snapshots:
       spdx-license-ids: 3.0.21
 
   spdx-license-ids@3.0.21: {}
-
-  speaker@https://codeload.github.com/YujohnNattrass/node-speaker/tar.gz/73473b53862e56d5c0be0adca398af4d8e7030f1:
-    dependencies:
-      bindings: 1.5.0
-      buffer-alloc: 1.2.0
-      debug: 4.4.0(supports-color@8.1.1)
-    transitivePeerDependencies:
-      - supports-color
 
   spex@3.4.0: {}
 

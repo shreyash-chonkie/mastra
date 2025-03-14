@@ -18,7 +18,7 @@
     "@mastra/core": "workspace:*",
     "mastra": "workspace:*",
     "node-mic": "^1.0.1",
-    "speaker": "github:YujohnNattrass/node-speaker",
+    "@yujohnnattrass/speaker-no-underflow-logs": "0.5.6",
     "tsx": "^4.19.3",
     "zod": "^3.24.2"
   },

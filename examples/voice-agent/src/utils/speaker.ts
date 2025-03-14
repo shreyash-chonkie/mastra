@@ -1,4 +1,4 @@
-import Speaker from 'speaker';
+import Speaker from '@yujohnnattrass/speaker-no-underflow-logs';
 
 class AudioPlayer {
   options: {
