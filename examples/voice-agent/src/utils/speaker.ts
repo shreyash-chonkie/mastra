@@ -33,7 +33,7 @@ class AudioPlayer {
     return Buffer.alloc(silenceSize);
   }
 
-  playAudio(audio: Int16Array | Buffer, status?: string) {
+  playAudio(audio: Int16Array | Buffer | NodeJS.ReadableStream) {
     let audioBuffer: Buffer;
 
     if (audio instanceof Int16Array) {
@@ -45,14 +45,12 @@ class AudioPlayer {
       return;
     }
 
-    // Create speaker if it doesn't exist
     if (!this.currentSpeaker) {
       this.currentSpeaker = new Speaker({
         ...this.options,
         highWaterMark: this.bufferSize,
       });
 
-      // Add error handling
       this.currentSpeaker.on('error', err => {
         console.error('Speaker error:', err);
         this.closeSpeaker();
@@ -60,12 +58,8 @@ class AudioPlayer {
     }
 
     try {
-      // Write directly to the speaker
       this.currentSpeaker.write(audioBuffer);
-
-      // Only close the speaker when we receive the complete status
       if (status === 'complete') {
-        // Write silence padding to prevent buffer underflow
         this.currentSpeaker.write(this.createSilencePadding(200));
 
         // End the speaker with a delay to ensure all audio is played
@@ -74,7 +68,7 @@ class AudioPlayer {
             this.currentSpeaker.end();
             this.currentSpeaker = null;
           }
-        }, 300); // Longer delay to ensure all audio is processed
+        }, 300);
       }
     } catch (e) {
       console.error('Error playing audio:', e);
@@ -85,7 +79,6 @@ class AudioPlayer {
   closeSpeaker() {
     if (this.currentSpeaker) {
       try {
-        // Add silence padding before closing to prevent underflow
         this.currentSpeaker.write(this.createSilencePadding(100));
         this.currentSpeaker.end();
       } catch (e) {

@@ -18,7 +18,10 @@ async function main() {
   // Set up event handlers for the agent
   agent.voice?.on('speaking', ({ audio }) => {
     mic?.pause();
-    player.playAudio(audio); // Pass the status to playAudio
+
+    if (audio) {
+      player.playAudio(audio); // Stream audio to speakers.
+    }
     mic?.resume();
   });
 
@@ -59,6 +62,7 @@ async function main() {
           readableStream.push(chunk);
           readableStream.push(null);
           try {
+            // Stream audio to OpenAI Realtime
             agent.voice?.send(readableStream);
           } catch (err) {
             console.error('Error sending audio data:', err);

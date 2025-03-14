@@ -5,6 +5,7 @@ This project demonstrates speech-to-speech interaction with an AI voice agent po
 ## Prerequisites
 
 - OpenAI API key
+- sox installed for audio
 
 ## Installation
 
