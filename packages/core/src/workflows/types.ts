@@ -9,6 +9,7 @@ import type { Step } from './step';
 export interface WorkflowOptions<TTriggerSchema extends z.ZodObject<any> = any> {
   name: string;
   triggerSchema?: TTriggerSchema;
+  events?: Record<string, { schema: z.ZodObject<any> }>;
   retryConfig?: RetryConfig;
   mastra?: Mastra;
 }
@@ -31,6 +32,7 @@ export interface StepAction<
 > extends IAction<TId, TSchemaIn, TSchemaOut, TContext> {
   mastra?: Mastra;
   payload?: TSchemaIn extends z.ZodSchema ? Partial<z.infer<TSchemaIn>> : unknown;
+  execute: (context: TContext) => Promise<TSchemaOut extends z.ZodSchema ? z.infer<TSchemaOut> : unknown>;
   retryConfig?: RetryConfig;
 }
 
@@ -100,6 +102,7 @@ export enum WhenConditionReturnValue {
   CONTINUE = 'continue',
   CONTINUE_FAILED = 'continue_failed',
   ABORT = 'abort',
+  LIMBO = 'limbo',
 }
 
 export type StepDef<
@@ -110,10 +113,10 @@ export type StepDef<
 > = Record<
   TStepId,
   {
-    snapshotOnTimeout?: boolean;
     when?:
       | Condition<any, any>
       | ((args: { context: WorkflowContext; mastra?: Mastra }) => Promise<boolean | WhenConditionReturnValue>);
+    serializedWhen?: Condition<any, any> | string;
     data: TSchemaIn;
     handler: (args: ActionContext<TSchemaIn>) => Promise<z.infer<TSchemaOut>>;
   }
@@ -143,7 +146,6 @@ export interface StepConfig<
   TTriggerSchema extends z.ZodObject<any>,
   TSteps extends Step<string, any, any, any>[] = Step<string, any, any, any>[],
 > {
-  snapshotOnTimeout?: boolean;
   when?:
     | Condition<CondStep, TTriggerSchema>
     | ((args: {
@@ -175,7 +177,11 @@ type StepFailure = {
   error: string;
 };
 
-export type StepResult<T> = StepSuccess<T> | StepFailure | StepSuspended | StepWaiting;
+type StepSkipped = {
+  status: 'skipped';
+};
+
+export type StepResult<T> = StepSuccess<T> | StepFailure | StepSuspended | StepWaiting | StepSkipped;
 
 // Define a type for mapping step IDs to their respective steps[]
 export type StepsRecord<T extends readonly Step<any, any, z.ZodType<any> | undefined>[]> = {
@@ -193,7 +199,7 @@ export interface WorkflowRunResult<
       : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
   };
   runId: string;
-  activePaths: Map<string, { status: string; suspendPayload?: any }>;
+  activePaths: Map<keyof StepsRecord<TSteps>, { status: string; suspendPayload?: any }>;
 }
 
 // Update WorkflowContext
@@ -208,7 +214,9 @@ export interface WorkflowContext<
       : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
   };
   triggerData: z.infer<TTrigger>;
+  resumeData?: any; // TODO: once we have a resume schema plug that in here
   attempts: Record<string, number>;
+  getStepResult(stepId: 'trigger'): z.infer<TTrigger>;
   getStepResult<T extends keyof StepsRecord<TSteps> | unknown>(
     stepId: T extends keyof StepsRecord<TSteps> ? T : string,
   ): T extends keyof StepsRecord<TSteps>
@@ -256,14 +264,21 @@ export type SubscriberFunctionOutput = {
 export type DependencyCheckOutput =
   | { type: 'CONDITIONS_MET' }
   | { type: 'CONDITIONS_SKIPPED' }
+  | { type: 'CONDITIONS_SKIP_TO_COMPLETED' }
   | { type: 'CONDITION_FAILED'; error: string }
   | { type: 'SUSPENDED' }
-  | { type: 'WAITING' };
+  | { type: 'WAITING' }
+  | { type: 'CONDITIONS_LIMBO' };
+
+export type StepResolverOutput =
+  | { type: 'STEP_SUCCESS'; output: unknown }
+  | { type: 'STEP_FAILED'; error: string }
+  | { type: 'STEP_WAITING' };
 
 export type WorkflowActors = {
   resolverFunction: {
     input: ResolverFunctionInput;
-    output: ResolverFunctionOutput;
+    output: StepResolverOutput;
   };
   conditionCheck: {
     input: { context: WorkflowContext; stepId: string };
@@ -384,7 +399,7 @@ export interface WorkflowRunState {
     steps: Record<
       string,
       {
-        status: 'success' | 'failed' | 'suspended' | 'waiting';
+        status: 'success' | 'failed' | 'suspended' | 'waiting' | 'skipped';
         payload?: any;
         error?: string;
       }
