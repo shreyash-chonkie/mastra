@@ -1,5 +1,5 @@
 {
-  "name": "voice-agent",
+  "name": "realtime-voice-agent",
   "description": "",
   "main": "index.js",
   "private": true,
