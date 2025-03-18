@@ -29,8 +29,7 @@
   },
   "dependencies": {
     "@mastra/core": "workspace:^",
-    "cloudflare": "^4.1.0",
-    "dotenv": "^16.4.7"
+    "cloudflare": "^4.1.0"
   },
   "devDependencies": {
     "@internal/lint": "workspace:*",
@@ -39,6 +38,7 @@
     "eslint": "^9.22.0",
     "tsup": "^8.4.0",
     "typescript": "^5.8.2",
-    "vitest": "^3.0.8"
+    "vitest": "^3.0.8",
+    "dotenv": "^16.4.7"
   }
 }
