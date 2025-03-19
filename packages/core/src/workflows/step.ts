@@ -7,7 +7,7 @@ export class Step<
   TStepId extends string = any,
   TSchemaIn extends z.ZodSchema | undefined = undefined,
   TSchemaOut extends z.ZodSchema | undefined = undefined,
-  TContext extends StepExecutionContext<TSchemaIn> = StepExecutionContext<TSchemaIn>,
+  TContext extends StepExecutionContext<TSchemaIn, TSchemaOut> = StepExecutionContext<TSchemaIn, TSchemaOut>,
 > implements StepAction<TStepId, TSchemaIn, TSchemaOut, TContext>
 {
   id: TStepId;
@@ -42,7 +42,7 @@ export function createStep<
   TId extends string,
   TSchemaIn extends z.ZodSchema | undefined,
   TSchemaOut extends z.ZodSchema | undefined,
-  TContext extends StepExecutionContext<TSchemaIn>,
+  TContext extends StepExecutionContext<TSchemaIn, TSchemaOut> = StepExecutionContext<TSchemaIn, TSchemaOut>,
 >(opts: StepAction<TId, TSchemaIn, TSchemaOut, TContext>) {
   return new Step(opts);
 }

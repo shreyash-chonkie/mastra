@@ -389,6 +389,13 @@ export class Machine<
             },
             runId: this.#runId,
             mastra: mastraProxy as MastraUnion | undefined,
+            metadata: {
+              inputSchema: stepNode.step.inputSchema,
+              outputSchema: stepNode.step.outputSchema,
+              id: stepNode.step.id,
+              description: stepNode.step.description,
+              payload: stepNode.step.payload,
+            },
           });
         } catch (error) {
           this.logger.debug(`Step ${stepNode.step.id} failed`, {

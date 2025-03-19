@@ -16,19 +16,27 @@ export interface WorkflowOptions<TTriggerSchema extends z.ZodObject<any> = any> 
 
 export interface StepExecutionContext<
   TSchemaIn extends z.ZodSchema | undefined = undefined,
+  TSchemaOut extends z.ZodSchema | undefined = undefined,
   TContext extends WorkflowContext = WorkflowContext,
 > extends IExecutionContext<TSchemaIn> {
   context: TSchemaIn extends z.ZodSchema ? { inputData: z.infer<TSchemaIn> } & TContext : TContext;
   suspend: (payload?: unknown) => Promise<void>;
   runId: string;
   mastra?: MastraUnion;
+  metadata: {
+    inputSchema?: TSchemaIn;
+    outputSchema?: TSchemaOut;
+    id: string;
+    description?: string;
+    payload?: TSchemaIn extends z.ZodSchema ? Partial<z.infer<TSchemaIn>> : unknown;
+  };
 }
 
 export interface StepAction<
   TId extends string,
   TSchemaIn extends z.ZodSchema | undefined,
   TSchemaOut extends z.ZodSchema | undefined,
-  TContext extends StepExecutionContext<TSchemaIn>,
+  TContext extends StepExecutionContext<TSchemaIn, TSchemaOut>,
 > extends IAction<TId, TSchemaIn, TSchemaOut, TContext> {
   mastra?: Mastra;
   payload?: TSchemaIn extends z.ZodSchema ? Partial<z.infer<TSchemaIn>> : unknown;
@@ -45,7 +53,7 @@ export type StepVariableType<
   TId extends string,
   TSchemaIn extends z.ZodSchema | undefined,
   TSchemaOut extends z.ZodSchema | undefined,
-  TContext extends StepExecutionContext<TSchemaIn>,
+  TContext extends StepExecutionContext<TSchemaIn, TSchemaOut>,
 > = StepAction<TId, TSchemaIn, TSchemaOut, TContext> | 'trigger' | { id: string };
 
 export type StepNode = { step: StepAction<any, any, any, any>; config: StepDef<any, any, any, any>[any] };
@@ -97,7 +105,11 @@ export interface BaseCondition<
   query: Query<any>;
 }
 
-export type ActionContext<TSchemaIn extends z.ZodType<any>> = StepExecutionContext<z.infer<TSchemaIn>, WorkflowContext>;
+export type ActionContext<TSchemaIn extends z.ZodType<any>, TSchemaOut extends z.ZodType<any>> = StepExecutionContext<
+  z.infer<TSchemaIn>,
+  z.infer<TSchemaOut>,
+  WorkflowContext
+>;
 export enum WhenConditionReturnValue {
   CONTINUE = 'continue',
   CONTINUE_FAILED = 'continue_failed',
@@ -120,7 +132,7 @@ export type StepDef<
     loopLabel?: string;
     loopType?: 'when' | 'until';
     data: TSchemaIn;
-    handler: (args: ActionContext<TSchemaIn>) => Promise<z.infer<TSchemaOut>>;
+    handler: (args: ActionContext<TSchemaIn, TSchemaOut>) => Promise<z.infer<TSchemaOut>>;
   }
 >;
 
