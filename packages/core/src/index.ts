@@ -6,7 +6,7 @@ export * from './eval';
 export * from './integration/index.warning';
 export * from './llm';
 export * from './logger/index.warning';
-export * from './mastra';
+export * from './mastra/mastra';
 export * from './memory/index.warning';
 export * from './relevance';
 export * from './telemetry';

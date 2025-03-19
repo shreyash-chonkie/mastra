@@ -24,7 +24,7 @@ import type { GenerateReturn, StreamReturn } from '../llm';
 import type { MastraLLMBase } from '../llm/model';
 import { MastraLLM } from '../llm/model';
 import { RegisteredLogger } from '../logger';
-import type { Mastra } from '../mastra';
+import type { Mastra } from '../mastra/mastra';
 import type { MastraMemory } from '../memory/memory';
 import type { MemoryConfig } from '../memory/types';
 import { InstrumentClass } from '../telemetry';

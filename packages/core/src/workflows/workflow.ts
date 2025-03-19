@@ -5,7 +5,7 @@ import type { z } from 'zod';
 import type { MastraPrimitives } from '../action';
 import { MastraBase } from '../base';
 
-import type { Mastra } from '../mastra';
+import type { Mastra } from '../mastra/mastra';
 import { Step } from './step';
 import type {
   ActionContext,

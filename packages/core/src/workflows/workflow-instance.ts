@@ -5,7 +5,7 @@ import type { z } from 'zod';
 
 import type { Logger } from '../logger';
 
-import type { Mastra } from '../mastra';
+import type { Mastra } from '../mastra/mastra';
 import { Machine } from './machine';
 import type { Step } from './step';
 import type {

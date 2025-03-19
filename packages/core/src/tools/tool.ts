@@ -1,7 +1,6 @@
-import type { ToolExecutionOptions } from 'ai';
 import type { z } from 'zod';
 
-import type { Mastra } from '../mastra';
+import type { Mastra } from '../mastra/mastra';
 import type { ToolAction, ToolExecutionContext } from './types';
 
 export class Tool<

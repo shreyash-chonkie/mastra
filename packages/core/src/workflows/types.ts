@@ -3,7 +3,7 @@ import type { z } from 'zod';
 
 import type { IAction, IExecutionContext, MastraUnion } from '../action';
 import type { BaseLogMessage, RegisteredLogger } from '../logger';
-import type { Mastra } from '../mastra';
+import type { Mastra } from '../mastra/mastra';
 import type { Step } from './step';
 
 export interface WorkflowOptions<TTriggerSchema extends z.ZodObject<any> = any> {

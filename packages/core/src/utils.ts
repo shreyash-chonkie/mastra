@@ -7,7 +7,7 @@ import type { ZodObject } from 'zod';
 import type { MastraPrimitives } from './action';
 import type { ToolsInput } from './agent';
 import type { Logger } from './logger';
-import type { Mastra } from './mastra';
+import type { Mastra } from './mastra/mastra';
 import type { MastraMemory } from './memory';
 import { Tool } from './tools';
 import type { CoreTool, ToolAction, VercelTool } from './tools';

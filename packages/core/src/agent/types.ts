@@ -11,7 +11,7 @@ import type {
   DefaultLLMTextOptions,
   OutputType,
 } from '../llm';
-import type { Mastra } from '../mastra';
+import type { Mastra } from '../mastra/mastra';
 import type { MastraMemory } from '../memory/memory';
 import type { MemoryConfig } from '../memory/types';
 import type { ToolAction, VercelTool } from '../tools';
