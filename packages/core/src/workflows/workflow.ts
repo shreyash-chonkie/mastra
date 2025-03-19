@@ -598,7 +598,10 @@ export class Workflow<
 
     // NOTE: destructuring rest breaks some injected runtime fields, like runId
     // TODO: investigate why that is exactly
-    const handler = async ({ context, ...rest }: ActionContext<TSteps[number]['inputSchema']>) => {
+    const handler = async ({
+      context,
+      ...rest
+    }: ActionContext<TSteps[number]['inputSchema'], TSteps[number]['outputSchema']>) => {
       const targetStep = this.#steps[stepId];
       if (!targetStep) throw new Error(`Step not found`);
 
@@ -625,7 +628,10 @@ export class Workflow<
 
     // Only trace handler if telemetry is available
 
-    const finalHandler = ({ context, ...rest }: ActionContext<TSteps[number]['inputSchema']>) => {
+    const finalHandler = ({
+      context,
+      ...rest
+    }: ActionContext<TSteps[number]['inputSchema'], TSteps[number]['outputSchema']>) => {
       if (this.getExecutionSpan(rest?.runId as string)) {
         return executeStep(handler, `workflow.${this.name}.step.${stepId}`, {
           componentName: this.name,
