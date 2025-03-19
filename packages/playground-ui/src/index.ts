@@ -13,3 +13,4 @@ export * from './ds/components/Badge/index';
 export * from './ds/components/Logo/index';
 // export * from './ds/components/Table/index'; already exported, will override in a subsequent PR
 export * from './ds/components/Txt/index';
+export * from './components/assistant-ui/tool-fallback';
