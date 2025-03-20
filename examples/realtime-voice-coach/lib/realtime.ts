@@ -14,7 +14,7 @@ export interface Tool<I = unknown> {
 
 export interface Connection {
   sendMessage: (message: unknown) => void;
-  sendResponseCreate: (instructions: string) => void;
+  sendResponse: (instructions: string) => void;
   sendSessionUpdate: (session: {
     instructions?: string;
     tools?: unknown[];
@@ -81,7 +81,7 @@ export async function connectToOpenAIRealtime({
         tool_choice: 'auto',
       });
 
-      sendResponseCreate(initialMessage);
+      sendResponse(initialMessage);
     } else if (data.type === 'response.done' && data.response.output) {
       for (const output of data.response.output) {
         if (output.type === 'function_call') {
@@ -124,7 +124,7 @@ export async function connectToOpenAIRealtime({
     });
   };
 
-  const sendResponseCreate = (instructions: string) => {
+  const sendResponse = (instructions: string) => {
     sendMessage({
       type: 'response.create',
       response: {
@@ -135,7 +135,7 @@ export async function connectToOpenAIRealtime({
 
   const connection = {
     sendMessage,
-    sendResponseCreate,
+    sendResponse,
     sendSessionUpdate,
   };
 

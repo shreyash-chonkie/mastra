@@ -44,13 +44,13 @@ export const OpenAIRealtime = () => {
       initialMessage,
       tools: [
         createTimerTool(({ seconds }, { connection }) => {
-          connection.sendResponseCreate(`Timer started.`);
+          connection.sendResponse(`Timer started.`);
           setTimer({ seconds });
 
           if (timerRef.current) clearTimeout(timerRef.current);
           timerRef.current = setTimeout(() => {
             console.log('Timer finished');
-            connection.sendResponseCreate(
+            connection.sendResponse(
               `Timer finished. ${seconds} seconds have passed. Inform the user of the next exercise.`,
             );
           }, seconds * 1000);
@@ -58,27 +58,21 @@ export const OpenAIRealtime = () => {
         createWorkoutTool(({ name, restTime, exercises }, { connection }) => {
           console.log('Workout created', name, exercises);
           setWorkout({ name, restTime, exercises });
-          setTimeout(() => {
-            connection.sendResponseCreate(
-              `Workout created. ${name} with ${exercises.length} exercises and a rest time of ${restTime} seconds.`,
-            );
-          }, 500);
+          connection.sendResponse(
+            `Workout created. ${name} with ${exercises.length} exercises and a rest time of ${restTime} seconds.`,
+          );
         }),
         createExerciseLogTool(({ exercise, sentiment, sets, reps }, { connection }) => {
           console.log('Exercise logged', exercise, sentiment, sets, reps);
           setExerciseLog(log => [...log, { exercise, sentiment, sets, reps }]);
-          setTimeout(() => {
-            connection.sendResponseCreate(
-              `Exercise logged. ${exercise} with ${sentiment} sentiment, ${sets} sets, ${reps} reps.`,
-            );
-          }, 500);
+          connection.sendResponse(
+            `Exercise logged. ${exercise} with ${sentiment} sentiment, ${sets} sets, ${reps} reps.`,
+          );
         }),
         createWorkoutSummaryTool((input, { connection }) => {
           console.log('Workout summary requested');
           setWorkoutSummary({});
-          setTimeout(() => {
-            connection.sendResponseCreate(`Workout summary requested. ${JSON.stringify(workoutSummary)}`);
-          }, 500);
+          connection.sendResponse(`Workout summary requested. ${JSON.stringify(workoutSummary)}`);
         }),
       ],
     });
