@@ -1,9 +1,43 @@
-import { ChannelType, Client, GatewayIntentBits, Partials } from 'discord.js';
+import { ChannelType, Client, GatewayIntentBits, Partials, DMChannel } from 'discord.js';
 import { config } from 'dotenv';
 import { mastra } from './mastra';
 config();
 
 let client: Client | null = null;
+
+async function clearBotDirectMessages(channel: DMChannel): Promise<void> {
+  try {
+    let messagesDeleted = 0;
+    let messages;
+
+    do {
+      // Fetch up to 100 messages at a time
+      messages = await channel.messages.fetch({ limit: 100 });
+
+      // Filter for only bot's own messages
+      const botMessages = messages.filter(msg => msg.author.id === channel.client.user.id);
+
+      // If no bot messages are found, break the loop
+      if (botMessages.size === 0) break;
+
+      // Delete each bot message
+      for (const message of botMessages.values()) {
+        if (message.deletable) {
+          await message.delete();
+          messagesDeleted++;
+
+          // Add a small delay to avoid rate limits
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    } while (messages.size >= 100);
+
+    console.log(`Successfully deleted ${messagesDeleted} bot messages`);
+  } catch (error) {
+    console.error('Error clearing bot messages:', error);
+    throw error;
+  }
+}
 
 async function getDiscordClient(): Promise<Client> {
   if (client && client.isReady()) {
@@ -37,6 +71,12 @@ async function getDiscordClient(): Promise<Client> {
       // Ignore messages from bots and non-DM channels
       if (message.author.bot || message.channel.type !== ChannelType.DM) return;
 
+      if (message.channel.type === ChannelType.DM && message.content === '!cleardm') {
+        await message.reply('Deleting my messages...');
+        await clearBotDirectMessages(message.channel as DMChannel);
+        return;
+      }
+
       const agent = await mastra.getAgent('discordMCPBotAgent');
       const { fullStream } = await agent.stream(message.content, {
         maxSteps: 10,
@@ -54,7 +94,7 @@ async function getDiscordClient(): Promise<Client> {
             console.log('tool call', part.toolName);
             if (part.toolName.includes('mastra_mastra')) {
               const toolName = part.toolName.replace('mastra_mastra', '');
-              await message.reply(`Checking ${toolName}. Please wait...`);
+              await message.channel.send(`Checking ${toolName}. Please wait...`);
             }
             break;
           case 'tool-result':
@@ -67,19 +107,19 @@ async function getDiscordClient(): Promise<Client> {
                 }
               } catch (error) {
                 console.error('Error handling tool result:', error);
-                await message.reply('Sorry, there was an error processing the code file.');
+                await message.channel.send('Sorry, there was an error processing the code file.');
               }
             }
             console.log('finished tool call');
             break;
           case 'error':
             console.error('Tool error:', part.error);
-            await message.reply('Sorry, there was an error executing the tool.');
+            await message.channel.send('Sorry, there was an error executing the tool.');
             break;
           case 'finish':
             // Send all collected files together
             if (filesToSend.length > 0) {
-              await message.reply({
+              await message.channel.send({
                 content: 'Here are the code examples:',
                 files: filesToSend,
               });
@@ -88,7 +128,7 @@ async function getDiscordClient(): Promise<Client> {
             break;
         }
         if (messageBuffer.length > 1990) {
-          await message.reply(messageBuffer);
+          await message.channel.send(messageBuffer);
           messageBuffer = '';
         }
       }
