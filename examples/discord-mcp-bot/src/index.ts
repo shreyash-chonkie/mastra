@@ -117,14 +117,6 @@ async function getDiscordClient(): Promise<Client> {
             await message.channel.send('Sorry, there was an error executing the tool.');
             break;
           case 'finish':
-            // Send all collected files together
-            if (filesToSend.length > 0) {
-              await message.channel.send({
-                content: 'Here are the code examples:',
-                files: filesToSend,
-              });
-              filesToSend = []; // Clear the array
-            }
             break;
         }
         if (messageBuffer.length > 1990) {
@@ -137,6 +129,14 @@ async function getDiscordClient(): Promise<Client> {
         await message.channel.send(messageBuffer);
       }
       messageBuffer = '';
+      // Send all collected files together
+      if (filesToSend.length > 0) {
+        await message.channel.send({
+          content: 'Here are the code examples:',
+          files: filesToSend,
+        });
+        filesToSend = []; // Clear the array
+      }
     });
 
     client!.once('ready', () => {
