@@ -21,7 +21,7 @@ function getExtension(language: string): string {
 
 export const codeFileTool = createTool({
   id: 'code-file-tool',
-  description: 'Creates a temporary file with code content and returns the file path',
+  description: 'Used to share code with the user. Creates a temporary file with code content and returns the file path',
   inputSchema: z.object({
     code: z.string(),
     language: z.string(),

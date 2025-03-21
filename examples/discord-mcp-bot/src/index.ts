@@ -134,7 +134,7 @@ async function getDiscordClient(): Promise<Client> {
       }
 
       if (messageBuffer.length > 0) {
-        await message.reply(messageBuffer);
+        await message.channel.send(messageBuffer);
       }
       messageBuffer = '';
     });
