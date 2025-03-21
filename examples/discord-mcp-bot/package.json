@@ -1,8 +1,8 @@
 {
-  "name": "discord-test-bot",
+  "name": "discord-mcp-bot",
   "type": "module",
   "private": true,
-  "description": "A Discord test bot",
+  "description": "A Discord MCP Bot",
   "main": "index.js",
   "version": "0.0.1",
   "scripts": {
@@ -10,7 +10,7 @@
   },
   "keywords": [
     "discord",
-    "test",
+    "mcp",
     "bot"
   ],
   "author": "",
