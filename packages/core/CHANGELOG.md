@@ -1,5 +1,47 @@
 # @mastra/core
 
+## 0.6.4-alpha.0
+
+### Patch Changes
+
+- fb68a80: Inject mastra instance into llm class
+- b56a681: Update README and some tests for vector stores
+- 248cb07: Allow ai-sdk Message type for messages in agent generate and stream
+  Fix sidebar horizontal overflow in playground
+
+## 0.6.3
+
+### Patch Changes
+
+- 404640e: AgentNetwork changeset
+- 3bce733: fix: agent.generate only get thread if there is threadID
+
+## 0.6.3-alpha.1
+
+### Patch Changes
+
+- 3bce733: fix: agent.generate only get thread if there is threadID
+
+## 0.6.3-alpha.0
+
+### Patch Changes
+
+- 404640e: AgentNetwork changeset
+
+## 0.6.2
+
+### Patch Changes
+
+- beaf1c2: createTool type fixes
+- 3084e13: More parallel memory operations
+
+## 0.6.2-alpha.0
+
+### Patch Changes
+
+- beaf1c2: createTool type fixes
+- 3084e13: More parallel memory operations
+
 ## 0.6.1
 
 ### Patch Changes

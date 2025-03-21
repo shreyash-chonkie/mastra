@@ -7,12 +7,11 @@ import type {
   StepGraph,
   StorageThreadType,
   BaseLogMessage,
-  OutputType,
 } from '@mastra/core';
 
 import type { AgentGenerateOptions, AgentStreamOptions } from '@mastra/core/agent';
 import type { JSONSchema7 } from 'json-schema';
-import { ZodSchema } from 'zod';
+import type { ZodSchema } from 'zod';
 
 export interface ClientOptions {
   /** Base URL for API requests */
@@ -45,11 +44,11 @@ export interface GetAgentResponse {
 }
 
 export type GenerateParams<T extends JSONSchema7 | ZodSchema | undefined = undefined> = {
-  messages: string | string[] | CoreMessage[];
+  messages: string | string[] | CoreMessage[] | AiMessageType[];
 } & Partial<AgentGenerateOptions<T>>;
 
 export type StreamParams<T extends JSONSchema7 | ZodSchema | undefined = undefined> = {
-  messages: string | string[] | CoreMessage[];
+  messages: string | string[] | CoreMessage[] | AiMessageType[];
 } & Partial<AgentStreamOptions<T>>;
 
 export interface GetEvalsByAgentIdResponse extends GetAgentResponse {
@@ -189,4 +188,19 @@ export interface GetTelemetryParams {
   page?: number;
   perPage?: number;
   attribute?: Record<string, string>;
+}
+
+export interface GetNetworkResponse {
+  name: string;
+  instructions: string;
+  agents: Array<{
+    name: string;
+    provider: string;
+    modelId: string;
+  }>;
+  routingModel: {
+    provider: string;
+    modelId: string;
+  };
+  state?: Record<string, any>;
 }

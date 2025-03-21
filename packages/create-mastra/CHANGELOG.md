@@ -1,5 +1,26 @@
 # create-mastra
 
+## 0.2.2-alpha.0
+
+### Patch Changes
+
+- 933ea4d: Fix messages in thread not showing latest when switching between threads
+- 9cba774: Fix new thread title not reflecting until refresh or new message is sent
+- 248cb07: Allow ai-sdk Message type for messages in agent generate and stream
+  Fix sidebar horizontal overflow in playground
+
+## 0.2.1
+
+### Patch Changes
+
+- 404640e: AgentNetwork changeset
+
+## 0.2.1-alpha.0
+
+### Patch Changes
+
+- 404640e: AgentNetwork changeset
+
 ## 0.2.0
 
 ### Minor Changes

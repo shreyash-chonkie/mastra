@@ -1,5 +1,65 @@
 # @mastra/deployer-netlify
 
+## 0.1.13-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [e764fd1]
+- Updated dependencies [fb68a80]
+- Updated dependencies [e764fd1]
+- Updated dependencies [05ef3e0]
+- Updated dependencies [95c5745]
+- Updated dependencies [b56a681]
+- Updated dependencies [248cb07]
+  - @mastra/deployer@0.2.4-alpha.0
+  - @mastra/core@0.6.4-alpha.0
+
+## 0.1.12
+
+### Patch Changes
+
+- 404640e: AgentNetwork changeset
+- Updated dependencies [404640e]
+- Updated dependencies [3bce733]
+  - @mastra/deployer@0.2.3
+  - @mastra/core@0.6.3
+
+## 0.1.12-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [3bce733]
+  - @mastra/core@0.6.3-alpha.1
+  - @mastra/deployer@0.2.3-alpha.1
+
+## 0.1.12-alpha.0
+
+### Patch Changes
+
+- 404640e: AgentNetwork changeset
+- Updated dependencies [404640e]
+  - @mastra/deployer@0.2.3-alpha.0
+  - @mastra/core@0.6.3-alpha.0
+
+## 0.1.11
+
+### Patch Changes
+
+- Updated dependencies [4e6732b]
+- Updated dependencies [beaf1c2]
+- Updated dependencies [3084e13]
+  - @mastra/deployer@0.2.2
+  - @mastra/core@0.6.2
+
+## 0.1.11-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [beaf1c2]
+- Updated dependencies [3084e13]
+  - @mastra/core@0.6.2-alpha.0
+  - @mastra/deployer@0.2.2-alpha.1
+
 ## 0.1.11-alpha.0
 
 ### Patch Changes
