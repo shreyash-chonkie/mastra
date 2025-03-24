@@ -43,6 +43,15 @@
       "dependencyDashboardApproval": false
     },
     {
+      "groupName": "build-deps",
+      "matchFileNames": ["+(package.json)", "**/package.json", "!./examples/**", "!./docs/**"],
+      "matchPackageNames": ["vitest", "tsup", "eslint"],
+      "matchPackagePatterns": ["^eslint-"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "matchDepTypes": ["devDependencies"],
+      "dependencyDashboardApproval": false
+    },
+    {
       "groupName": "core",
       "commitMessageTopic": "Mastra Core",
       "matchFileNames": ["packages/*/package.json"],
