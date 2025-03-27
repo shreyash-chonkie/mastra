@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import type { Memory } from '@mastra/memory';
+import { openai } from '@ai-sdk/openai';
+import { Agent } from '@mastra/core';
+import { Memory } from '@mastra/memory';
 import type { TextPart, ImagePart, FilePart, ToolCallPart } from 'ai';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -64,6 +66,7 @@ export function getResuableTests(memory: Memory) {
 
         const result = await memory.rememberMessages({
           threadId: thread.id,
+          resourceId,
           config: { lastMessages: 10 },
         });
         expect(result.messages).toHaveLength(10); // lastMessages is set to 10
@@ -72,6 +75,7 @@ export function getResuableTests(memory: Memory) {
 
         const result2 = await memory.rememberMessages({
           threadId: thread.id,
+          resourceId,
           config: {
             lastMessages: 15,
           },
@@ -92,6 +96,7 @@ export function getResuableTests(memory: Memory) {
         await memory.saveMessages({ messages: conversation });
         const result = await memory.rememberMessages({
           threadId: thread.id,
+          resourceId,
           config: { lastMessages: 10 },
         });
 
@@ -102,6 +107,56 @@ export function getResuableTests(memory: Memory) {
     });
 
     describe('Semantic Search', () => {
+      it('should chunk long messages before embedding', async () => {
+        const memory = new Memory({
+          embedder: openai.embedding(`text-embedding-3-small`),
+          options: {
+            semanticRecall: {
+              topK: 1,
+              messageRange: 1,
+            },
+          },
+        });
+
+        const thread = await memory.createThread({
+          resourceId,
+          title: 'Long chunking test',
+        });
+        const threadId = thread.id;
+
+        const content = Array(1000).fill(`This is a long message to test chunking with`).join(`\n`);
+        await expect(
+          memory.saveMessages({
+            messages: [
+              {
+                type: 'text',
+                role: 'user',
+                content,
+                threadId,
+                id: `long-chunking-message-${Date.now()}`,
+                createdAt: new Date(),
+              },
+            ],
+          }),
+        ).resolves.not.toThrow();
+
+        const { messages } = await memory.query({
+          threadId,
+          resourceId,
+          selectBy: {
+            vectorSearchString: content,
+          },
+          threadConfig: {
+            semanticRecall: {
+              topK: 2,
+              messageRange: 2,
+            },
+          },
+        });
+
+        expect(messages.length).toBe(1);
+      });
+
       it('should find semantically similar messages', async () => {
         const messages = [
           createTestMessage(thread.id, 'The weather is nice today', 'user'),
@@ -115,6 +170,7 @@ export function getResuableTests(memory: Memory) {
         // Search for weather-related messages
         const weatherQuery = await memory.rememberMessages({
           threadId: thread.id,
+          resourceId,
           config: { lastMessages: 0, semanticRecall: { messageRange: 1, topK: 1 } },
           vectorMessageSearch: "How's the temperature outside?",
         });
@@ -128,6 +184,7 @@ export function getResuableTests(memory: Memory) {
         // Search for location-related messages
         const locationQuery = await memory.rememberMessages({
           threadId: thread.id,
+          resourceId,
           vectorMessageSearch: 'Tell me about cities in France',
           config: {
             semanticRecall: {
@@ -147,6 +204,7 @@ export function getResuableTests(memory: Memory) {
         // Search for location-related messages
         const locationQuery2 = await memory.rememberMessages({
           threadId: thread.id,
+          resourceId,
           vectorMessageSearch: 'Tell me about cities in France',
           config: {
             semanticRecall: {
@@ -166,6 +224,7 @@ export function getResuableTests(memory: Memory) {
         // Search for location-related messages
         const locationQuery3 = await memory.rememberMessages({
           threadId: thread.id,
+          resourceId,
           vectorMessageSearch: 'Tell me about cities in France',
           config: {
             semanticRecall: {
@@ -199,6 +258,7 @@ export function getResuableTests(memory: Memory) {
 
         const result = await memory.rememberMessages({
           threadId: thread.id,
+          resourceId,
           vectorMessageSearch: 'topic X',
           config: {
             lastMessages: 0,
@@ -240,6 +300,7 @@ export function getResuableTests(memory: Memory) {
         await memory.saveMessages({ messages });
         const result = await memory.rememberMessages({
           threadId: thread.id,
+          resourceId,
           config: {
             lastMessages: 10,
           },
@@ -265,11 +326,85 @@ export function getResuableTests(memory: Memory) {
 
         const result = await memory.rememberMessages({
           threadId: thread.id,
+          resourceId,
           config: {
             lastMessages: 10,
           },
         });
         expect(result.messages[0].content).toEqual(complexMessage);
+      });
+    });
+
+    describe('Resource Validation', () => {
+      it('should allow access with correct resourceId', async () => {
+        const messages = [createTestMessage(thread.id, 'Test message')];
+        await memory.saveMessages({ messages });
+
+        const result = await memory.rememberMessages({
+          threadId: thread.id,
+          resourceId,
+          config: { lastMessages: 10 },
+        });
+
+        expect(result.messages).toHaveLength(1);
+        expect(result.messages[0].content).toBe('Test message');
+      });
+
+      it('should reject access with incorrect resourceId', async () => {
+        const messages = [createTestMessage(thread.id, 'Test message')];
+        await memory.saveMessages({ messages });
+
+        await expect(
+          memory.rememberMessages({
+            threadId: thread.id,
+            resourceId: 'wrong-resource',
+            config: { lastMessages: 10 },
+          }),
+        ).rejects.toThrow(
+          `Thread with id ${thread.id} is for resource with id ${resourceId} but resource wrong-resource was queried`,
+        );
+      });
+
+      it('should handle undefined resourceId gracefully', async () => {
+        const messages = [createTestMessage(thread.id, 'Test message')];
+        await memory.saveMessages({ messages });
+
+        const result = await memory.rememberMessages({
+          threadId: thread.id,
+          config: { lastMessages: 10 },
+        });
+
+        expect(result.messages).toHaveLength(1);
+        expect(result.messages[0].content).toBe('Test message');
+      });
+    });
+    describe('Concurrent Operations', () => {
+      it('should handle concurrent message saves with embeddings', async () => {
+        const thread = await memory.saveThread({
+          thread: createTestThread('Concurrent Test Thread'),
+        });
+
+        // Create multiple batches of messages with embeddings
+        const messagesBatches = Array(5)
+          .fill(null)
+          .map(() => [
+            createTestMessage(thread.id, 'Test message with embedding'),
+            createTestMessage(thread.id, 'Another test message with embedding'),
+          ]);
+
+        // Try to save all batches concurrently
+        const promises = messagesBatches.map(messages => memory.saveMessages({ messages }));
+
+        // Should handle concurrent index creation gracefully
+        await expect(Promise.all(promises)).resolves.not.toThrow();
+
+        // Verify all messages were saved
+        const result = await memory.rememberMessages({
+          threadId: thread.id,
+          resourceId,
+          config: { lastMessages: 20 },
+        });
+        expect(result.messages).toHaveLength(messagesBatches.flat().length);
       });
     });
   });

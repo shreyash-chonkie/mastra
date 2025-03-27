@@ -3,8 +3,8 @@ import type { AiMessageType, CoreMessage, CoreTool } from '@mastra/core';
 import { MastraMemory } from '@mastra/core/memory';
 import type { MessageType, MemoryConfig, SharedMemoryConfig, StorageThreadType } from '@mastra/core/memory';
 import type { StorageGetMessagesArg } from '@mastra/core/storage';
-import { embed } from 'ai';
-import type { Message as AiMessage } from 'ai';
+import { MDocument } from '@mastra/rag';
+import { embedMany } from 'ai';
 import { updateWorkingMemoryTool } from './tools/working-memory';
 
 /**
@@ -24,19 +24,32 @@ export class Memory extends MastraMemory {
     this.threadConfig = mergedConfig;
   }
 
+  private async validateThreadIsOwnedByResource(threadId: string, resourceId: string) {
+    const thread = await this.storage.getThreadById({ threadId });
+    if (!thread) {
+      throw new Error(`No thread found with id ${threadId}`);
+    }
+    if (thread.resourceId !== resourceId) {
+      throw new Error(
+        `Thread with id ${threadId} is for resource with id ${thread.resourceId} but resource ${resourceId} was queried.`,
+      );
+    }
+  }
+
   async query({
     threadId,
+    resourceId,
     selectBy,
     threadConfig,
   }: StorageGetMessagesArg): Promise<{ messages: CoreMessage[]; uiMessages: AiMessageType[] }> {
-    let vectorResults:
-      | null
-      | {
-          id: string;
-          score: number;
-          metadata?: Record<string, any>;
-          vector?: number[];
-        }[] = null;
+    if (resourceId) await this.validateThreadIsOwnedByResource(threadId, resourceId);
+
+    const vectorResults: {
+      id: string;
+      score: number;
+      metadata?: Record<string, any>;
+      vector?: number[];
+    }[] = [];
 
     this.logger.debug(`Memory query() with:`, {
       threadId,
@@ -57,22 +70,24 @@ export class Memory extends MastraMemory {
             messageRange: config?.semanticRecall?.messageRange ?? { before: 2, after: 2 },
           };
 
-    if (config?.semanticRecall && selectBy?.vectorSearchString && this.vector) {
-      const { embedding } = await embed({
-        value: selectBy.vectorSearchString,
-        model: this.embedder,
-      });
-
+    if (config?.semanticRecall && selectBy?.vectorSearchString && this.vector && !!selectBy.vectorSearchString) {
       const { indexName } = await this.createEmbeddingIndex();
+      const { embeddings } = await this.embedMessageContent(selectBy.vectorSearchString);
 
-      vectorResults = await this.vector.query({
-        indexName,
-        queryVector: embedding,
-        topK: vectorConfig.topK,
-        filter: {
-          thread_id: threadId,
-        },
-      });
+      await Promise.all(
+        embeddings.map(async embedding => {
+          vectorResults.push(
+            ...(await this.vector.query({
+              indexName,
+              queryVector: embedding,
+              topK: vectorConfig.topK,
+              filter: {
+                thread_id: threadId,
+              },
+            })),
+          );
+        }),
+      );
     }
 
     // Get raw messages from storage
@@ -108,10 +123,12 @@ export class Memory extends MastraMemory {
 
   async rememberMessages({
     threadId,
+    resourceId,
     vectorMessageSearch,
     config,
   }: {
     threadId: string;
+    resourceId?: string;
     vectorMessageSearch?: string;
     config?: MemoryConfig;
   }): Promise<{
@@ -119,6 +136,8 @@ export class Memory extends MastraMemory {
     messages: CoreMessage[];
     uiMessages: AiMessageType[];
   }> {
+    if (resourceId) await this.validateThreadIsOwnedByResource(threadId, resourceId);
+
     const threadConfig = this.getMergedThreadConfig(config || {});
 
     if (!threadConfig.lastMessages && !threadConfig.semanticRecall) {
@@ -202,6 +221,27 @@ export class Memory extends MastraMemory {
     // }
   }
 
+  private async embedMessageContent(content: string) {
+    const doc = MDocument.fromText(content);
+
+    const chunks = await doc.chunk({
+      strategy: 'token',
+      size: 4096,
+      overlap: 20,
+    });
+
+    const { embeddings } = await embedMany({
+      values: chunks.map(chunk => chunk.text),
+      model: this.embedder,
+      maxRetries: 3,
+    });
+
+    return {
+      embeddings,
+      chunks,
+    };
+  }
+
   async saveMessages({
     messages,
     memoryConfig,
@@ -221,18 +261,17 @@ export class Memory extends MastraMemory {
       const { indexName } = await this.createEmbeddingIndex();
 
       for (const message of messages) {
-        if (typeof message.content !== `string`) continue;
-        const { embedding } = await embed({ value: message.content, model: this.embedder, maxRetries: 3 });
+        if (typeof message.content !== `string` || message.content === '') continue;
+
+        const { embeddings, chunks } = await this.embedMessageContent(message.content);
+
         await this.vector.upsert({
           indexName,
-          vectors: [embedding],
-          metadata: [
-            {
-              text: message.content,
-              message_id: message.id,
-              thread_id: message.threadId,
-            },
-          ],
+          vectors: embeddings,
+          metadata: chunks.map(() => ({
+            message_id: message.id,
+            thread_id: message.threadId,
+          })),
         });
       }
     }
@@ -242,13 +281,21 @@ export class Memory extends MastraMemory {
 
   protected mutateMessagesToHideWorkingMemory(messages: MessageType[]) {
     const workingMemoryRegex = /<working_memory>([^]*?)<\/working_memory>/g;
-    for (const message of messages) {
+
+    for (const [index, message] of messages.entries()) {
       if (typeof message?.content === `string`) {
         message.content = message.content.replace(workingMemoryRegex, ``).trim();
       } else if (Array.isArray(message?.content)) {
         for (const content of message.content) {
           if (content.type === `text`) {
             content.text = content.text.replace(workingMemoryRegex, ``).trim();
+          }
+
+          if (
+            (content.type === `tool-call` || content.type === `tool-result`) &&
+            content.toolName === `updateWorkingMemory`
+          ) {
+            delete messages[index];
           }
         }
       }
@@ -269,7 +316,7 @@ export class Memory extends MastraMemory {
     return null;
   }
 
-  protected async getWorkingMemory({ threadId }: { threadId: string }): Promise<string | null> {
+  public async getWorkingMemory({ threadId }: { threadId: string }): Promise<string | null> {
     if (!this.threadConfig.workingMemory?.enabled) return null;
 
     // Get thread from storage
