@@ -9,17 +9,18 @@ config();
 // Get the Discord analysis agent
 const agent = mastra.getAgent('discordAnalysisAgent');
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function runAnalysis() {
   console.log('🤖 Discord Analysis Bot');
   console.log('------------------------');
 
   // Get channel ID from environment variables
-  const channelId = process.env.DISCORD_CHANNEL_ID;
+  const mastraChannelId = process.env.MASTRA_CHANNEL;
+  const helpChannelId = process.env.HELP_CHANNEL;
 
-  if (!channelId) {
-    console.error('Error: DISCORD_CHANNEL_ID is not set in environment variables');
-    console.log('Please set DISCORD_CHANNEL_ID in your .env file');
-    return;
+  if (!mastraChannelId || !helpChannelId) {
+    throw new Error('Missing required channel IDs in environment variables');
   }
 
   if (!process.env.DISCORD_BOT_TOKEN) {
@@ -28,25 +29,41 @@ async function runAnalysis() {
     return;
   }
 
-  console.log(`Target channel: ${channelId}`);
-  console.log('Analyzing Discord help forum messages...');
+  console.log('Analyzing Discord channels...');
 
   try {
-    // Calculate date range for the last 48 hours
+    // Calculate date range for the last 7 days
+    const days = 7;
     const endDate = new Date().toISOString().split('T')[0]; // Today
     const startDate = new Date();
-    startDate.setHours(startDate.getHours() - 48);
+    startDate.setDate(startDate.getDate() - days);
     const startDateStr = startDate.toISOString().split('T')[0];
+    const dailyAnalyses: { date: string; analysis: any }[] = [];
 
     console.log(`Using date range: ${startDateStr} to ${endDate}`);
+    console.log(`Analyzing Discord channels: Mastra (${mastraChannelId}) and Help (${helpChannelId})`);
 
-    // Construct the prompt with specific instructions
-    const prompt = `Analyze the messages from our Discord help forum with channel ID ${channelId} from ${startDateStr} to ${endDate}. Categorize issues and identify common problems.`;
+    // Analyze each day
+    for (let i = 0; i < days; i++) {
+      const currentDate = new Date(endDate);
+      currentDate.setDate(currentDate.getDate() - i);
+      const dateStr = currentDate.toISOString().split('T')[0];
 
-    // Run the analysis with structured output
-    const analysisResponse = await agent.generate(prompt, {
-      experimental_output: DiscordAnalysisSchema,
-    });
+      console.log(`\nAnalyzing messages for ${dateStr}...`);
+      const dailyAnalysis = await analyzeSingleDay(mastraChannelId, helpChannelId, dateStr);
+      dailyAnalyses.push({
+        date: dateStr,
+        analysis: dailyAnalysis.object,
+      });
+      if (i < days - 1) {
+        console.log('Waiting before next analysis...');
+        await sleep(5000);
+      }
+    }
+
+    // Combine all daily analyses
+    console.log('\nCombining daily analyses...');
+    const analysisResponse = await combineAnalyses(dailyAnalyses);
 
     // Display the analysis results
     console.log('\n📊 Analysis Results:');
@@ -91,3 +108,34 @@ async function runAnalysis() {
 
 // Run the analysis
 runAnalysis();
+
+// Function to analyze a single day
+async function analyzeSingleDay(mastraChannelId: string, helpChannelId: string, date: string) {
+  const prompt = `Analyze the messages from our Discord channels for ${date}.
+  Include messages from both:
+  - Mastra channel (${mastraChannelId})
+  - Help channel (${helpChannelId})
+  
+  Categorize messages from both channels to identify patterns and issues for this day.`;
+
+  return agent.generate(prompt, {
+    experimental_output: DiscordAnalysisSchema,
+  });
+}
+
+// Function to combine daily analyses
+async function combineAnalyses(dailyAnalyses: any[]) {
+  const summaryPrompt = `Review and combine these daily analyses to provide an overall summary.
+  Focus on:
+  - Trends across days
+  - Most common categories
+  - Recurring issues
+  - Changes in patterns over time
+  
+  Here are the daily analyses:
+  ${dailyAnalyses.map(analysis => `Date: ${analysis.date}\n${analysis.analysis}`).join('\n\n')}`;
+
+  return agent.generate(summaryPrompt, {
+    experimental_output: DiscordAnalysisSchema,
+  });
+}

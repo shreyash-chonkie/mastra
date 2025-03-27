@@ -1629,6 +1629,9 @@ importers:
       '@mastra/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@mastra/mcp':
+        specifier: workspace:*
+        version: link:../../packages/mcp
       ai:
         specifier: latest
         version: 4.2.6(react@19.0.0)(zod@3.24.2)

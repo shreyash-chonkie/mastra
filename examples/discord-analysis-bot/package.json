@@ -19,6 +19,7 @@
   "dependencies": {
     "@ai-sdk/openai": "latest",
     "@mastra/core": "workspace:*",
+    "@mastra/mcp": "workspace:*",
     "ai": "latest",
     "discord.js": "^14.14.1",
     "dotenv": "^16.4.7",

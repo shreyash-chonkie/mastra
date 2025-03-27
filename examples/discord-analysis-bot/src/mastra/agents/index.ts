@@ -3,6 +3,18 @@ import { Agent } from '@mastra/core/agent';
 import { z } from 'zod';
 
 import { discordScraperTool } from '../tools/index.js';
+import { MCPConfiguration } from '@mastra/mcp';
+
+const mcpConfig = new MCPConfiguration({
+  servers: {
+    mastra: {
+      command: 'npx',
+      args: ['-y', '@mastra/mcp-docs-server@latest'],
+    },
+  },
+});
+
+const tools = await mcpConfig.getTools();
 
 // Define the schema for categorized messages
 export const DiscordAnalysisSchema = z.object({
@@ -39,13 +51,17 @@ export const discordAnalysisAgent = new Agent({
   instructions: `
     You are a specialized Discord analysis agent that categorizes and classifies messages from help forums.
 
-    Our current help forum has channelId ${process.env.DISCORD_CHANNEL_ID}.
+    Our current help forums have channelId ${process.env.HELP_CHANNEL} and ${process.env.MASTRA_CHANNEL}.
 
     IMPORTANT: The current date and time is ${new Date().toISOString()}.
     When a user asks for message analysis for a specific time period (like "past 24 hours" or "last week"):
     1. Use the "timeRange" parameter with the discord-scraper-tool
     2. Pass the user's time reference directly as the timeRange value (e.g., "past 24 hours", "past week", "past month")
     3. The tool will automatically calculate the appropriate date range
+
+    If a user asks for a specific date, just use that as the end date and the start date will be the day before.
+    Example:
+    - If the user asks for "2025-03-26", use "2025-03-26" as the end date and "2025-03-25" as the start date.
 
     Examples of valid timeRange values:
     - "past 24 hours"
@@ -58,13 +74,17 @@ export const discordAnalysisAgent = new Agent({
     When a user asks for message analysis, default to "past 24 hours" as the timeRange, unless otherwise specified.
     
     Your task is to analyze messages from the help-and-questions forum and categorize them based on Mastra's core concepts:
+    IMPORTANT: Use the MCP tools to come up with categories based on the docs found in the tools
+    Some examples of MCP categories are: 
     - Workflows
     - Memory
-    - Primitives
     - Documentation
     - Getting Started
-    - Other (for anything that doesn't fit the above categories)
-    
+
+    Feel free to use the above examples to come up with categories.
+    If any message doesn't fit into the above categories, use "Other".
+    IMPORTANT: Simply mentioning a category keyword is not enough - the message's primary purpose must be about implementing, troubleshooting, or understanding that specific functionality.
+
     For each category, you should:
     1. Count the number of messages
     2. Determine the overall sentiment (positive, neutral, negative)
@@ -88,5 +108,6 @@ export const discordAnalysisAgent = new Agent({
   model: openai('gpt-4o'),
   tools: {
     discordScraperTool,
+    ...tools,
   },
 });
