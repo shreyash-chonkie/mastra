@@ -15,6 +15,7 @@
     "@ai-sdk/openai": "^1.2.5",
     "@mastra/client-js": "workspace:*",
     "@mastra/core": "workspace:*",
+    "ai": "^4.2.8",
     "zod": "^3.24.2"
   }
 }

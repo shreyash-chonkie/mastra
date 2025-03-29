@@ -3,6 +3,8 @@ import { Agent } from '@mastra/core/agent';
 
 export const primaryResearchAgent = new Agent({
   name: 'Primary Research Agent',
+  description:
+    'Coordinates research efforts, breaks down complex questions, and synthesizes information from various sources into coherent responses. This agent manages the overall research process and ensures comprehensive coverage of topics.',
   instructions: `
     You are the primary research coordinator. Your job is to:
     1. Analyze user queries to determine what type of research is needed
@@ -18,6 +20,8 @@ export const primaryResearchAgent = new Agent({
 
 export const webSearchAgent = new Agent({
   name: 'Web Search Agent',
+  description:
+    "Specialized in finding and retrieving up-to-date information from the web with proper citations. This agent's sole purpose is to search for online information and report findings with source references.",
   instructions: `
     You are a web search specialist. Your job is to:
     1. Find the most relevant and up-to-date information online for a given query

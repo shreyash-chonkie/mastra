@@ -37,6 +37,7 @@ export interface AgentConfig<
   TMetrics extends Record<string, Metric> = Record<string, Metric>,
 > {
   name: string;
+  description?: string;
   instructions: string;
   model: MastraLanguageModel;
   tools?: TTools;

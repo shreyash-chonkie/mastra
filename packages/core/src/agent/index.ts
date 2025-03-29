@@ -53,6 +53,7 @@ export class Agent<
   TMetrics extends Record<string, Metric> = Record<string, Metric>,
 > extends MastraBase {
   public name: string;
+  public description?: string;
   readonly llm: MastraLLMBase;
   instructions: string;
   readonly model?: MastraLanguageModel;
@@ -68,6 +69,7 @@ export class Agent<
     super({ component: RegisteredLogger.AGENT });
 
     this.name = config.name;
+    this.description = config.description;
     this.instructions = config.instructions;
 
     if (!config.model) {
