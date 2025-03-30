@@ -125,18 +125,7 @@ export class Workflow extends BaseResource {
       while (true) {
         const { done, value } = await reader.read();
 
-        if (done) {
-          // Process any remaining data in buffer before finishing
-          if (buffer.trim().length > 0) {
-            try {
-              const record = JSON.parse(buffer);
-              yield record;
-            } catch (e) {
-              console.warn('Could not parse final buffer content:', buffer);
-            }
-          }
-          break;
-        }
+        if (done) break;
 
         // Decode and add to buffer
         buffer += new TextDecoder().decode(value);
@@ -151,7 +140,6 @@ export class Workflow extends BaseResource {
         for (const record of records) {
           if (record.trim().length > 0) {
             try {
-              // Assuming the records are JSON strings
               const parsedRecord = JSON.parse(record);
 
               //Check to see if all steps are completed and cancel reader
