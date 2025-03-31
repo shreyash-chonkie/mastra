@@ -397,11 +397,13 @@ export class AgentNetwork {
         // Write annotation
         dataStream.writeMessageAnnotation({ type: 'status', value: 'processing' });
 
-        await start({
+        const { results } = await start({
           triggerData: {
             prompt,
           },
         });
+
+        dataStream.writeData({ type: 'results', value: results });
       },
       onError: error => `${error}`,
     });
