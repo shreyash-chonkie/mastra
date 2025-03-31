@@ -877,7 +877,7 @@ export class Workflow<
     return {
       stream: run.stream.bind(run) as (
         props?: { triggerData?: z.infer<TTriggerSchema> } | undefined,
-      ) => Promise<ReturnType<typeof createDataStream>>,
+      ) => Promise<ReadableStream<Uint8Array>>,
       start: run.start.bind(run) as (
         props?: { triggerData?: z.infer<TTriggerSchema> } | undefined,
       ) => Promise<WorkflowRunResult<TTriggerSchema, TSteps, TResultSchema>>,
