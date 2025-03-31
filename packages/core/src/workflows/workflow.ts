@@ -25,7 +25,7 @@ import { agentToStep, isAgent, isVariableReference, isWorkflow, workflowToStep }
 import type { WorkflowResultReturn } from './workflow-instance';
 import { WorkflowInstance } from './workflow-instance';
 import type { Agent } from '../agent';
-import type { StreamTextResult } from 'ai';
+import type { createDataStream } from 'ai';
 
 type WorkflowBuilder<T extends Workflow<any, any>> = Pick<
   T,
@@ -877,7 +877,7 @@ export class Workflow<
     return {
       stream: run.stream.bind(run) as (
         props?: { triggerData?: z.infer<TTriggerSchema> } | undefined,
-      ) => StreamTextResult<any, any>,
+      ) => Promise<ReturnType<typeof createDataStream>>,
       start: run.start.bind(run) as (
         props?: { triggerData?: z.infer<TTriggerSchema> } | undefined,
       ) => Promise<WorkflowRunResult<TTriggerSchema, TSteps, TResultSchema>>,

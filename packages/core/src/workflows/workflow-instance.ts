@@ -33,6 +33,7 @@ export interface WorkflowResultReturn<
   TSteps extends Step<any, any, any>[],
 > {
   runId: string;
+  stream: (props?: { triggerData?: z.infer<T> } | undefined) => Promise<ReturnType<typeof createDataStream>>;
   start: (props?: { triggerData?: z.infer<T> } | undefined) => Promise<WorkflowRunResult<T, TSteps, TResult>>;
   watch: (
     onTransition: (state: Pick<WorkflowRunResult<T, TSteps, TResult>, 'results' | 'activePaths' | 'runId'>) => void,
