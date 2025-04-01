@@ -26,7 +26,7 @@ export function generateEvaluatePrompt({
   return `Given the input, output, and context, evaluate each context piece's relevance by generating a list of JSON objects.
 
 **
-IMPORTANT: Your response must be in JSON format with a 'outcomes' key containing a list. Each verdict must have only two fields: \`verdict\` with either 'yes' or 'no', and \`reason\` explaining the verdict. Your reason should include relevant quotes from the context.
+IMPORTANT: Your response must be in JSON format with a 'outcomes' key containing a list. Each outcome must have only three   fields: \`outcome\` with either 'yes' or 'no', \`reason\` explaining the outcome, and \`claim\` containing the context piece. Your reason should include relevant quotes from the context.
 
 CRITICAL: Context should be marked as relevant if it:
 1. Directly helps define or explain the subject
@@ -53,19 +53,23 @@ Example:
     "outcomes": [
         {
             "outcome": "yes",
-            "reason": "The context 'The Sun is a star' directly defines what the Sun is."
+            "reason": "The context 'The Sun is a star' directly defines what the Sun is.",
+            "claim": "The Sun is a star"
         },
         {
             "outcome": "yes",
-            "reason": "The context 'Stars produce their own light' is relevant as it describes a key characteristic of stars, which includes the Sun."
+            "reason": "The context 'Stars produce their own light' is relevant as it describes a key characteristic of stars, which includes the Sun.",
+            "claim": "Stars produce their own light"
         },
         {
             "outcome": "no",
-            "reason": "The context 'The Moon reflects sunlight' is not relevant to defining what the Sun is or how it produces light, as it only describes how another object interacts with sunlight."
+            "reason": "The context 'The Moon reflects sunlight' is not relevant to defining what the Sun is or how it produces light, as it only describes how another object interacts with sunlight.",
+            "claim": "The Moon reflects sunlight"
         },
         {
             "outcome": "yes",
-            "reason": "The context 'The Sun gives light to planets' demonstrates the light-producing property mentioned in the output."
+            "reason": "The context 'The Sun gives light to planets' demonstrates the light-producing property mentioned in the output.",
+            "claim": "The Sun gives light to planets"
         }
     ]  
 }

@@ -14,14 +14,14 @@ export function calculateContextualRecallScore({
   scale: number;
   uncertaintyWeight: number;
   context?: string[];
-}): number {
+}): { score: number } {
   const totalClaims = outcomes?.length || 0;
   if (totalClaims === 0) {
-    return 0;
+    return { score: 0 };
   }
 
   const justifiedClaims = outcomes.filter(v => v.outcome === 'yes');
   const score = justifiedClaims.length / totalClaims;
 
-  return roundToTwoDecimals(score * scale);
+  return { score: roundToTwoDecimals(score * scale) };
 }

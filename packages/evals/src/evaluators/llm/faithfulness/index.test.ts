@@ -137,6 +137,102 @@ describe(
       const result = await evaluator.score({ input: testCase.input, output: testCase.output });
       expect(isCloserTo(result.score, testCase.expectedResult.score, 0.2)).toBe(true);
     });
+
+    it('should handle perfect faithfulness', async () => {
+      const testCase = testCases[0]!;
+      const metric = new Faithfulness({ model, context: testCase.context });
+      const result = await metric.score({ input: testCase.input, output: testCase.output });
+
+      expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
+    });
+
+    it('should handle mixed faithfulness with contradictions', async () => {
+      const testCase = testCases[1]!;
+      const metric = new Faithfulness({ model, context: testCase.context });
+      const result = await metric.score({ input: testCase.input, output: testCase.output });
+
+      expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
+    });
+
+    it('should handle claims with speculative language', async () => {
+      const testCase = testCases[2]!;
+      const metric = new Faithfulness({ model, context: testCase.context });
+      const result = await metric.score({ input: testCase.input, output: testCase.output });
+
+      expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
+    });
+
+    it('should handle empty output', async () => {
+      const testCase = testCases[3]!;
+      const metric = new Faithfulness({ model, context: testCase.context });
+      const result = await metric.score({ input: testCase.input, output: testCase.output });
+
+      expect(result.score).toBe(testCase.expectedResult.score);
+    });
+
+    it('should handle empty context', async () => {
+      const testCase = testCases[4]!;
+      const metric = new Faithfulness({ model, context: testCase.context });
+      const result = await metric.score({ input: testCase.input, output: testCase.output });
+
+      expect(result.score).toBe(testCase.expectedResult.score);
+    });
+
+    it('should handle subjective claims', async () => {
+      const testCase = testCases[5]!;
+      const metric = new Faithfulness({ model, context: testCase.context });
+      const result = await metric.score({ input: testCase.input, output: testCase.output });
+
+      expect(result.score).toBe(testCase.expectedResult.score);
+    });
+
+    it('should handle claims with speculative language appropriately', async () => {
+      const testCase = testCases[6]!;
+      const metric = new Faithfulness({ model, context: testCase.context });
+      const result = await metric.score({ input: testCase.input, output: testCase.output });
+
+      expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
+    });
+
+    it('should handle compound statements correctly', async () => {
+      const testCase = testCases[7]!;
+      const metric = new Faithfulness({ model, context: testCase.context });
+      const result = await metric.score({ input: testCase.input, output: testCase.output });
+
+      expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
+    });
+
+    it('should handle precise numerical claims', async () => {
+      const testCase = testCases[8]!;
+      const metric = new Faithfulness({ model, context: testCase.context });
+      const result = await metric.score({ input: testCase.input, output: testCase.output });
+
+      expect(result.score).toBe(testCase.expectedResult.score);
+    });
+
+    it('should handle partially supported claims', async () => {
+      const testCase = testCases[9]!;
+      const metric = new Faithfulness({ model, context: testCase.context });
+      const result = await metric.score({ input: testCase.input, output: testCase.output });
+
+      expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
+    });
+
+    it('should handle mixed factual and speculative claims', async () => {
+      const testCase = testCases[10]!;
+      const metric = new Faithfulness({ model, context: testCase.context });
+      const result = await metric.score({ input: testCase.input, output: testCase.output });
+
+      expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
+    });
+
+    it('should handle implicit information appropriately', async () => {
+      const testCase = testCases[11]!;
+      const metric = new Faithfulness({ model, context: testCase.context });
+      const result = await metric.score({ input: testCase.input, output: testCase.output });
+
+      expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
+    });
   },
   15 * SECONDS,
 );

@@ -23,10 +23,10 @@ export function generateEvaluatePrompt({
   context: string[];
 }) {
   return `Based on the input and context, please generate a JSON object to indicate whether each statement found in the context is relevant to the provided input. First extract high-level statements from the context, then evaluate each for relevance.
-You should first extract statements found in the context, which are high level information found in the context, before deciding on a verdict and a reason for each statement.
+You should first extract statements found in the context, which are high level information found in the context, before deciding on a outcome, reason, and claim for each statement.
 
 Each verdict in the JSON must have:
-1. 'statement': The high-level information extracted from context
+1. 'claim': The high-level information extracted from context
 2. 'verdict': STRICTLY either 'yes' or 'no'
 3. 'reason': REQUIRED for ALL outcomes to explain the evaluation
 
@@ -48,17 +48,17 @@ Example:
     "outcomes": [
         {
             "outcome": "yes",
-            "statement": "Einstein won the Nobel Prize for his discovery of the photoelectric effect",
+            "claim": "Einstein won the Nobel Prize for his discovery of the photoelectric effect",
             "reason": "This directly addresses Einstein's achievements by highlighting a major scientific contribution that was recognized with a Nobel Prize"
         },
         {
             "outcome": "yes",
-            "statement": "He published his theory of relativity in 1905",
+            "claim": "He published his theory of relativity in 1905",
             "reason": "This is relevant as it mentions another significant achievement of Einstein, which directly addresses the question about his accomplishments"
         },
         {
             "outcome": "no",
-            "statement": "There was a cat in his office",
+            "claim": "There was a cat in his office",
             "reason": "This statement about a cat in Einstein's office is not relevant to his achievements as it doesn't describe any scientific or professional accomplishment"
         }
     ]

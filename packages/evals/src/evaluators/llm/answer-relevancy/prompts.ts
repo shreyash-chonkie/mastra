@@ -79,11 +79,12 @@ export function generateReasonPrompt({ input, output, score, scale, outcomes }: 
 export function generateEvaluatePrompt({ input, statements }: { input: string; statements: string[] }) {
   return `Evaluate each statement's relevance to the input question, considering direct answers, related context, and uncertain cases.
   
-      Return JSON with array of verdict objects. Each verdict must include:
-      - "verdict": "yes", "no", or "unsure"
-      - "reason": Clear explanation of the verdict
+      Return JSON with array of outcome objects. Each outcome must include:
+      - "outcome": "yes", "no", or "unsure"
+      - "reason": Clear explanation of the outcome
+      - "claim": The statement being evaluated
   
-      Verdict Guidelines:
+      Outcome Guidelines:
       - "yes": Statement explicitly and directly answers the input question when it:
           * Contains specific answer to the question asked (e.g., "The color of the sky is blue")
           * States explicit relationship between key concepts (e.g., "X is the CEO of company Y")

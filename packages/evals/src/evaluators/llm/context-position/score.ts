@@ -13,10 +13,10 @@ export function calculateContextPositionScore({
   outcomes: Outcome[];
   scale: number;
   uncertaintyWeight: number;
-}): number {
+}): { score: number } {
   const totalOutcomes = outcomes?.length || 0;
   if (totalOutcomes === 0) {
-    return 0;
+    return { score: 0 };
   }
 
   // Convert to binary scores (1 for yes, 0 for no)
@@ -35,10 +35,10 @@ export function calculateContextPositionScore({
   });
 
   if (weightedSum === 0) {
-    return 0;
+    return { score: 0 };
   }
 
   // Normalize against the maximum possible score
   const finalScore = (weightedSum / maxPossibleSum) * scale;
-  return roundToTwoDecimals(finalScore);
+  return { score: roundToTwoDecimals(finalScore) };
 }

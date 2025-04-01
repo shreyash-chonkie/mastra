@@ -25,7 +25,7 @@ export function generateEvaluatePrompt({
   return `Given the input, output, and context, evaluate each context piece's relevance by generating a list of JSON objects.
 
 **
-IMPORTANT: Your response must be in JSON format with a 'outcomes' key containing a list. Each verdict must have only two fields: \`verdict\` with either 'yes' or 'no', and \`reason\` explaining the verdict. Your reason should include relevant quotes from the context.
+IMPORTANT: Your response must be in JSON format with a 'outcomes' key containing a list. Each outcome must have only three   fields: \`outcome\` with either 'yes' or 'no', \`reason\` explaining the outcome, and \`claim\` with the context piece. Your reason should include relevant quotes from the context.
 
 CRITICAL: Context should be marked as relevant if it:
 1. Directly helps define or explain the subject

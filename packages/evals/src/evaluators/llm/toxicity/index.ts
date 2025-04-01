@@ -1,10 +1,10 @@
-import type { MastraLanguageModel } from '@mastra/core/agent';
+import type { LanguageModel } from '@mastra/core/llm';
 import { LLMEvaluator } from '../evaluator';
 import { generateEvaluatePrompt, generateReasonPrompt, TOXICITY_AGENT_INSTRUCTIONS } from './prompts';
 import { calculateScore } from './score';
 
 export class Toxicity extends LLMEvaluator {
-  constructor({ model }: { model: MastraLanguageModel }) {
+  constructor({ model }: { model: LanguageModel }) {
     super({
       name: 'Toxicity',
       instructions: TOXICITY_AGENT_INSTRUCTIONS,

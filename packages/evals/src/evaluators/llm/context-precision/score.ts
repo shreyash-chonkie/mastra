@@ -14,10 +14,10 @@ export function calculateContextPrecisionScore({
   scale: number;
   uncertaintyWeight: number;
   context?: string[];
-}): number {
+}): { score: number } {
   const totalOutcomes = outcomes?.length || 0;
   if (totalOutcomes === 0) {
-    return 0;
+    return { score: 0 };
   }
 
   // Convert to binary scores (1 for yes, 0 for no)
@@ -36,9 +36,9 @@ export function calculateContextPrecisionScore({
   });
 
   if (relevantCount === 0) {
-    return 0;
+    return { score: 0 };
   }
 
   const finalScore = weightedPrecisionSum / relevantCount;
-  return roundToTwoDecimals(finalScore * scale);
+  return { score: roundToTwoDecimals(finalScore * scale) };
 }

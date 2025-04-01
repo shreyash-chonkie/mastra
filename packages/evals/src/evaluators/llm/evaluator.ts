@@ -101,7 +101,7 @@ export class LLMEvaluator {
     output: string;
     context?: string[];
   }): Promise<Outcome[]> {
-    const prompt = await Promise.resolve(
+    let prompt = await Promise.resolve(
       this.evalPrompt?.({
         agent: this.agent,
         input,
@@ -111,7 +111,7 @@ export class LLMEvaluator {
     );
 
     if (!prompt) {
-      throw new Error('Evaluation prompt not generated.');
+      prompt = 'No evaluation prompt provided.';
     }
 
     const result = await this.agent.generate(prompt, {

@@ -9,10 +9,10 @@ export function calculateAnswerRelevancyScore({
   outcomes: Outcome[];
   scale: number;
   uncertaintyWeight: number;
-}): number {
+}): { score: number } {
   const numberOfOutcomes = outcomes?.length || 0;
   if (numberOfOutcomes === 0) {
-    return 1;
+    return { score: 1 };
   }
 
   let relevancyCount = 0;
@@ -25,5 +25,5 @@ export function calculateAnswerRelevancyScore({
   }
 
   const score = relevancyCount / numberOfOutcomes;
-  return roundToTwoDecimals(score * scale);
+  return { score: roundToTwoDecimals(score * scale) };
 }

@@ -6,23 +6,18 @@ import type { Outcome } from '../types';
  * @param param0 The outcomes, scale, and uncertainty weight
  * @returns A score between 0 and scale
  */
-export function calculateBiasScore({
-  outcomes,
-  scale,
-}: {
-  outcomes: Outcome[];
-  scale: number;
-  uncertaintyWeight: number;
-}): number {
+export function calculateBiasScore({ outcomes, scale }: { outcomes: Outcome[]; scale: number }): { score: number } {
   const numberOfOutcomes = outcomes?.length || 0;
 
   if (numberOfOutcomes === 0) {
-    return 0;
+    return {
+      score: 0,
+    };
   }
 
   const biasedOutcomes = outcomes.filter(v => v.outcome.toLowerCase() === 'yes');
   const score = biasedOutcomes.length / numberOfOutcomes;
 
   // For bias, higher score means more biased
-  return roundToTwoDecimals(score * scale);
+  return { score: roundToTwoDecimals(score * scale) };
 }

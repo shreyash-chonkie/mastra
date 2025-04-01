@@ -1,10 +1,10 @@
-import type { MastraLanguageModel } from '@mastra/core/agent';
+import type { LanguageModel } from '@mastra/core/llm';
 import { LLMEvaluator } from '../evaluator';
 import { AGENT_INSTRUCTIONS, generateReasonPrompt, generateEvaluationPrompt } from './prompts';
 import { calculateContextRelevancyScore } from './score';
 
 export interface ContextRelevancyOptions {
-  model: MastraLanguageModel;
+  model: LanguageModel;
   scale?: number;
   uncertaintyWeight?: number;
   context?: string[];

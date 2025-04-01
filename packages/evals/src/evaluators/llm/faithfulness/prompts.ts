@@ -52,14 +52,16 @@ JSON:
 }
 
 export function generateEvaluatePrompt({ claims, context }: { claims: string[]; context: string[] }) {
-  return `For each claim, determine if it is supported by the provided context. Generate a list of JSON objects with three keys: \`claim\`, \`verdict\`, and \`reason\`.
+  return `For each claim, determine if it is supported by the provided context. Generate a list of JSON objects with three keys: \`claim\`, \`outcome\`, and \`reason\`.
 
-For the "verdict" key, use ONLY one of these values:
+For the \`outcome\` key, use ONLY one of these values:
 - "yes" - The claim is explicitly supported by the context
 - "no" - The claim contradicts the context
 - "unsure" - The claim is neither supported nor contradicted by the context
 
-For the "reason" key, provide a brief explanation for your verdict. Include specific quotes from the context that support or contradict the claim.
+For the \`reason\` key, provide a brief explanation for your outcome. Include specific quotes from the context that support or contradict the claim.
+
+For the \`claim\` key, use the claim from the \`claims\` array.
 
 **
 IMPORTANT: Please make sure to only return in JSON format.
@@ -84,16 +86,45 @@ Example:
         }
     ]
 }
+
+Additional examples of correct evaluations:
+
+1. Time period interpretation:
+Context: "John Smith has been CEO since 2020."
+Claim: "John Smith has been leading the company for several years."
+Correct outcome: "yes" (Since 2020 implies several years of leadership)
+
+2. Approximate numbers:
+Context: "The company has approximately 500 employees."
+Claim: "The company employs around 480-520 people."
+Correct outcome: "yes" (This range is within a reasonable interpretation of "approximately 500")
+
+3. Precise numbers vs. approximations:
+Context: "The company has approximately 500 employees."
+Claim: "The company employs exactly 498 people."
+Correct outcome: "unsure" (The context only provides an approximation, not a precise count)
+
+4. Reasonable inference:
+Context: "The company expanded operations to 5 new countries in Asia last year."
+Claim: "The company has an international presence."
+Correct outcome: "yes" (Having operations in multiple countries implies international presence)
+
+IMPORTANT GUIDELINES:
+1. Be charitable in your interpretation - if a claim is reasonably implied by the context, mark it as "yes" even if the exact wording differs.
+2. For time periods, be flexible - "several years" can reasonably mean 3+ years, "recently" can mean within the last few years, etc.
+3. For approximate numbers:
+   - When context uses approximations (like "about", "approximately", "around"), and the claim uses similar approximations within a reasonable range, mark as "yes"
+   - When context uses approximations but the claim states a precise number (e.g., "exactly 498" vs "approximately 500"), mark as "unsure"
+   - When context gives a precise number but the claim uses a different precise number, mark as "no"
+4. For subjective claims that can be reasonably inferred from objective facts in the context, mark as "yes".
+5. Only mark claims as "no" if they clearly contradict the context.
 **
 
 Claims:
 ${claims.map((claim, i) => `${i + 1}. ${claim}`).join('\n')}
 
 Context:
-${context.join('\n\n')}
-
-JSON:
-`;
+${context.map((c, i) => `${i + 1}. ${c}`).join('\n')}`;
 }
 
 export function generateReasonPrompt({ input, output, context, score, scale, outcomes }: LLMEvaluatorReasonPromptArgs) {

@@ -13,14 +13,14 @@ export function calculateContextRelevancyScore({
   scale: number;
   uncertaintyWeight: number;
   context?: string[];
-}): number {
+}): { score: number } {
   const totalOutcomes = outcomes?.length || 0;
   if (totalOutcomes === 0) {
-    return 0;
+    return { score: 0 };
   }
 
   const relevantOutcomes = outcomes.filter(v => v.outcome.toLowerCase() === 'yes');
   const score = relevantOutcomes.length / totalOutcomes;
 
-  return roundToTwoDecimals(score * scale);
+  return { score: roundToTwoDecimals(score * scale) };
 }
