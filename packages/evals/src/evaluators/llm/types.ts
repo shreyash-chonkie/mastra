@@ -48,4 +48,4 @@ export type LLMEvaluatorScorer = ({
   scale: number;
   outcomes: Outcome[];
   context?: string[];
-}) => { score: number; details: Record<string, any> };
+}) => { score: number; details?: Record<string, any> };
