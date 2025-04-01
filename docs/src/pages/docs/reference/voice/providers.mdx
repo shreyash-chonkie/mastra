@@ -1,0 +1,455 @@
+---
+title: Voice Providers in Mastra | Mastra Docs
+description: A comprehensive comparison of voice service providers in Mastra, including features, strengths, and use cases for each provider.
+---
+
+import { Callout, Tabs } from "nextra/components";
+
+# Voice Providers
+
+<Callout>
+  Mastra supports multiple voice service providers, each with unique strengths. This guide helps you choose the right provider for your specific needs.
+</Callout>
+
+## Overview
+
+Mastra's modular voice architecture allows you to use different providers for text-to-speech (TTS), speech-to-text (STT), and real-time voice interactions. You can select providers based on factors like voice quality, language support, latency, and special features.
+
+## Provider Comparison
+
+<Tabs items={["General Comparison", "Text-to-Speech", "Speech-to-Text"]}>
+  <Tabs.Tab>
+    <table>
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>TTS</th>
+          <th>STT</th>
+          <th>Realtime</th>
+          <th>Languages</th>
+          <th>Voice Quality</th>
+          <th>Latency</th>
+          <th>Best For</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>OpenAI</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>10+</td>
+          <td>High</td>
+          <td>Low</td>
+          <td>General purpose, natural-sounding voices</td>
+        </tr>
+        <tr>
+          <td>ElevenLabs</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>❌</td>
+          <td>35+</td>
+          <td>Very High</td>
+          <td>Medium</td>
+          <td>Premium voice quality, emotion control</td>
+        </tr>
+        <tr>
+          <td>PlayAI</td>
+          <td>✅</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td>20+</td>
+          <td>High</td>
+          <td>Low</td>
+          <td>Custom voice cloning</td>
+        </tr>
+        <tr>
+          <td>Google</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>❌</td>
+          <td>40+</td>
+          <td>Medium-High</td>
+          <td>Low</td>
+          <td>Broad language support</td>
+        </tr>
+        <tr>
+          <td>Deepgram</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>❌</td>
+          <td>40+</td>
+          <td>Medium</td>
+          <td>Very Low</td>
+          <td>Real-time transcription</td>
+        </tr>
+        <tr>
+          <td>Murf</td>
+          <td>✅</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td>20+</td>
+          <td>High</td>
+          <td>Medium</td>
+          <td>Studio-quality voice production</td>
+        </tr>
+        <tr>
+          <td>Speechify</td>
+          <td>✅</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td>30+</td>
+          <td>Medium-High</td>
+          <td>Low</td>
+          <td>Voice customization</td>
+        </tr>
+        <tr>
+          <td>Sarvam</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>❌</td>
+          <td>10+ (Indian)</td>
+          <td>Medium-High</td>
+          <td>Medium</td>
+          <td>Indian languages</td>
+        </tr>
+      </tbody>
+    </table>
+  </Tabs.Tab>
+  
+  <Tabs.Tab>
+    <table>
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Voice Count</th>
+          <th>Voice Quality</th>
+          <th>Speed Control</th>
+          <th>Pitch Control</th>
+          <th>Emotion Control</th>
+          <th>SSML Support</th>
+          <th>Pricing Model</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>OpenAI</td>
+          <td>8+</td>
+          <td>High</td>
+          <td>✅</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td>Limited</td>
+          <td>Per character</td>
+        </tr>
+        <tr>
+          <td>ElevenLabs</td>
+          <td>30+</td>
+          <td>Very High</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>Per character</td>
+        </tr>
+        <tr>
+          <td>PlayAI</td>
+          <td>20+</td>
+          <td>High</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>Limited</td>
+          <td>Limited</td>
+          <td>Per request</td>
+        </tr>
+        <tr>
+          <td>Google</td>
+          <td>220+</td>
+          <td>Medium-High</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>Limited</td>
+          <td>✅</td>
+          <td>Per character</td>
+        </tr>
+        <tr>
+          <td>Murf</td>
+          <td>120+</td>
+          <td>High</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>Subscription</td>
+        </tr>
+      </tbody>
+    </table>
+  </Tabs.Tab>
+  
+  <Tabs.Tab>
+    <table>
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Accuracy</th>
+          <th>Languages</th>
+          <th>Real-time</th>
+          <th>Speaker ID</th>
+          <th>Custom Vocabulary</th>
+          <th>Pricing Model</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>OpenAI (Whisper)</td>
+          <td>Very High</td>
+          <td>100+</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td>Per minute</td>
+        </tr>
+        <tr>
+          <td>Deepgram</td>
+          <td>High</td>
+          <td>40+</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>Per minute</td>
+        </tr>
+        <tr>
+          <td>Google</td>
+          <td>High</td>
+          <td>120+</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>✅</td>
+          <td>Per 15 seconds</td>
+        </tr>
+        <tr>
+          <td>ElevenLabs</td>
+          <td>Medium-High</td>
+          <td>30+</td>
+          <td>❌</td>
+          <td>✅</td>
+          <td>❌</td>
+          <td>Per minute</td>
+        </tr>
+        <tr>
+          <td>Sarvam</td>
+          <td>High (Indian languages)</td>
+          <td>10+</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td>❌</td>
+          <td>Per request</td>
+        </tr>
+      </tbody>
+    </table>
+  </Tabs.Tab>
+</Tabs>
+
+## Choosing a Provider
+
+### Selection Criteria
+
+When selecting a voice provider, consider:
+
+1. **Capability Requirements**
+   - Do you need TTS, STT, or both?
+   - Is real-time interaction necessary?
+
+2. **Quality Factors**
+   - How important is voice naturalness?
+   - Do you need emotion or emphasis control?
+
+3. **Technical Requirements**
+   - What languages do you need to support?
+   - What are your latency requirements?
+   - Do you need specialized features like custom vocabulary?
+
+4. **Business Considerations**
+   - What is your budget?
+   - What are the usage volumes?
+   - Are there regulatory or compliance requirements?
+
+### Provider Strengths
+
+Here's a quick guide to help you select:
+
+- **OpenAI**: Best all-around option with good quality and real-time capabilities
+- **ElevenLabs**: Best for premium voice quality and emotional expression
+- **Deepgram**: Best for real-time transcription and accuracy
+- **Google**: Best for broad language support and integration
+- **PlayAI**: Best for voice cloning and customization
+- **Murf**: Best for studio-quality voice production
+- **Sarvam**: Best for Indian languages
+
+## Provider Setup
+
+Each provider requires specific setup. Here are basic examples:
+
+<Tabs items={["OpenAI", "ElevenLabs", "Deepgram"]}>
+  <Tabs.Tab>
+    ```typescript
+    import { OpenAIVoice } from "@mastra/voice-openai";
+    
+    // Basic setup
+    const voice = new OpenAIVoice({
+      speechModel: {
+        name: 'tts-1-hd',
+        apiKey: process.env.OPENAI_API_KEY,
+      },
+      listeningModel: {
+        name: 'whisper-1',
+        apiKey: process.env.OPENAI_API_KEY,
+      },
+      speaker: 'alloy',
+    });
+    ```
+  </Tabs.Tab>
+  
+  <Tabs.Tab>
+    ```typescript
+    import { ElevenLabsVoice } from "@mastra/voice-elevenlabs";
+    
+    const voice = new ElevenLabsVoice({
+      speechModel: {
+        name: 'eleven_multilingual_v2',
+        apiKey: process.env.ELEVENLABS_API_KEY,
+      },
+      speaker: '9BWtsMINqrJLrRacOk9x', // Aria voice
+    });
+    ```
+  </Tabs.Tab>
+  
+  <Tabs.Tab>
+    ```typescript
+    import { DeepgramVoice } from "@mastra/voice-deepgram";
+    
+    const voice = new DeepgramVoice({
+      speechModel: {
+        name: 'aura',
+        apiKey: process.env.DEEPGRAM_API_KEY,
+      },
+      listeningModel: {
+        name: 'nova-2',
+        apiKey: process.env.DEEPGRAM_API_KEY,
+      },
+      speaker: 'asteria-en',
+    });
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## Using Multiple Providers
+
+One of Mastra's key strengths is the ability to combine different providers using `CompositeVoice`:
+
+```typescript
+import { CompositeVoice } from "@mastra/core/voice";
+import { OpenAIVoice } from "@mastra/voice-openai";
+import { ElevenLabsVoice } from "@mastra/voice-elevenlabs";
+
+// Initialize individual providers
+const openAIVoice = new OpenAIVoice({
+  listeningModel: {
+    name: 'whisper-1',
+    apiKey: process.env.OPENAI_API_KEY,
+  },
+});
+
+const elevenLabsVoice = new ElevenLabsVoice({
+  speechModel: {
+    name: 'eleven_multilingual_v2',
+    apiKey: process.env.ELEVENLABS_API_KEY,
+  },
+  speaker: '9BWtsMINqrJLrRacOk9x', // Aria voice
+});
+
+// Combine the providers
+const voice = new CompositeVoice({
+  listeningProvider: openAIVoice,    // Use OpenAI for STT
+  speakingProvider: elevenLabsVoice, // Use ElevenLabs for TTS
+});
+```
+
+This approach lets you select the best provider for each function.
+
+## Best Practices
+
+### API Key Management
+
+Always store API keys securely:
+
+```typescript
+// Use environment variables
+const voice = new OpenAIVoice({
+  speechModel: {
+    apiKey: process.env.OPENAI_API_KEY,
+  },
+});
+
+// In production environments, consider:
+// - Using a secrets manager
+// - Rotating keys regularly
+// - Setting up usage alerts
+```
+
+### Error Handling
+
+Implement robust error handling:
+
+```typescript
+try {
+  const audioStream = await voice.speak("Hello world");
+  // Handle success
+} catch (error) {
+  if (error.code === 'AUTH_ERROR') {
+    // Handle authentication issues
+  } else if (error.code === 'RATE_LIMIT') {
+    // Handle rate limiting
+  } else {
+    // Handle other errors
+    console.error("Voice provider error:", error);
+  }
+}
+```
+
+### Fallback Providers
+
+For critical applications, implement fallback mechanisms:
+
+```typescript
+async function speakWithFallback(text) {
+  try {
+    // Try primary provider
+    return await primaryVoice.speak(text);
+  } catch (error) {
+    console.warn("Primary voice provider failed, using fallback");
+    // Fallback to secondary provider
+    return await fallbackVoice.speak(text);
+  }
+}
+```
+
+## Provider-Specific Documentation
+
+For detailed information about each provider, see:
+
+- [OpenAI Voice](./openai)
+- [OpenAI Realtime Voice](./openai-realtime)
+- [ElevenLabs Voice](./elevenlabs)
+- [PlayAI Voice](./playai)
+- [Google Voice](./google)
+- [Deepgram Voice](./deepgram)
+- [Murf Voice](./murf)
+- [Speechify Voice](./speechify)
+- [Sarvam Voice](./sarvam)
+
+## Next Steps
+
+- Learn how to [Add Voice to Agents](../../agents/adding-voice)
+- Explore the [CompositeVoice](./composite-voice) for combining providers
+- See [Voice Use Cases](../../voice/use-cases/common) for implementation patterns

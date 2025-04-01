@@ -1,135 +1,89 @@
 ---
 title: Voice in Mastra | Mastra Docs
-description: Overview of voice capabilities in Mastra, including text-to-speech, speech-to-text, and real-time voice-to-voice interactions.
+description: A comprehensive overview of voice capabilities in Mastra, including text-to-speech, speech-to-text, and real-time voice-to-voice interactions.
 ---
+
+import { Callout } from "nextra/components";
 
 # Voice in Mastra
 
-Mastra's Voice system provides a unified interface for voice interactions, enabling text-to-speech (TTS), speech-to-text (STT), and real-time voice-to-voice capabilities in your applications.
+## What is Voice in Mastra?
 
-## Key Features
+Mastra's Voice system provides a unified interface for integrating voice capabilities into your applications. Whether you need to convert text to speech, transcribe audio input, or create real-time voice conversations, Mastra's voice components offer a consistent API across multiple providers.
 
-- Standardized API across different voice providers
-- Support for multiple voice services
-- Voice-to-voice interactions using events for continuous audio streaming
-- Composable voice providers for mixing TTS and STT services
+## Voice Capabilities
 
-## Adding Voice to Agents
+Mastra supports three primary voice interaction patterns:
 
-To learn how to integrate voice capabilities into your agents, check out the [Adding Voice to Agents](../agents/adding-voice.mdx) documentation. This section covers how to use both single and multiple voice providers, as well as real-time interactions.
+| Capability | Description | Common Use Cases |
+| --- | --- | --- |
+| **Text-to-Speech (TTS)** | Convert text to spoken audio | Voice responses, content narration, notifications |
+| **Speech-to-Text (STT)** | Convert spoken audio to text | Command input, dictation, meeting transcription |
+| **Voice-to-Voice** | Real-time speech interaction | Conversational agents, voice assistants, call center augmentation |
 
+## Voice Component Architecture
 
-## Example of Using a Single Voice Provider
+Voice in Mastra is built around these key components:
+
+- **MastraVoice**: The abstract base class that defines the core interface
+- **Provider Implementations**: Concrete implementations for services like OpenAI, ElevenLabs, etc.
+- **CompositeVoice**: A utility class that combines different providers for TTS and STT
+- **Voice Configuration**: Options to customize voice behavior and characteristics
+
+This modular architecture allows you to mix and match capabilities from different providers while maintaining a consistent API.
+
+## Choosing the Right Voice Approach
+
+<Callout type="info">
+  This decision tree can help you select the right voice approach for your use case.
+</Callout>
+
+- **If you need only audio output from text:**
+  - Use Text-to-Speech (TTS)
+  - Consider factors like voice quality, language support, and latency
+
+- **If you need only text from audio input:**
+  - Use Speech-to-Text (STT)
+  - Consider factors like accuracy, language support, and handling of background noise
+
+- **If you need real-time conversation:**
+  - Use Voice-to-Voice capabilities
+  - Consider factors like turn-taking, latency, and handling interruptions
+
+## Getting Started
 
 ```typescript
+// A simple example of adding voice to an agent
+import { Agent } from "@mastra/core/agent";
 import { OpenAIVoice } from "@mastra/voice-openai";
 
-// Initialize OpenAI voice for TTS
-const voice = new OpenAIVoice({
-  speechModel: {
-    name: "tts-1-hd", // Specify the TTS model
-    apiKey: process.env.OPENAI_API_KEY, // Your OpenAI API key
-  },
+const agent = new Agent({
+  name: 'VoiceEnabledAgent',
+  instructions: 'You are a helpful assistant that can speak and listen.',
+  model: openai('gpt-4o'),
+  voice: new OpenAIVoice({
+    speechModel: {
+      name: 'tts-1-hd', 
+      apiKey: process.env.OPENAI_API_KEY,
+    },
+    speaker: 'alloy'
+  }),
 });
 
 // Convert text to speech
-const audioStream = await voice.speak("Hello! How can I assist you today?", {
-  speaker: "default", // Optional: specify a speaker
-});
+const audioStream = await agent.voice.speak("Hello! How can I help you today?");
 
-// Play the audio response
+// Play the audio (implementation varies by platform)
 playAudio(audioStream);
 ```
 
-## Example of Using Multiple Voice Providers
-This example demonstrates how to create and use two different voice providers in Mastra: OpenAI for speech-to-text (STT) and PlayAI for text-to-speech (TTS).
+## Next Steps
 
-Start by creating instances of the voice providers with any necessary configuration.
+To dive deeper into voice capabilities:
 
-```typescript
-import { OpenAIVoice } from "@mastra/voice-openai";
-import { PlayAIVoice } from "@mastra/voice-playai";
-import { CompositeVoice } from "@mastra/core/voice";
-
-// Initialize OpenAI voice for STT
-const listeningProvider = new OpenAIVoice({
-  listeningModel: {
-    name: "whisper-1",
-    apiKey: process.env.OPENAI_API_KEY,
-  },
-});
-
-// Initialize PlayAI voice for TTS
-const speakingProvider = new PlayAIVoice({
-  speechModel: {
-    name: "playai-voice",
-    apiKey: process.env.PLAYAI_API_KEY,
-  },
-});
-
-// Combine the providers using CompositeVoice
-const voice = new CompositeVoice({
-  listeningProvider,
-  speakingProvider,
-});
-
-// Implement voice interactions using the combined voice provider
-const audioStream = getMicrophoneStream(); // Assume this function gets audio input
-const transcript = await voice.listen(audioStream);
-
-// Log the transcribed text
-console.log("Transcribed text:", transcript);
-
-// Convert text to speech
-const responseAudio = await voice.speak(`You said: ${transcript}`, {
-  speaker: "default", // Optional: specify a speaker
-});
-
-// Play the audio response
-playAudio(responseAudio);
-```
-
-## Real-time Capabilities
-
-Many voice providers support real-time speech-to-speech interactions through WebSocket connections, enabling:
-
-- Live voice conversations with AI
-- Streaming transcription
-- Real-time text-to-speech synthesis
-- Tool usage during conversations
-
-
-## Voice Configuration
-
-Voice providers can be configured with different models and options:
-
-```typescript
-const voice = new OpenAIVoice({
-  speechModel: {
-    name: "tts-1-hd",
-    apiKey: process.env.OPENAI_API_KEY
-  },
-  listeningModel: {
-    name: "whisper-1"
-  },
-  speaker: "alloy"
-});
-```
-
-## Available Voice Providers
-
-Mastra supports a variety of voice providers, including:
-
-- OpenAI
-- PlayAI
-- Murf
-- ElevenLabs
-- [More](https://github.com/mastra-ai/mastra/tree/main/voice)
-
-## More Resources
-
-- [CompositeVoice](../reference/voice/composite-voice.mdx)
-- [MastraVoice](../reference/voice/mastra-voice.mdx)
-- [OpenAI Voice](../reference/voice/openai.mdx)
-- [PlayAI Voice](../reference/voice/playai.mdx)
-- [Voice Examples](../../examples/voice/)
+- [Getting Started with Voice](./getting-started) - Step-by-step guide for first-time implementation
+- [Text-to-Speech](./text-to-speech) - Learn how to convert text to speech
+- [Speech-to-Text](./speech-to-text) - Learn how to convert speech to text
+- [Voice-to-Voice](./voice-to-voice) - Learn about real-time voice conversations
+- [Adding Voice to Agents](../agents/adding-voice) - Integration guide for agent-based applications
+- [Voice Providers](../reference/voice/providers) - Details on available voice service providers

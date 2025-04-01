@@ -1,310 +1,356 @@
 ---
-title: Voice-to-Voice Capabilities in Mastra | Mastra Docs
-description: Overview of voice-to-voice capabilities in Mastra, including real-time interactions and event-driven architecture.
+title: Voice-to-Voice in Mastra | Mastra Docs
+description: A comprehensive guide to implementing real-time voice conversations in Mastra, from basic setup to advanced features and best practices.
 ---
 
-# Voice-to-Voice Capabilities in Mastra
+import { Callout } from "nextra/components";
+
+# Voice-to-Voice
+
+<Callout>
+  Voice-to-Voice enables real-time speech-to-speech interactions, creating natural conversational experiences between users and AI agents.
+</Callout>
 
 ## Introduction
 
-Voice-to-Voice in Mastra provides a standardized interface for real-time speech-to-speech interactions across multiple service providers. This section covers configuration, event-driven architecture, and implementation methods for creating conversational voice experiences. For integrating Voice-to-Voice capabilities with agents, refer to the [Adding Voice to Agents](../agents/adding-voice.mdx) documentation.
+Voice-to-Voice in Mastra provides a standardized interface for real-time speech-to-speech interactions across multiple service providers. Unlike separate TTS and STT operations, Voice-to-Voice maintains a continuous connection for fluid conversations, similar to speaking with another person.
 
-## Real-time Voice Interactions
+## Key Concepts
 
-Mastra's real-time voice system enables continuous bidirectional audio communication through an event-driven architecture. Unlike separate TTS and STT operations, real-time voice maintains an open connection that processes speech continuously in both directions.
+### How Voice-to-Voice Differs from Separate TTS/STT
 
-### Example Implementation
+| Feature | Separate TTS/STT | Voice-to-Voice |
+| --- | --- | --- |
+| **Connection** | One-off requests | Continuous WebSocket connection |
+| **Interaction Pattern** | Request-response | Stream-based conversation |
+| **Turn Management** | Manual | Automatic with voice activity detection |
+| **Latency** | Higher | Lower with streaming responses |
+| **Implementation** | Simpler | More complex but more natural |
+
+### Event-Driven Architecture
+
+Voice-to-Voice uses an event-driven architecture to handle real-time communication:
+
+- **Events from User**: Audio streaming, silence detection, interruptions
+- **Events from System**: Speaking, thinking, processing, tool usage
+- **Event Handlers**: Custom logic for responding to various states
+
+This approach allows for more responsive interactions than waiting for complete audio responses.
+
+## Quick Start
+
+Here's how to set up a basic real-time voice conversation using OpenAI:
 
 ```typescript
 import { Agent } from "@mastra/core/agent";
 import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
 
-const agent = new Agent({
-  name: 'Agent',
-  instructions: `You are a helpful assistant with real-time voice capabilities.`,
-  model: openai('gpt-4o'),
-  voice: new OpenAIRealtimeVoice(),
+// Step 1: Create a voice provider with real-time capabilities
+const voice = new OpenAIRealtimeVoice({
+  chatModel: {
+    apiKey: process.env.OPENAI_API_KEY,
+    model: 'gpt-4o-mini-realtime',
+  },
+  speaker: 'alloy',
 });
 
-// Connect to the voice service
-await agent.voice.connect();
+// Step 2: Create an agent with the voice provider
+const agent = new Agent({
+  name: 'VoiceAssistant',
+  instructions: 'You are a helpful voice assistant that responds concisely.',
+  model: openai('gpt-4o'),
+  voice: voice,
+});
 
-// Listen for agent audio responses
+// Step 3: Set up event listeners
 agent.voice.on('speaking', ({ audio }) => {
+  // Handle audio data as it arrives
   playAudio(audio);
 });
 
-// Initiate the conversation
-await agent.voice.speak('How can I help you today?');
+agent.voice.on('writing', ({ text, role }) => {
+  // Show transcription as it happens
+  console.log(`${role}: ${text}`);
+});
 
-// Send continuous audio from the microphone
-const micStream = getMicrophoneStream();
+// Step 4: Connect to the service
+await agent.voice.connect();
+
+// Step 5: Start the conversation
+await agent.voice.speak('Hello, how can I help you today?');
+
+// Step 6: Send user audio
+const micStream = getMicrophoneStream(); // Your implementation
 await agent.voice.send(micStream);
+
+// Step 7: When done, close the connection
+voice.close();
 ```
-
-## Event-Driven Architecture
-
-Mastra's voice-to-voice implementation is built on an event-driven architecture. Developers register event listeners to handle incoming audio progressively, allowing for more responsive interactions than waiting for complete audio responses.
-
 
 ## Configuration
 
-When initializing a voice-to-voice provider, you can provide configuration options to customize its behavior:
-
-### Constructor Options
-
-- **`chatModel`**: Configuration for the OpenAI realtime model.
-  - **`apiKey`**: Your OpenAI API key. Falls back to the `OPENAI_API_KEY` environment variable.
-  - **`model`**: The model ID to use for real-time voice interactions (e.g., `gpt-4o-mini-realtime`).
-  - **`options`**: Additional options for the realtime client, such as session configuration.
-
-- **`speaker`**: The default voice ID for speech synthesis. This allows you to specify which voice to use for the speech output.
-
-### Example Configuration
+When setting up real-time voice, you can customize various aspects of the experience:
 
 ```typescript
 const voice = new OpenAIRealtimeVoice({
   chatModel: {
-    apiKey: 'your-openai-api-key',
+    apiKey: process.env.OPENAI_API_KEY,
     model: 'gpt-4o-mini-realtime',
     options: {
       sessionConfig: {
+        // Configure turn detection
         turn_detection: {
-          type: 'server_vad',
-          threshold: 0.6,
-          silence_duration_ms: 1200,
+          type: 'server_vad',         // Server-side voice activity detection
+          threshold: 0.6,             // Speech detection sensitivity (0.0-1.0)
+          prefix_padding_ms: 1000,    // Include audio before speech starts
+          silence_duration_ms: 1200,  // Time of silence before ending turn
         },
       },
     },
   },
-  speaker: 'alloy', // Default voice
-});
-
-// If using default settings the configuration can be simplified to:
-const voice = new OpenAIRealtimeVoice();
-```
-
-## Core Methods
-
-The `OpenAIRealtimeVoice` class provides the following core methods for voice interactions:
-
-### connect()
-
-Establishes a connection to the OpenAI realtime service.
-
-**Usage:**
-```typescript
-await voice.connect();
-```
-
-**Notes:**
-- Must be called before using any other interaction methods
-- Returns a Promise that resolves when the connection is established
-
-### speak(text, options?)
-
-Emits a speaking event using the configured voice model.
-
-**Parameters:**
-- `text`: String content to be spoken
-- `options`: Optional configuration object
-  - `speaker`: Voice ID to use (overrides default)
-  - `properties`: Additional provider-specific properties
-
-**Usage:**
-```typescript
-voice.speak('Hello, how can I help you today?', {
-  speaker: 'alloy'
+  speaker: 'echo',  // Default voice
 });
 ```
 
-**Notes:**
-- Emits 'speaking' events rather than returning an audio stream
+### Voice Activity Detection (VAD)
 
-### listen(audioInput, options?)
+VAD is critical for real-time conversation, as it determines when a user has stopped speaking and the AI should respond:
 
-Processes audio input for speech recognition.
+| Parameter | Description | Recommended Values |
+| --- | --- | --- |
+| `type` | VAD implementation to use | `'server_vad'` for better accuracy |
+| `threshold` | Detection sensitivity | `0.5-0.7` (higher = more sensitive) |
+| `silence_duration_ms` | Silence before turn ends | `800-1500ms` (user-dependent) |
+| `prefix_padding_ms` | Audio to include before speech | `500-1000ms` (context-dependent) |
 
-**Parameters:**
-- `audioInput`: Readable stream of audio data
-- `options`: Optional configuration object
-  - `filetype`: Audio format (default: 'mp3')
-  - Additional provider-specific options
+## The Event System
 
-**Usage:**
+Real-time voice leverages events to handle asynchronous communication:
+
 ```typescript
-const audioData = getMicrophoneStream();
-voice.listen(audioData, {
-  filetype: 'wav'
-});
-```
-
-**Notes:**
-- Emits 'writing' events with transcribed text
-
-### send(audioStream)
-
-Streams audio data in real-time for continuous processing.
-
-**Parameters:**
-- `audioStream`: Readable stream of audio data
-
-**Usage:**
-```typescript
-const micStream = getMicrophoneStream();
-await voice.send(micStream);
-```
-
-**Notes:**
-- Used for continuous audio streaming scenarios like live microphone input
-- Returns a Promise that resolves when the stream is accepted
-
-### answer(params)
-
-Sends a response to the OpenAI Realtime API.
-
-**Parameters:**
-- `params`: The parameters object
-  - `options`: Configuration options for the response
-    - `content`: Text content of the response
-    - `voice`: Voice ID to use for the response
-
-**Usage:**
-```typescript
-await voice.answer({
-  options: {
-    content: "Hello, how can I help you today?",
-    voice: "alloy"
-  }
-});
-```
-
-**Notes:**
-- Triggers a response to the real-time session
-- Returns a Promise that resolves when the response has been sent
-
-## Utility Methods
-
-### updateConfig(config)
-
-Updates the session configuration for the voice instance.
-
-**Parameters:**
-- `config`: New session configuration object
-
-**Usage:**
-```typescript
-voice.updateConfig({
-  turn_detection: {
-    type: 'server_vad',
-    threshold: 0.6,
-    silence_duration_ms: 1200,
-  }
-});
-```
-
-### addTools(tools)
-
-Adds a set of tools to the voice instance.
-
-**Parameters:**
-- `tools`: Array of tool objects that the model can call
-
-**Usage:**
-```typescript
-voice.addTools([
-  createTool({
-    id: "Get Weather Information",
-    inputSchema: z.object({
-        city: z.string(),
-    }),
-    description: `Fetches the current weather information for a given city`,
-    execute: async ({ city }) => {...},
-  })
-]);
-```
-
-### close()
-
-Disconnects from the OpenAI realtime session and cleans up resources.
-
-**Usage:**
-```typescript
-voice.close();
-```
-
-**Notes:**
-- Should be called when you're done with the voice instance to free resources
-
-### on(event, callback)
-
-Registers an event listener for voice events.
-
-**Parameters:**
-- `event`: Event name ('speaking', 'writing', or 'error')
-- `callback`: Function to call when the event occurs
-
-**Usage:**
-```typescript
+// Speaking events (when AI speaks)
 voice.on('speaking', ({ audio }) => {
-  playAudio(audio);
+  // Audio is a stream chunk in the format specified
+  playAudioChunk(audio);
+});
+
+// Writing events (transcription events)
+voice.on('writing', ({ text, role, done }) => {
+  console.log(`${role}: ${text}`);
+  if (done) {
+    console.log("Transcription complete!");
+  }
+});
+
+// Error events
+voice.on('error', (error) => {
+  console.error("Voice error:", error);
+});
+
+// You can also listen to OpenAI-specific events
+voice.on('openAIRealtime:conversation.interrupted', () => {
+  console.log("Conversation was interrupted");
 });
 ```
 
-### off(event, callback)
+## Handling Continuous Audio
 
-Removes a previously registered event listener.
+Managing continuous audio streams is different from one-off TTS/STT:
 
-**Parameters:**
-- `event`: Event name
-- `callback`: The callback function to remove
-
-**Usage:**
 ```typescript
-voice.off('speaking', callbackFunction);
+// Get microphone stream (implementation depends on environment)
+function getMicrophoneStream() {
+  // Browser implementation
+  return navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(stream);
+      
+      // Process for required format (usually 16kHz mono PCM)
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+      
+      // Return as appropriate stream format
+      return createAudioStream(processor);
+    });
+}
+
+// Send continuous audio
+const micStream = await getMicrophoneStream();
+await voice.send(micStream);
+
+// Stop audio when needed
+micStream.unpipe();
 ```
 
-## Events
+## Advanced Topics
 
-The `OpenAIRealtimeVoice` class emits the following events:
+### Adding Tools to Voice Conversations
 
-### speaking
-
-Emitted when audio data is received from the model.
-
-**Event payload:**
-- `audio`: A chunk of audio data as a readable stream
+Voice agents can use tools during conversations, just like text-based agents:
 
 ```typescript
-agent.voice.on('speaking', ({ audio }) => {
-  playAudio(audio); // Handle audio chunks as they're generated
+import { createTool } from '@mastra/core/tools';
+import { z } from 'zod';
+
+// Define a weather tool
+const weatherTool = createTool({
+  id: "Get Weather Information",
+  inputSchema: z.object({
+    city: z.string(),
+  }),
+  description: "Fetches the current weather information for a given city",
+  execute: async ({ city }) => {
+    // Implementation to fetch weather data
+    return { temperature: 72, conditions: "Sunny", city };
+  },
+});
+
+// Add to voice provider
+voice.addTools([weatherTool]);
+
+// Now conversations can use weather information
+// "What's the weather in San Francisco?" will trigger the tool
+```
+
+### Handling Conversation Flow
+
+You can implement custom conversation management:
+
+```typescript
+// Listen for specific events to manage the conversation
+let conversationState = 'initial';
+
+voice.on('writing', ({ text, role }) => {
+  if (role === 'user') {
+    // Process user input
+    if (text.toLowerCase().includes('goodbye')) {
+      conversationState = 'ending';
+    }
+  }
+});
+
+voice.on('speaking', ({ }) => {
+  // If we're in ending state, close after response
+  if (conversationState === 'ending') {
+    setTimeout(() => {
+      voice.speak("It was nice talking to you. Goodbye!");
+      setTimeout(() => voice.close(), 3000);
+    }, 1000);
+  }
 });
 ```
 
-### writing
+### Multi-Turn Conversations
 
-Emitted when transcribed text is available.
-
-**Event payload:**
-- `text`: The transcribed text
-- `role`: The role of the speaker (user or assistant)
-- `done`: Boolean indicating if this is the final transcription
+Managing context across multiple turns:
 
 ```typescript
-agent.voice.on('writing', ({ text, role }) => {
-  console.log(`${role}: ${text}`); // Log who said what
+// Set up tracking for conversation state
+let conversationContext = {
+  topic: null,
+  userPreferences: {},
+  interactionCount: 0,
+};
+
+// Update context based on transcription
+voice.on('writing', ({ text, role }) => {
+  if (role === 'user') {
+    conversationContext.interactionCount++;
+    
+    // Simple topic detection
+    if (text.includes('weather')) conversationContext.topic = 'weather';
+    else if (text.includes('news')) conversationContext.topic = 'news';
+    
+    // Track user preferences
+    if (text.includes('prefer')) {
+      // Extract preference
+    }
+  }
+});
+
+// Use context in responses
+voice.on('speaking', () => {
+  if (conversationContext.interactionCount > 5) {
+    // Maybe suggest a more focused topic after several exchanges
+  }
 });
 ```
 
-### error
+## Best Practices
 
-Emitted when an error occurs.
+### Optimizing Voice Interactions
 
-**Event payload:**
-- Error object with details about what went wrong
+- **Keep AI responses concise** - Brief responses feel more natural in voice conversations
+- **Use context-dependent delays** - Add small pauses between turns for natural rhythm
+- **Handle interruptions gracefully** - Allow users to interrupt long responses
+- **Provide audio feedback** - Use short sounds to indicate listening/processing
+- **Consider environmental factors** - Background noise can affect VAD performance
+
+### Performance Tuning
+
+- **Adjust VAD parameters** based on your users' speaking patterns
+- **Optimize audio processing** to reduce latency
+- **Use appropriate sampling rates** (16kHz is typically sufficient)
+- **Select voices based on clarity** rather than just personality
+- **Monitor and log conversation metrics** to identify improvement areas
+
+### Error Handling
+
+Always implement robust error handling:
 
 ```typescript
-agent.voice.on('error', (error) => {
-  console.error('Voice error:', error);
+// Connection errors
+try {
+  await voice.connect();
+} catch (error) {
+  console.error("Connection failed:", error);
+  // Implement fallback to text-only mode
+}
+
+// Runtime errors
+voice.on('error', (error) => {
+  if (error.code === 'NETWORK_ERROR') {
+    // Handle network issues
+    attemptReconnect();
+  } else if (error.code === 'AUDIO_PROCESSING_ERROR') {
+    // Handle audio issues
+    switchToBackupAudioPipeline();
+  } else {
+    // General error handling
+    logError(error);
+    notifyUser("I'm having trouble understanding. Could you try again?");
+  }
 });
 ```
+
+## Troubleshooting
+
+### Poor Voice Detection
+
+- Adjust VAD threshold (increase for sensitivity, decrease for stability)
+- Increase silence_duration_ms if the system interrupts too early
+- Check for background noise affecting detection
+- Try different microphone placement or quality
+
+### High Latency
+
+- Ensure good network connectivity
+- Reduce audio quality if bandwidth is limited
+- Consider using a more lightweight model
+- Implement client-side pre-processing to reduce server load
+
+### Connection Issues
+
+- Verify API keys and permissions
+- Check network firewall settings (WebSockets may be blocked)
+- Implement reconnection logic with exponential backoff
+- Monitor connection health with periodic pings
+
+## Next Steps
+
+- Explore [OpenAI Realtime](../reference/voice/openai-realtime) for detailed API reference
+- Learn about [Adding Voice to Agents](../agents/adding-voice) for deeper integration
+- Try [Voice with Tools](./use-cases/voice-with-tools) for enhanced capabilities
+- See [Voice User Interface Design](./use-cases/voice-ui-design) for best practices

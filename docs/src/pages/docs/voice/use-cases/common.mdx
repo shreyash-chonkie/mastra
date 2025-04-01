@@ -1,0 +1,1106 @@
+---
+title: Common Voice Use Cases | Mastra Docs
+description: Implementation patterns and examples for common voice interaction scenarios in Mastra, from customer service to accessibility applications.
+---
+
+import { Callout } from "nextra/components";
+
+# Common Voice Use Cases
+
+<Callout>
+  This guide provides practical implementation patterns for common voice interaction scenarios, helping you apply Mastra's voice capabilities to real-world use cases.
+</Callout>
+
+## Customer Support Voice Assistant
+
+Voice-enabled agents can provide interactive customer support experiences:
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
+import { Memory } from "@mastra/core/memory";
+
+// Create memory for persistent conversations
+const memory = new Memory();
+
+// Create voice-enabled support agent
+const supportAgent = new Agent({
+  name: 'CustomerSupport',
+  instructions: `You are a helpful customer support assistant.
+  - Greet customers warmly
+  - Listen carefully to their issues
+  - Ask clarifying questions when needed
+  - Provide clear solutions
+  - Use a professional but friendly tone
+  - Keep responses concise and focused
+  - Only escalate to human agents for complex issues`,
+  model: openai('gpt-4o'),
+  voice: new OpenAIRealtimeVoice({
+    chatModel: {
+      model: 'gpt-4o-mini-realtime',
+      apiKey: process.env.OPENAI_API_KEY,
+    },
+    speaker: 'alloy',
+  }),
+  memory: memory,
+});
+
+// Start support conversation
+async function startSupportCall(customerId) {
+  // Set up event handlers
+  supportAgent.voice.on('speaking', ({ audio }) => {
+    playAudio(audio);
+  });
+  
+  supportAgent.voice.on('writing', ({ text, role }) => {
+    logTranscript(customerId, role, text);
+  });
+  
+  // Connect to service
+  await supportAgent.voice.connect();
+  
+  // Start conversation
+  await supportAgent.voice.speak(
+    "Thank you for contacting customer support. How can I help you today?"
+  );
+  
+  // Start listening
+  const micStream = getMicrophoneStream();
+  await supportAgent.voice.send(micStream);
+  
+  // Add call controls (implementation specific)
+  setupCallControls(supportAgent);
+}
+```
+
+## Multilingual Voice Translator
+
+Create a voice translator that can translate between languages:
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { OpenAIVoice } from "@mastra/voice-openai";
+import { ElevenLabsVoice } from "@mastra/voice-elevenlabs";
+import { CompositeVoice } from "@mastra/core/voice";
+
+// Create translation agent
+const translatorAgent = new Agent({
+  name: 'Translator',
+  instructions: `You are an expert translator. 
+  - Accurately translate content between languages
+  - Maintain the tone and style of the original
+  - Use natural phrases typical of the target language
+  - Do not add additional commentary
+  - Only respond with the translation`,
+  model: openai('gpt-4o'),
+  voice: new CompositeVoice({
+    listeningProvider: new OpenAIVoice({
+      listeningModel: {
+        name: 'whisper-1',
+        apiKey: process.env.OPENAI_API_KEY,
+      },
+    }),
+    speakingProvider: new ElevenLabsVoice({
+      speechModel: {
+        name: 'eleven_multilingual_v2',
+        apiKey: process.env.ELEVENLABS_API_KEY,
+      },
+    }),
+  }),
+});
+
+// Translation function
+async function translateVoice(sourceLanguage, targetLanguage) {
+  // Record audio in source language
+  const recordingPrompt = `Please speak in ${sourceLanguage}. I'll translate to ${targetLanguage}.`;
+  await translatorAgent.voice.speak(recordingPrompt);
+  
+  // Get source audio
+  const sourceAudio = await recordAudio();
+  
+  // Transcribe with language hint
+  const transcript = await translatorAgent.voice.listen(sourceAudio, {
+    language: sourceLanguage,
+  });
+  
+  // Generate translation
+  const translation = await translatorAgent.generate(
+    `Translate from ${sourceLanguage} to ${targetLanguage}: ${transcript}`
+  );
+  
+  // Speak translation
+  const voiceOptions = {
+    speaker: getVoiceForLanguage(targetLanguage),
+  };
+  
+  const translatedAudio = await translatorAgent.voice.speak(
+    translation.text,
+    voiceOptions
+  );
+  
+  return {
+    originalText: transcript,
+    translatedText: translation.text,
+    translatedAudio,
+  };
+}
+
+// Helper for language-specific voices
+function getVoiceForLanguage(language) {
+  const voiceMap = {
+    'English': 'josh',
+    'Spanish': 'antonio',
+    'French': 'marie',
+    'German': 'klaus',
+    'Japanese': 'hina',
+    // Add more languages and voices
+  };
+  
+  return voiceMap[language] || 'josh';
+}
+```
+
+## Voice-Controlled Knowledge Base
+
+Create a voice interface for searching and querying knowledge bases:
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { OpenAIVoice } from "@mastra/voice-openai";
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+
+// Create knowledge base search tool
+const searchKnowledgeTool = createTool({
+  id: "SearchKnowledge",
+  description: "Search the knowledge base for relevant information",
+  inputSchema: z.object({
+    query: z.string().describe("The search query"),
+    filters: z.object({
+      category: z.string().optional().describe("Optional category filter"),
+      date: z.string().optional().describe("Optional date filter"),
+    }).optional(),
+  }),
+  execute: async ({ query, filters }) => {
+    // Implementation to search knowledge base
+    // This would connect to your actual knowledge system
+    const results = await searchKnowledgeBase(query, filters);
+    return { results };
+  },
+});
+
+// Create voice-enabled knowledge agent
+const knowledgeAgent = new Agent({
+  name: 'KnowledgeAssistant',
+  instructions: `You are a knowledge base assistant. 
+  - Help users find information using voice queries
+  - Summarize search results concisely
+  - Ask clarifying questions when queries are ambiguous
+  - Provide specific, relevant information
+  - Organize information in a way that's clear when spoken`,
+  model: openai('gpt-4o'),
+  voice: new OpenAIVoice(),
+  tools: { searchKnowledgeTool },
+});
+
+// Handle a voice query
+async function handleKnowledgeQuery() {
+  // Prompt for query
+  await knowledgeAgent.voice.speak(
+    "Welcome to the knowledge base. What information are you looking for?"
+  );
+  
+  // Get voice query
+  const queryAudio = await recordAudio();
+  const queryText = await knowledgeAgent.voice.listen(queryAudio);
+  
+  // Process with agent
+  const response = await knowledgeAgent.generate(queryText, {
+    temperature: 0.2,
+    toolChoice: "auto",
+  });
+  
+  // Convert response to speech
+  const responseAudio = await knowledgeAgent.voice.speak(response.text);
+  
+  return {
+    query: queryText,
+    response: response.text,
+    audio: responseAudio,
+    searchResults: response.toolResults?.searchKnowledgeTool,
+  };
+}
+```
+
+## Accessible Content Reader
+
+Create a voice interface for reading and navigating content for accessibility:
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { ElevenLabsVoice } from "@mastra/voice-elevenlabs";
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+
+// Create content retrieval tool
+const getContentTool = createTool({
+  id: "GetContent",
+  description: "Retrieve content for reading",
+  inputSchema: z.object({
+    contentId: z.string().describe("ID of the content to retrieve"),
+    section: z.string().optional().describe("Optional section to retrieve"),
+  }),
+  execute: async ({ contentId, section }) => {
+    // Implementation to retrieve content
+    const content = await fetchContent(contentId, section);
+    return { content, contentType: content.type };
+  },
+});
+
+// Create voice-enabled reading agent
+const readerAgent = new Agent({
+  name: 'AccessibleReader',
+  instructions: `You are an accessible content reader.
+  - Read content clearly and at an appropriate pace
+  - Describe images when present
+  - Navigate content based on user commands
+  - Summarize lengthy content when requested
+  - Respond to navigation commands like "next section", "go back", "skip ahead"
+  - Maintain context throughout the reading session`,
+  model: openai('gpt-4o'),
+  voice: new ElevenLabsVoice({
+    speechModel: {
+      name: 'eleven_multilingual_v2',
+      apiKey: process.env.ELEVENLABS_API_KEY,
+    },
+    speaker: '9BWtsMINqrJLrRacOk9x', // Aria voice (clear and natural)
+  }),
+  tools: { getContentTool },
+});
+
+// Reading session controller
+class ReadingSession {
+  constructor(contentId) {
+    this.contentId = contentId;
+    this.currentSection = 'introduction';
+    this.navigationHistory = ['introduction'];
+  }
+  
+  async start() {
+    // Welcome message
+    await readerAgent.voice.speak(
+      "Content reader ready. I'll read the content and you can navigate with voice commands."
+    );
+    
+    // Read initial section
+    await this.readCurrentSection();
+    
+    // Listen for commands
+    while (true) {
+      await readerAgent.voice.speak("What would you like to do next?");
+      
+      const commandAudio = await recordAudio();
+      const command = await readerAgent.voice.listen(commandAudio);
+      
+      if (command.toLowerCase().includes('exit') || 
+          command.toLowerCase().includes('quit')) {
+        await readerAgent.voice.speak("Ending reading session. Goodbye!");
+        break;
+      }
+      
+      await this.handleCommand(command);
+    }
+  }
+  
+  async readCurrentSection() {
+    const response = await readerAgent.generate(
+      `Read the following section: ${this.currentSection}`, 
+      {
+        toolChoice: { type: "tool", tool: "getContentTool" },
+        toolArgs: { 
+          contentId: this.contentId, 
+          section: this.currentSection 
+        }
+      }
+    );
+    
+    await readerAgent.voice.speak(response.text);
+  }
+  
+  async handleCommand(command) {
+    // Process navigation commands
+    if (command.includes('next section')) {
+      this.currentSection = getNextSection(this.contentId, this.currentSection);
+      this.navigationHistory.push(this.currentSection);
+      await this.readCurrentSection();
+    } 
+    else if (command.includes('go back')) {
+      if (this.navigationHistory.length > 1) {
+        this.navigationHistory.pop(); // Remove current
+        this.currentSection = this.navigationHistory[this.navigationHistory.length - 1];
+        await this.readCurrentSection();
+      } else {
+        await readerAgent.voice.speak("Already at the beginning of content.");
+      }
+    }
+    else if (command.includes('summarize')) {
+      const response = await readerAgent.generate(
+        `Summarize the current section: ${this.currentSection}`,
+        {
+          toolChoice: { type: "tool", tool: "getContentTool" },
+          toolArgs: { 
+            contentId: this.contentId, 
+            section: this.currentSection 
+          }
+        }
+      );
+      
+      await readerAgent.voice.speak(response.text);
+    }
+    else {
+      // Handle other commands with the agent
+      const response = await readerAgent.generate(
+        `The user is reading content and said: "${command}". Handle this appropriately.`
+      );
+      
+      await readerAgent.voice.speak(response.text);
+    }
+  }
+}
+```
+
+## Meeting Transcription and Summarization
+
+Create a voice assistant that can record, transcribe, and summarize meetings:
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { OpenAIVoice } from "@mastra/voice-openai";
+import { DeepgramVoice } from "@mastra/voice-deepgram";
+import { CompositeVoice } from "@mastra/core/voice";
+
+// Create meeting assistant agent
+const meetingAssistant = new Agent({
+  name: 'MeetingAssistant',
+  instructions: `You are a meeting assistant that records, transcribes, and summarizes meetings.
+  - Identify different speakers when possible
+  - Capture key points, decisions, and action items
+  - Organize information in a clear structure
+  - Focus on important content over casual conversation
+  - Maintain confidentiality of meeting content`,
+  model: openai('gpt-4o'),
+  voice: new CompositeVoice({
+    // Deepgram for better transcription with speaker diarization
+    listeningProvider: new DeepgramVoice({
+      listeningModel: {
+        name: 'nova-2',
+        apiKey: process.env.DEEPGRAM_API_KEY,
+      },
+    }),
+    // OpenAI for text-to-speech
+    speakingProvider: new OpenAIVoice(),
+  }),
+});
+
+// Meeting recorder
+class MeetingRecorder {
+  constructor(meetingId, participants) {
+    this.meetingId = meetingId;
+    this.participants = participants;
+    this.transcriptChunks = [];
+    this.isRecording = false;
+    this.startTime = null;
+  }
+  
+  async start() {
+    this.isRecording = true;
+    this.startTime = new Date();
+    
+    // Announce recording start
+    await meetingAssistant.voice.speak(
+      "Meeting recording started. I'll transcribe and summarize the conversation."
+    );
+    
+    // Start audio recording
+    const meetingAudio = getAudioInputStream(); // Your implementation
+    
+    // Start transcription with speaker diarization
+    meetingAudio.on('data', async (audioChunk) => {
+      if (!this.isRecording) return;
+      
+      try {
+        const transcriptChunk = await meetingAssistant.voice.listen(audioChunk, {
+          diarize: true,
+        });
+        
+        this.transcriptChunks.push(transcriptChunk);
+        updateLiveTranscript(transcriptChunk); // UI update function
+      } catch (error) {
+        console.error("Transcription error:", error);
+      }
+    });
+  }
+  
+  async stop() {
+    this.isRecording = false;
+    const duration = (new Date() - this.startTime) / 1000; // seconds
+    
+    // Announce recording end
+    await meetingAssistant.voice.speak("Meeting recording stopped. Generating summary.");
+    
+    // Generate full transcript
+    const fullTranscript = this.transcriptChunks.join('\n');
+    
+    // Generate meeting summary
+    const summary = await meetingAssistant.generate(
+      `Summarize this meeting transcript, including key points, decisions, and action items:\n\n${fullTranscript}`
+    );
+    
+    // Create meeting record
+    const meetingRecord = {
+      meetingId: this.meetingId,
+      date: this.startTime,
+      duration,
+      participants: this.participants,
+      transcript: fullTranscript,
+      summary: summary.text,
+    };
+    
+    // Save meeting record
+    await saveMeetingRecord(meetingRecord);
+    
+    // Announce completion
+    await meetingAssistant.voice.speak(
+      "Meeting summary complete. Would you like me to read the summary?"
+    );
+    
+    return meetingRecord;
+  }
+  
+  async readSummary(meetingRecord) {
+    await meetingAssistant.voice.speak(meetingRecord.summary);
+  }
+}
+
+// Usage
+const recorder = new MeetingRecorder('meeting-123', [
+  'John (CEO)', 'Sarah (CTO)', 'Michael (Product Manager)'
+]);
+
+// Start recording on meeting start
+startMeetingButton.addEventListener('click', () => {
+  recorder.start();
+});
+
+// Stop recording on meeting end
+endMeetingButton.addEventListener('click', async () => {
+  const meetingRecord = await recorder.stop();
+  displayMeetingSummary(meetingRecord);
+});
+
+// Read summary on request
+readSummaryButton.addEventListener('click', async () => {
+  const meetingRecord = await getMeetingRecord('meeting-123');
+  recorder.readSummary(meetingRecord);
+});
+```
+
+## Voice-Controlled Smart Home Assistant
+
+Create a voice assistant that can control smart home devices:
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+
+// Create device control tools
+const getLightsTool = createTool({
+  id: "GetLightStatus",
+  description: "Get the current status of lights in the home",
+  inputSchema: z.object({
+    room: z.string().optional().describe("The room to check, or all rooms if not specified"),
+  }),
+  execute: async ({ room }) => {
+    // Implementation to check lights
+    return { lights: await getSmartHomeLights(room) };
+  },
+});
+
+const setLightsTool = createTool({
+  id: "ControlLights",
+  description: "Control lights in the home",
+  inputSchema: z.object({
+    room: z.string().describe("The room where lights should be controlled"),
+    action: z.enum(["on", "off", "dim", "brighten"]).describe("The action to perform"),
+    level: z.number().optional().describe("Brightness level (0-100) if dimming"),
+  }),
+  execute: async ({ room, action, level }) => {
+    // Implementation to control lights
+    return { result: await controlSmartHomeLights(room, action, level) };
+  },
+});
+
+const getTempTool = createTool({
+  id: "GetTemperature",
+  description: "Get the current temperature in the home",
+  inputSchema: z.object({
+    room: z.string().optional().describe("The room to check, or all rooms if not specified"),
+  }),
+  execute: async ({ room }) => {
+    // Implementation to check temperature
+    return { temperature: await getSmartHomeTemperature(room) };
+  },
+});
+
+const setTempTool = createTool({
+  id: "SetTemperature",
+  description: "Set the temperature in the home",
+  inputSchema: z.object({
+    room: z.string().describe("The room where temperature should be set"),
+    temperature: z.number().describe("The target temperature in degrees"),
+  }),
+  execute: async ({ room, temperature }) => {
+    // Implementation to set temperature
+    return { result: await setSmartHomeTemperature(room, temperature) };
+  },
+});
+
+// Create voice-enabled smart home agent
+const smartHomeAgent = new Agent({
+  name: 'SmartHomeAssistant',
+  instructions: `You are a voice-controlled smart home assistant.
+  - Help users control their smart home devices
+  - Respond to natural language commands about lights, temperature, etc.
+  - Confirm actions before executing them
+  - Provide helpful feedback after actions
+  - Be concise in your responses
+  - Use a friendly, helpful tone`,
+  model: openai('gpt-4o'),
+  voice: new OpenAIRealtimeVoice({
+    chatModel: {
+      model: 'gpt-4o-mini-realtime',
+      apiKey: process.env.OPENAI_API_KEY,
+    },
+    speaker: 'alloy',
+  }),
+  tools: { 
+    getLightsTool, 
+    setLightsTool,
+    getTempTool,
+    setTempTool,
+  },
+});
+
+// Start smart home voice control
+async function startSmartHomeAssistant() {
+  // Connect to service
+  await smartHomeAgent.voice.connect();
+  
+  // Set up event handlers
+  smartHomeAgent.voice.on('speaking', ({ audio }) => {
+    playAudio(audio);
+  });
+  
+  smartHomeAgent.voice.on('writing', ({ text, role }) => {
+    updateTranscript(role, text);
+  });
+  
+  // Announce ready
+  await smartHomeAgent.voice.speak(
+    "Smart home assistant is ready. How can I help you?"
+  );
+  
+  // Listen for commands
+  const micStream = getMicrophoneStream();
+  await smartHomeAgent.voice.send(micStream);
+  
+  // Tools will be called automatically based on user requests
+  // For example: "Turn on the lights in the living room"
+}
+
+// Start listening for wake word
+voiceDetector.on('wakeWord', async (wakeWord) => {
+  if (wakeWord === 'home assistant') {
+    await startSmartHomeAssistant();
+  }
+});
+
+
+## Interactive Voice Response (IVR) System
+
+Create a modern IVR system for call centers that understands natural language:
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { OpenAIVoice } from "@mastra/voice-openai";
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+
+// Create IVR tools
+const checkAccountTool = createTool({
+  id: "CheckAccount",
+  description: "Check account status and information",
+  inputSchema: z.object({
+    accountId: z.string().describe("Account identifier"),
+    infoType: z.enum(["balance", "recent_transactions", "payment_due"]).describe("Type of account information to retrieve"),
+  }),
+  execute: async ({ accountId, infoType }) => {
+    // Implementation to retrieve account info
+    return { accountInfo: await getAccountInfo(accountId, infoType) };
+  },
+});
+
+const routeCallTool = createTool({
+  id: "RouteCall",
+  description: "Route call to appropriate department or agent",
+  inputSchema: z.object({
+    department: z.enum(["sales", "support", "billing", "technical", "general"]).describe("Department to route to"),
+    priority: z.enum(["normal", "high"]).optional().describe("Call priority"),
+    notes: z.string().optional().describe("Notes about customer issue"),
+  }),
+  execute: async ({ department, priority, notes }) => {
+    // Implementation to route call
+    const routingResult = await routeCall(department, priority, notes);
+    return { 
+      success: routingResult.success,
+      estimatedWaitTime: routingResult.waitTime,
+      agentName: routingResult.agentName,
+    };
+  },
+});
+
+// Create voice-enabled IVR agent
+const ivrAgent = new Agent({
+  name: 'CallCenterIVR',
+  instructions: `You are an intelligent IVR system for a call center.
+  - Greet callers professionally
+  - Identify the purpose of their call through natural conversation
+  - Help customers self-serve when possible using account lookup
+  - Route calls to appropriate departments when needed
+  - Collect relevant information before transferring
+  - Be efficient but courteous
+  - Speak clearly and at an appropriate pace`,
+  model: openai('gpt-4o'),
+  voice: new OpenAIVoice(),
+  tools: { 
+    checkAccountTool, 
+    routeCallTool,
+  },
+});
+
+// Handle incoming call
+async function handleCall(callId, callerNumber) {
+  console.log(`Incoming call: ${callId} from ${callerNumber}`);
+  
+  // Check if caller is a known customer
+  const accountId = await lookupAccountByPhone(callerNumber);
+  let customerInfo = null;
+  
+  if (accountId) {
+    customerInfo = await getBasicCustomerInfo(accountId);
+  }
+  
+  // Initial greeting
+  let greeting = "Thank you for calling. How can I assist you today?";
+  
+  if (customerInfo) {
+    greeting = `Hello ${customerInfo.name}, thank you for calling. How can I assist you today?`;
+  }
+  
+  const callAudio = getCallAudioStream(callId);
+  
+  // Start voice interaction
+  await ivrAgent.voice.speak(greeting);
+  
+  // Process customer response
+  const customerInput = await ivrAgent.voice.listen(callAudio);
+  
+  // Handle with agent (will use tools as needed)
+  const response = await ivrAgent.generate(
+    customerInfo 
+      ? `Customer ${customerInfo.name} (Account: ${accountId}) says: "${customerInput}". Help them appropriately.` 
+      : `New customer says: "${customerInput}". Help them appropriately.`,
+    {
+      temperature: 0.2,
+      toolChoice: "auto",
+    }
+  );
+  
+  // Respond to customer
+  await ivrAgent.voice.speak(response.text);
+  
+  // Continue conversation or handle routing
+  // This would be expanded in a real implementation
+}
+```
+
+## Voice-Driven Educational Quiz
+
+Create a voice-interactive educational quiz system:
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { OpenAIVoice } from "@mastra/voice-openai";
+import { PlayAIVoice } from "@mastra/voice-playai";
+import { CompositeVoice } from "@mastra/core/voice";
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+
+// Create quiz tools
+const getQuestionTool = createTool({
+  id: "GetQuestion",
+  description: "Get the next quiz question",
+  inputSchema: z.object({
+    subject: z.string().describe("The subject of the quiz"),
+    difficulty: z.enum(["easy", "medium", "hard"]).describe("The difficulty level"),
+    previousQuestionIds: z.array(z.string()).optional().describe("IDs of previously asked questions"),
+  }),
+  execute: async ({ subject, difficulty, previousQuestionIds }) => {
+    // Implementation to get a question
+    const question = await getQuizQuestion(subject, difficulty, previousQuestionIds);
+    return { 
+      questionId: question.id,
+      questionText: question.text,
+      options: question.options,
+    };
+  },
+});
+
+const evaluateAnswerTool = createTool({
+  id: "EvaluateAnswer",
+  description: "Evaluate a user's answer to a quiz question",
+  inputSchema: z.object({
+    questionId: z.string().describe("ID of the question being answered"),
+    userAnswer: z.string().describe("The user's answer"),
+  }),
+  execute: async ({ questionId, userAnswer }) => {
+    // Implementation to evaluate answer
+    const result = await evaluateQuizAnswer(questionId, userAnswer);
+    return { 
+      correct: result.correct,
+      correctAnswer: result.correctAnswer,
+      explanation: result.explanation,
+    };
+  },
+});
+
+// Create voice-enabled quiz agent
+const quizAgent = new Agent({
+  name: 'EducationalQuiz',
+  instructions: `You are an engaging educational quiz assistant.
+  - Present quiz questions clearly
+  - Listen to and evaluate user answers
+  - Provide encouraging feedback regardless of correctness
+  - Explain answers to enhance learning
+  - Adapt difficulty based on performance
+  - Keep the interaction fun and educational
+  - Use an enthusiastic, supportive tone`,
+  model: openai('gpt-4o'),
+  voice: new CompositeVoice({
+    // OpenAI for accurate speech recognition
+    listeningProvider: new OpenAIVoice({
+      listeningModel: {
+        name: 'whisper-1',
+        apiKey: process.env.OPENAI_API_KEY,
+      },
+    }),
+    // PlayAI for more expressive voice
+    speakingProvider: new PlayAIVoice({
+      speechModel: {
+        name: 'PlayDialog',
+        apiKey: process.env.PLAYAI_API_KEY,
+      },
+      speaker: 'Angelo', // Enthusiastic voice
+    }),
+  }),
+  tools: { 
+    getQuestionTool, 
+    evaluateAnswerTool,
+  },
+});
+
+// Run a quiz session
+async function runQuizSession(subject, difficulty, questionCount) {
+  // Welcome message
+  await quizAgent.voice.speak(
+    `Welcome to the ${subject} quiz! I'll ask you ${questionCount} questions at ${difficulty} difficulty. Let's begin!`
+  );
+  
+  let score = 0;
+  const askedQuestions = [];
+  
+  // Ask questions
+  for (let i = 0; i < questionCount; i++) {
+    // Get question using tool
+    const questionResponse = await quizAgent.generate(
+      `Get a ${difficulty} question about ${subject}`,
+      {
+        toolChoice: { type: "tool", tool: "getQuestionTool" },
+        toolArgs: { 
+          subject, 
+          difficulty,
+          previousQuestionIds: askedQuestions,
+        }
+      }
+    );
+    
+    // Ask question
+    await quizAgent.voice.speak(`Question ${i+1}: ${questionResponse.toolResults.getQuestionTool.questionText}`);
+    
+    if (questionResponse.toolResults.getQuestionTool.options) {
+      const options = questionResponse.toolResults.getQuestionTool.options;
+      let optionsText = "Your options are: ";
+      
+      for (const [key, value] of Object.entries(options)) {
+        optionsText += `${key}: ${value}. `;
+      }
+      
+      await quizAgent.voice.speak(optionsText);
+    }
+    
+    // Get user answer
+    await quizAgent.voice.speak("What's your answer?");
+    const answerAudio = await recordAudio();
+    const userAnswer = await quizAgent.voice.listen(answerAudio);
+    
+    // Evaluate answer
+    const evaluationResponse = await quizAgent.generate(
+      `Evaluate the user's answer: "${userAnswer}"`,
+      {
+        toolChoice: { type: "tool", tool: "evaluateAnswerTool" },
+        toolArgs: { 
+          questionId: questionResponse.toolResults.getQuestionTool.questionId,
+          userAnswer,
+        }
+      }
+    );
+    
+    // Track result
+    if (evaluationResponse.toolResults.evaluateAnswerTool.correct) {
+      score++;
+    }
+    
+    // Give feedback
+    await quizAgent.voice.speak(evaluationResponse.text);
+    
+    // Track question
+    askedQuestions.push(questionResponse.toolResults.getQuestionTool.questionId);
+  }
+  
+  // Final results
+  const percentage = Math.round((score / questionCount) * 100);
+  await quizAgent.voice.speak(
+    `Quiz complete! You scored ${score} out of ${questionCount}, which is ${percentage}%. ${getFeedbackForScore(percentage)}`
+  );
+  
+  return {
+    subject,
+    difficulty,
+    score,
+    total: questionCount,
+    percentage,
+  };
+}
+
+// Helper for score feedback
+function getFeedbackForScore(percentage) {
+  if (percentage >= 90) return "Excellent job! You've mastered this subject!";
+  if (percentage >= 70) return "Great work! You have a good grasp of this material.";
+  if (percentage >= 50) return "Good effort! With a bit more study, you'll improve even more.";
+  return "Thanks for participating! This seems challenging, but keep practicing and you'll improve.";
+}
+```
+
+## Voice Journaling Assistant
+
+Create a voice-based journaling assistant that helps users reflect on their day:
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { OpenAIVoice } from "@mastra/voice-openai";
+import { Memory } from "@mastra/core/memory";
+
+// Create memory for persistent journaling
+const journalMemory = new Memory();
+
+// Create voice journaling agent
+const journalAgent = new Agent({
+  name: 'JournalAssistant',
+  instructions: `You are a thoughtful journaling assistant.
+  - Help users reflect on their day through conversation
+  - Ask thoughtful questions to encourage deeper reflection
+  - Listen without judgment
+  - Remember past journal entries to provide context
+  - Identify patterns or growth over time
+  - Maintain a calm, supportive tone
+  - Keep all journal content strictly confidential`,
+  model: openai('gpt-4o'),
+  voice: new OpenAIVoice({
+    speechModel: {
+      name: 'tts-1-hd',
+      apiKey: process.env.OPENAI_API_KEY,
+    },
+    listeningModel: {
+      name: 'whisper-1',
+      apiKey: process.env.OPENAI_API_KEY,
+    },
+    speaker: 'nova', // Calming voice
+  }),
+  memory: journalMemory,
+});
+
+// Start a journal session
+async function startJournalSession(userId) {
+  const date = new Date();
+  const threadId = `journal-${userId}-${date.toISOString().split('T')[0]}`;
+  
+  // Check for previous entries
+  const previousEntries = await getPreviousEntries(userId, 5);
+  let context = "";
+  
+  if (previousEntries.length > 0) {
+    context = "Based on previous journal entries, you've discussed: " + 
+      previousEntries.map(e => e.topics).flat().join(", ");
+  }
+  
+  // Start with a greeting based on time of day
+  const hour = date.getHours();
+  let greeting = "Hello";
+  
+  if (hour < 12) greeting = "Good morning";
+  else if (hour < 18) greeting = "Good afternoon";
+  else greeting = "Good evening";
+  
+  // Initial prompt
+  await journalAgent.voice.speak(
+    `${greeting}. I'm here to help you with your journal entry for today. How was your day?`
+  );
+  
+  // Listen for initial response
+  const initialAudio = await recordAudio();
+  const initialThoughts = await journalAgent.voice.listen(initialAudio);
+  
+  // Generate follow-up questions
+  const response = await journalAgent.generate(
+    initialThoughts,
+    {
+      temperature: 0.7,
+      threadId,
+      resourceId: userId,
+      memoryOptions: {
+        vectors: { enabled: true },
+      },
+      context: context ? [{
+        role: 'system',
+        content: context
+      }] : undefined,
+    }
+  );
+  
+  // Continue the conversation with follow-up questions
+  await journalAgent.voice.speak(response.text);
+  
+  // Continue journal session (loop for multiple exchanges)
+  for (let i = 0; i < 3; i++) {
+    // Get next response
+    const nextAudio = await recordAudio();
+    const nextThoughts = await journalAgent.voice.listen(nextAudio);
+    
+    // Check for session end
+    if (nextThoughts.toLowerCase().includes('end journal') || 
+        nextThoughts.toLowerCase().includes('that\'s all')) {
+      break;
+    }
+    
+    // Generate response
+    const nextResponse = await journalAgent.generate(
+      nextThoughts,
+      {
+        temperature: 0.7,
+        threadId,
+        resourceId: userId,
+        memoryOptions: {
+          vectors: { enabled: true },
+        },
+      }
+    );
+    
+    await journalAgent.voice.speak(nextResponse.text);
+  }
+  
+  // Conclude session
+  const summaryResponse = await journalAgent.generate(
+    "Summarize this journal entry with key themes and a supportive closing thought.",
+    {
+      temperature: 0.7,
+      threadId,
+      resourceId: userId,
+      memoryOptions: {
+        vectors: { enabled: true },
+      },
+    }
+  );
+  
+  await journalAgent.voice.speak(summaryResponse.text);
+  
+  // Save topics for future reference
+  const topicsResponse = await journalAgent.generate(
+    "Extract 3-5 key topics from this journal entry as a comma-separated list.",
+    {
+      temperature: 0,
+      threadId,
+      resourceId: userId,
+      memoryOptions: {
+        vectors: { enabled: true },
+      },
+    }
+  );
+  
+  const topics = topicsResponse.text.split(',').map(t => t.trim());
+  await saveJournalTopics(userId, date, topics);
+  
+  return {
+    date,
+    userId,
+    threadId,
+    topics,
+  };
+}
+```
+
+## Implementation Considerations
+
+When implementing voice use cases, consider these factors:
+
+### Privacy and Data Handling
+
+- **Informed Consent**: Always obtain user consent before recording or processing voice
+- **Data Storage**: Define clear policies for voice data retention and storage
+- **Transmission Security**: Ensure voice data is encrypted in transit and at rest
+
+### Performance Optimization
+
+- **Response Latency**: Minimize delay between user input and system response
+- **Audio Quality**: Balance audio quality with bandwidth/storage requirements
+- **Offline Capabilities**: Consider implementing fallback modes for unreliable connections
+
+### Accessibility
+
+- **Multiple Input Methods**: Support both voice and text input for inclusive design
+- **Speed Control**: Allow users to adjust speech playback speed
+- **Visual Feedback**: Provide visual indicators of voice processing status
+
+### Error Handling
+
+- **Graceful Recovery**: Implement recovery strategies for failed speech recognition
+- **Confirmation Mechanisms**: Verify critical commands before execution
+- **Fallback Options**: Provide alternative interaction methods when voice fails
+
+## Next Steps
+
+- Explore [Voice Providers](../../reference/voice/providers) to select the best option for your use case
+- Learn about [Voice-to-Voice](../voice-to-voice) for real-time implementations
+- See how to [Add Voice to Agents](../../agents/adding-voice) for deeper integration
+- Check out [Voice UI Design](./voice-ui-design) for best practices

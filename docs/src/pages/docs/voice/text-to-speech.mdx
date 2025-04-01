@@ -1,52 +1,250 @@
 ---
 title: Text-to-Speech (TTS) in Mastra | Mastra Docs
-description: Overview of Text-to-Speech capabilities in Mastra, including configuration, usage, and integration with voice providers.
+description: A comprehensive guide to implementing Text-to-Speech capabilities in Mastra, from basic usage to advanced configuration and best practices.
 ---
+
+import { Callout } from "nextra/components";
 
 # Text-to-Speech (TTS)
 
-Text-to-Speech (TTS) in Mastra offers a unified API for synthesizing spoken audio from text using various provider services. This section explains TTS configuration options and implementation methods. For integrating TTS capabilities with agents, refer to the [Adding Voice to Agents](../agents/adding-voice.mdx) documentation.
+<Callout>
+  Text-to-Speech (TTS) converts written text into spoken audio, enabling your applications to communicate with users through voice.
+</Callout>
 
-## Speech Configuration
+## Overview
 
-To use TTS in Mastra, you need to provide a `speechModel` configuration when initializing the voice provider. This configuration includes parameters such as:
+Text-to-Speech in Mastra offers a unified API for synthesizing spoken audio from text using various provider services. The system is designed with flexibility in mind, allowing you to switch between different voice providers without changing your application code.
 
-- **`name`**: The specific TTS model to use.
-- **`apiKey`**: Your API key for authentication.
-- **Provider-specific options**: Additional options that may be required or supported by the specific voice provider.
+## Quick Start
 
-The **`speaker`** option is specified separately and allows you to select different voices for speech synthesis.
+Here's a minimal example to get started with TTS using OpenAI:
 
-**Note**: All of these parameters are optional. You can use the default settings provided by the voice provider, which will depend on the specific provider you are using.
+```typescript
+import { OpenAIVoice } from "@mastra/voice-openai";
 
-### Example Configuration
+// Initialize the voice provider with default settings
+const voice = new OpenAIVoice();
+
+// Convert text to speech
+async function generateSpeech() {
+  const audioStream = await voice.speak("Hello, welcome to our application!");
+  return audioStream;
+}
+```
+
+## TTS Configuration
+
+To customize your TTS implementation, you can provide a `speechModel` configuration when initializing the voice provider:
 
 ```typescript
 const voice = new OpenAIVoice({
   speechModel: {
-    name: "tts-1-hd",
-    apiKey: process.env.OPENAI_API_KEY
+    name: "tts-1-hd",             // The specific TTS model to use
+    apiKey: process.env.OPENAI_API_KEY,  // Your API key
   },
-  speaker: "alloy",
+  speaker: "alloy",               // Default voice to use
 });
-
-// If using default settings the configuration can be simplified to:
-const voice = new OpenAIVoice();
 ```
+
+### Common Configuration Parameters
+
+| Parameter | Description | Example Values |
+| --- | --- | --- |
+| `name` | The model identifier | `'tts-1'`, `'tts-1-hd'`, `'eleven_multilingual_v2'` |
+| `apiKey` | Provider API authentication key | Environment variable recommended |
+| `speaker` | Voice identifier | Provider-specific (`'alloy'`, `'nova'`, etc.) |
 
 ## Using the Speak Method
 
-The primary method for TTS is the `speak()` method, which converts text to speech. This method can accept options that allows you to specify the speaker and other provider-specific options. Here's how to use it:
+The primary method for TTS is the `speak()` method, which converts text to speech:
 
 ```typescript
-const readableStream = await voice.speak("Hello, world!", {
-  speaker: "default", // Optional: specify a speaker
-  properties: {
-    speed: 1.0, // Optional: adjust speech speed
-    pitch: "default", // Optional: specify pitch if supported
+// Basic usage
+const audioStream = await voice.speak("Hello, world!");
+
+// With custom options
+const audioStream = await voice.speak("Hello, world!", {
+  speaker: "echo",         // Override default voice
+  properties: {            // Provider-specific options
+    speed: 1.2,            // Adjust speech speed
+    pitch: "default",      // Specify pitch if supported
   },
 });
 ```
 
-**Note**: If you are using a voice-to-voice provider, such as `OpenAIRealtimeVoice`, the `speak()` method will emit a "speaking" event instead of returning an Readable Stream.
+## Audio Handling
 
+The `speak()` method returns a standard Node.js `ReadableStream` containing the audio data. How you handle this stream depends on your environment:
+
+### Node.js Environment
+
+```typescript
+import fs from 'fs';
+
+// Save to file
+audioStream.pipe(fs.createWriteStream('output.mp3'));
+
+// Process with audio library
+import audioProcessor from 'some-audio-library';
+audioProcessor.process(audioStream);
+```
+
+### Browser Environment
+
+```typescript
+// Helper function to convert stream to blob
+async function streamToBlob(stream, mimeType) {
+  const chunks = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
+  return new Blob(chunks, { type: mimeType });
+}
+
+// Convert to Audio element
+const audioBlob = await streamToBlob(audioStream, 'audio/mpeg');
+const audioUrl = URL.createObjectURL(audioBlob);
+const audio = new Audio(audioUrl);
+audio.play();
+```
+
+## Voice Selection
+
+Most TTS providers offer multiple voices with different characteristics. You can:
+
+1. Set a default voice when initializing the provider
+2. Override the voice for specific `speak()` calls
+3. Get available voices using `getSpeakers()`
+
+```typescript
+// Get available voices
+const voices = await voice.getSpeakers();
+console.log(voices);
+
+// Select a voice for a specific utterance
+const audioStream = await voice.speak("Hello!", {
+  speaker: voices[2].voiceId
+});
+```
+
+## Provider Comparison
+
+Different TTS providers have unique strengths:
+
+| Provider | Voice Quality | Languages | Latency | Special Features |
+| --- | --- | --- | --- | --- |
+| OpenAI | High | 10+ | Low | Natural prosody |
+| ElevenLabs | Very High | 35+ | Medium | Emotion control |
+| PlayAI | High | 20+ | Low | Voice cloning |
+| Google | Medium-High | 40+ | Low | Wide language support |
+| Murf | High | 20+ | Medium | Music integration |
+| Speechify | Medium-High | 30+ | Low | Voice customization |
+
+## Best Practices
+
+### Optimize for Performance
+
+- **Batch TTS requests** when possible instead of making many small requests
+- **Cache common audio responses** to reduce API calls
+- **Consider audio quality vs. file size** based on your application needs
+
+### Improve Voice Naturalness
+
+- **Add speech marks** like commas and periods for better phrasing
+- **Use SSML tags** for supported providers to control emphasis and pauses
+- **Consider phonetic spelling** for proper nouns or technical terms
+
+### Handle Long Text
+
+For long text passages:
+
+```typescript
+// Split long text into manageable chunks
+const paragraphs = longText.split('\n\n');
+const audioChunks = [];
+
+for (const paragraph of paragraphs) {
+  if (paragraph.trim()) {
+    const audio = await voice.speak(paragraph);
+    audioChunks.push(await streamToBuffer(audio));
+  }
+}
+
+// Combine audio chunks (implementation depends on environment)
+const combinedAudio = combineAudioBuffers(audioChunks);
+```
+
+## Advanced Topics
+
+### Streaming TTS to Users
+
+For web applications, you can stream audio as it's being generated:
+
+```typescript
+// Server-side (Node.js with Express)
+app.get('/tts', async (req, res) => {
+  const text = req.query.text;
+  const audioStream = await voice.speak(text);
+  
+  res.setHeader('Content-Type', 'audio/mpeg');
+  audioStream.pipe(res);
+});
+
+// Client-side
+fetch('/tts?text=Hello world')
+  .then(response => {
+    const audio = new Audio();
+    audio.src = URL.createObjectURL(response.blob());
+    audio.play();
+  });
+```
+
+### Custom Voice Processing
+
+You can process the TTS output before playback:
+
+```typescript
+import AudioProcessor from 'audio-processing-library';
+
+// Get raw audio
+const audioStream = await voice.speak("Hello world");
+
+// Process the audio (e.g., add effects, normalize volume)
+const processedAudio = await AudioProcessor.process(audioStream, {
+  normalize: true,
+  echo: {
+    delay: 0.5,
+    feedback: 0.3
+  }
+});
+
+// Use the processed audio
+playAudio(processedAudio);
+```
+
+## Troubleshooting
+
+### API Authentication Errors
+
+- Ensure your API key is correct and has the appropriate permissions
+- Check if you've reached API rate limits or quota
+- Verify that the model you're using is available on your subscription tier
+
+### Audio Quality Issues
+
+- Try using a higher-quality model (e.g., 'tts-1-hd' instead of 'tts-1')
+- Ensure proper text formatting with appropriate punctuation
+- Check if the selected voice supports the language of your text
+
+### Performance Problems
+
+- Implement caching for frequently used phrases
+- Consider using a different provider with lower latency
+- Optimize text by breaking it into smaller chunks
+
+## Next Steps
+
+- Explore [Speech-to-Text](./speech-to-text) to enable bi-directional voice interactions
+- Learn about [Voice-to-Voice](./voice-to-voice) for real-time conversations
+- See how to use [CompositeVoice](../reference/voice/composite-voice) to mix providers
+- Browse available [Voice Providers](../reference/voice/providers) to select the best option

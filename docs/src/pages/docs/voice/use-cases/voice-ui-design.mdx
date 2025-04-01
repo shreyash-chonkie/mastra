@@ -1,0 +1,1046 @@
+---
+title: Voice UI Design Best Practices | Mastra Docs
+description: Guidelines and best practices for creating effective voice user interfaces (VUI) with Mastra voice capabilities.
+---
+
+import { Callout } from "nextra/components";
+
+# Voice UI Design Best Practices
+
+<Callout>
+  Creating effective voice interfaces requires different design considerations than graphical interfaces. This guide provides best practices for designing voice experiences with Mastra.
+</Callout>
+
+## Principles of Voice UI Design
+
+### 1. Be Conversational
+
+Voice interfaces should feel natural and human-like:
+
+- Use conversational language rather than commands
+- Vary responses to avoid sounding robotic
+- Match the user's speaking style and formality level
+- Include conversational markers like "hmm," "okay," and "got it"
+
+**Implementation example:**
+
+```typescript
+// Example of varied responses for the same function
+function getAcknowledgmentResponse() {
+  const responses = [
+    "Got it, I'll help with that.",
+    "I understand. Let me take care of that for you.",
+    "Sure thing, I can help you with that.",
+    "Alright, I'm on it.",
+    "I'll take care of that right away."
+  ];
+  return responses[Math.floor(Math.random() * responses.length)];
+}
+
+// Using conversational markers
+async function processUserRequest(request) {
+  await agent.voice.speak("Hmm, let me think about that...");
+  
+  // Process request
+  const result = await agent.generate(request);
+  
+  await agent.voice.speak(result.text);
+}
+```
+
+### 2. Provide Clear Guidance
+
+Help users understand what they can do and how to interact:
+
+- Start with a clear introduction of capabilities
+- Use examples to demonstrate possible interactions
+- Offer help when users seem confused
+- Use progressive disclosure to avoid overwhelming users
+
+**Implementation example:**
+
+```typescript
+// Introducing capabilities
+async function introduceCapabilities() {
+  await agent.voice.speak(
+    "Hi there! I can help you with scheduling appointments, checking your account balance, or answering questions about our services. What would you like to do today?"
+  );
+}
+
+// Offering help when user seems stuck
+function detectUserConfusion(userInput) {
+  const confusionIndicators = [
+    "i don't know", "not sure", "confused", "help", "what can", "how do i"
+  ];
+  
+  return confusionIndicators.some(phrase => 
+    userInput.toLowerCase().includes(phrase)
+  );
+}
+
+async function handlePossibleConfusion(userInput) {
+  if (detectUserConfusion(userInput)) {
+    await agent.voice.speak(
+      "It sounds like you might need some help. You can ask me to schedule an appointment, check your balance, or answer questions about our services. What would you like to try?"
+    );
+  } else {
+    // Process normal request
+    const response = await agent.generate(userInput);
+    await agent.voice.speak(response.text);
+  }
+}
+```
+
+### 3. Keep it Concise
+
+Voice is a linear, time-based medium where brevity is essential:
+
+- Use shorter sentences than you would in written text
+- Present information in digestible chunks
+- Avoid long lists or complex information in a single response
+- Focus on the most relevant information first
+
+**Implementation example:**
+
+```typescript
+// Breaking information into chunks
+async function presentAccountInformation(accountInfo) {
+  // First, give the most important information
+  await agent.voice.speak(
+    `Your current balance is $${accountInfo.balance.toFixed(2)}.`
+  );
+  
+  // Check if user wants more details
+  await agent.voice.speak(
+    "Would you like to hear about your recent transactions or upcoming bills?"
+  );
+  
+  const response = await listenForResponse();
+  
+  if (response.includes("transaction")) {
+    // Present transactions in small groups
+    const recentTransactions = accountInfo.transactions.slice(0, 3);
+    await agent.voice.speak(
+      "Here are your most recent transactions: " + 
+      recentTransactions.map(t => 
+        `$${t.amount.toFixed(2)} at ${t.merchant} on ${formatDate(t.date)}`
+      ).join(". ")
+    );
+  } else if (response.includes("bill")) {
+    // Present bills information
+    await agent.voice.speak(
+      `You have ${accountInfo.upcomingBills.length} upcoming bills. ` +
+      `The next one is $${accountInfo.upcomingBills[0].amount.toFixed(2)} ` +
+      `due on ${formatDate(accountInfo.upcomingBills[0].dueDate)}.`
+    );
+  }
+}
+```
+
+### 4. Confirm Understanding
+
+Provide appropriate feedback to confirm the system understood correctly:
+
+- Echo back critical information
+- Confirm before taking significant actions
+- Use implicit confirmation for low-risk actions
+- Provide status updates during longer processes
+
+**Implementation example:**
+
+```typescript
+// Explicit confirmation for important actions
+async function scheduleAppointment(date, time, service) {
+  // Echo back and confirm
+  await agent.voice.speak(
+    `I'll schedule a ${service} appointment on ${formatDate(date)} at ${time}. Is that correct?`
+  );
+  
+  const confirmation = await listenForConfirmation();
+  
+  if (isConfirmation(confirmation)) {
+    // Process the appointment
+    const result = await createAppointment(date, time, service);
+    await agent.voice.speak(
+      `Great! Your ${service} appointment is confirmed for ${formatDate(date)} at ${time}.`
+    );
+    return result;
+  } else {
+    await agent.voice.speak("Let's try again. What date and time works for you?");
+    // Handle appointment rescheduling
+  }
+}
+
+// Implicit confirmation for low-risk actions
+async function setTemperature(temperature) {
+  await agent.voice.speak(
+    `Setting the temperature to ${temperature} degrees.`
+  );
+  
+  // No explicit confirmation needed
+  await setThermostat(temperature);
+}
+
+// Status updates during longer processes
+async function generateReport(reportType) {
+  await agent.voice.speak(
+    `I'll generate your ${reportType} report now. This might take a moment.`
+  );
+  
+  // Start the process
+  const reportPromise = generateReportInBackground(reportType);
+  
+  // Provide updates while waiting
+  await agent.voice.speak("I'm gathering the data now...");
+  
+  // After a delay
+  setTimeout(async () => {
+    await agent.voice.speak("Still working on your report...");
+  }, 5000);
+  
+  // When complete
+  const report = await reportPromise;
+  await agent.voice.speak("Your report is ready! Would you like me to send it to your email?");
+  
+  return report;
+}
+```
+
+### 5. Handle Errors Gracefully
+
+Error recovery is critical in voice interfaces:
+
+- Recognize when misunderstandings occur
+- Provide clear error messages that suggest next steps
+- Limit the number of retries before offering alternatives
+- Use targeted prompts to get back on track
+
+**Implementation example:**
+
+```typescript
+// Handling speech recognition errors
+async function handleSpeechInput(maxAttempts = 3) {
+  let attempts = 0;
+  let transcript = null;
+  
+  while (attempts < maxAttempts && !transcript) {
+    try {
+      const audioInput = await recordAudio();
+      transcript = await agent.voice.listen(audioInput);
+      
+      if (!transcript || transcript.trim() === "") {
+        throw new Error("Empty transcript");
+      }
+      
+      return transcript;
+    } catch (error) {
+      attempts++;
+      
+      if (attempts === 1) {
+        await agent.voice.speak(
+          "I'm sorry, I didn't catch that. Could you please repeat it?"
+        );
+      } else if (attempts === 2) {
+        await agent.voice.speak(
+          "I'm still having trouble understanding. Please speak clearly and a bit more slowly."
+        );
+      } else {
+        await agent.voice.speak(
+          "I apologize, but I'm having difficulty understanding. Would you like to try typing your request instead?"
+        );
+        
+        // Offer alternative input method
+        return offerTextInput();
+      }
+    }
+  }
+  
+  return null;
+}
+
+// Handling understanding errors
+async function processUserIntent(userInput) {
+  try {
+    // Try to understand user intent
+    const result = await agent.generate(userInput, {
+      temperature: 0,
+      toolChoice: "auto",
+    });
+    
+    // Check confidence
+    if (result.metadata?.confidence < 0.7) {
+      // Low confidence in understanding
+      return clarifyIntent(userInput);
+    }
+    
+    return result;
+  } catch (error) {
+    await agent.voice.speak(
+      "I apologize, but I'm having trouble processing your request right now."
+    );
+    
+    logError(error);
+    return null;
+  }
+}
+
+async function clarifyIntent(userInput) {
+  await agent.voice.speak(
+    "I'm not completely sure I understood. Did you want to check your account, make a payment, or do something else?"
+  );
+  
+  const clarification = await listenForResponse();
+  return processUserIntent(clarification);
+}
+```
+
+### 6. Consider Conversation Flow
+
+Design for the natural flow of conversation:
+
+- Anticipate follow-up questions
+- Maintain context across multiple turns
+- Allow for interruptions and corrections
+- Create natural transitions between topics
+
+**Implementation example:**
+
+```typescript
+// Managing conversation context
+class ConversationManager {
+  constructor(agent) {
+    this.agent = agent;
+    this.context = {
+      topic: null,
+      entities: {},
+      history: [],
+      lastQuestion: null,
+      pendingConfirmation: null,
+    };
+  }
+  
+  async processUtterance(utterance) {
+    // Add to history
+    this.context.history.push({ role: 'user', content: utterance });
+    
+    // Check for corrections or context references
+    if (this.containsCorrection(utterance)) {
+      return this.handleCorrection(utterance);
+    }
+    
+    // Check for topic changes
+    const newTopic = this.detectTopicChange(utterance);
+    if (newTopic && newTopic !== this.context.topic) {
+      await this.handleTopicTransition(this.context.topic, newTopic);
+      this.context.topic = newTopic;
+    }
+    
+    // Extract entities
+    const entities = await this.extractEntities(utterance);
+    this.updateContextEntities(entities);
+    
+    // Generate response with full context
+    const response = await this.agent.generate(
+      utterance,
+      {
+        context: this.buildContextMessages(),
+      }
+    );
+    
+    // Update context with response
+    this.context.history.push({ role: 'assistant', content: response.text });
+    this.context.lastQuestion = this.extractQuestion(response.text);
+    
+    return response;
+  }
+  
+  async handleTopicTransition(oldTopic, newTopic) {
+    if (oldTopic && this.hasUnresolvedItems(oldTopic)) {
+      await this.agent.voice.speak(
+        `Before we talk about ${newTopic}, should we finish discussing ${oldTopic} first?`
+      );
+      
+      const confirmation = await listenForConfirmation();
+      if (isConfirmation(confirmation)) {
+        // Continue with old topic
+        return oldTopic;
+      }
+    }
+    
+    // Acknowledge topic change
+    if (oldTopic) {
+      await this.agent.voice.speak(`Let's talk about ${newTopic} now.`);
+    }
+    
+    return newTopic;
+  }
+  
+  buildContextMessages() {
+    // Convert conversation history and context to messages
+    const messages = [];
+    
+    // Add system message with context
+    messages.push({
+      role: 'system',
+      content: `Current topic: ${this.context.topic || 'None'}. ` +
+        `Known entities: ${JSON.stringify(this.context.entities)}. ` +
+        `Last question asked: ${this.context.lastQuestion || 'None'}.`
+    });
+    
+    // Add conversation history (last N turns)
+    const recentHistory = this.context.history.slice(-6);
+    messages.push(...recentHistory);
+    
+    return messages;
+  }
+  
+  // Other helper methods...
+}
+
+// Handling interruptions
+class InterruptibleVoiceAgent {
+  constructor(agent) {
+    this.agent = agent;
+    this.isSpeaking = false;
+    this.currentUtterance = null;
+    this.audioChunks = [];
+  }
+  
+  async speak(text) {
+    // Split long text into sentences for better interruption handling
+    const sentences = this.splitIntoSentences(text);
+    this.currentUtterance = text;
+    this.isSpeaking = true;
+    
+    for (const sentence of sentences) {
+      if (!this.isSpeaking) {
+        // Was interrupted
+        break;
+      }
+      
+      const audioChunk = await this.agent.voice.speak(sentence);
+      this.audioChunks.push(audioChunk);
+      await this.playAudioWithInterruptDetection(audioChunk);
+    }
+    
+    this.isSpeaking = false;
+  }
+  
+  interrupt() {
+    // Stop current speech
+    this.isSpeaking = false;
+    this.stopAudio();
+    
+    // Optional: acknowledge interruption
+    this.agent.voice.speak("Yes?");
+  }
+  
+  async playAudioWithInterruptDetection(audioChunk) {
+    return new Promise((resolve) => {
+      // Implementation would depend on platform
+      // This is simplified
+      const audio = new Audio();
+      audio.src = URL.createObjectURL(audioChunk);
+      
+      audio.onended = () => resolve();
+      audio.play();
+      
+      // Listen for interruption
+      this.setupInterruptionDetection(() => {
+        audio.pause();
+        this.interrupt();
+        resolve();
+      });
+    });
+  }
+  
+  // Other helper methods...
+}
+```
+
+### 7. Design for Context Awareness
+
+Build voice interfaces that understand and maintain context:
+
+- Remember previously mentioned entities and values
+- Interpret anaphora (references like "it", "that", "those")
+- Use history to resolve ambiguous queries
+- Anticipate reasonable follow-up requests
+
+**Implementation example:**
+
+```typescript
+// Context-aware response generation
+class ContextAwareAgent {
+  constructor(agent) {
+    this.agent = agent;
+    this.contextMemory = {
+      referencedEntities: {},
+      lastActionType: null,
+      conversationFocus: null,
+      userPreferences: {},
+    };
+  }
+  
+  async process(userInput) {
+    // Resolve references in user input
+    const resolvedInput = this.resolveReferences(userInput);
+    
+    // Update context based on user input
+    this.updateContext(resolvedInput);
+    
+    // Generate response with context
+    const systemPrompt = this.buildContextPrompt();
+    const response = await this.agent.generate(
+      resolvedInput,
+      {
+        context: [{
+          role: 'system',
+          content: systemPrompt
+        }]
+      }
+    );
+    
+    // Update context based on response
+    this.updateContextFromResponse(response.text);
+    
+    // Return response
+    return response;
+  }
+  
+  resolveReferences(input) {
+    // Replace pronouns with their referents
+    let resolved = input;
+    
+    // Handle "it", "that", "those" etc.
+    if (input.match(/\b(it|this|that|these|those)\b/i) && this.contextMemory.referencedEntities.primary) {
+      const primaryEntity = this.contextMemory.referencedEntities.primary;
+      resolved = resolved.replace(/\b(it|this|that)\b/i, primaryEntity.name);
+      resolved = resolved.replace(/\b(these|those)\b/i, primaryEntity.name + 's');
+    }
+    
+    return resolved;
+  }
+  
+  buildContextPrompt() {
+    return `Current conversation context:
+- Primary entity: ${this.contextMemory.referencedEntities.primary?.name || 'None'}
+- Secondary entities: ${Object.keys(this.contextMemory.referencedEntities).filter(k => k !== 'primary').map(k => this.contextMemory.referencedEntities[k].name).join(', ') || 'None'}
+- Last action: ${this.contextMemory.lastActionType || 'None'}
+- Conversation focus: ${this.contextMemory.conversationFocus || 'General'}
+- User preferences: ${JSON.stringify(this.contextMemory.userPreferences)}`; 
+  }
+  
+  // Methods to update context
+  updateContext(input) {
+    // Extract entities from user input
+    const entities = this.extractEntities(input);
+    
+    if (entities.length > 0) {
+      // Update primary entity
+      this.contextMemory.referencedEntities.primary = entities[0];
+      
+      // Add other entities
+      entities.slice(1).forEach(entity => {
+        this.contextMemory.referencedEntities[entity.id] = entity;
+      });
+    }
+    
+    // Update action type
+    this.contextMemory.lastActionType = this.detectActionType(input);
+    
+    // Update conversation focus
+    const focus = this.detectConversationFocus(input);
+    if (focus) {
+      this.contextMemory.conversationFocus = focus;
+    }
+  }
+  
+  // Other helper methods...
+}
+```
+
+## Voice-Specific Design Considerations
+
+### 1. Audio Cues and Earcons
+
+Use non-speech audio cues to enhance the voice experience:
+
+- Signal the start/end of listening
+- Indicate processing status
+- Differentiate between types of responses
+- Mark successful actions or errors
+
+**Implementation example:**
+
+```typescript
+class VoiceInterface {
+  constructor(agent) {
+    this.agent = agent;
+    this.audioPlayer = new AudioPlayer();
+    this.audioLibrary = {
+      listening: '/sounds/listening.mp3',
+      processingStart: '/sounds/processing.mp3',
+      success: '/sounds/success.mp3',
+      error: '/sounds/error.mp3',
+      alert: '/sounds/alert.mp3'
+    };
+  }
+  
+  async startListening() {
+    await this.audioPlayer.play(this.audioLibrary.listening);
+    return this.recordAudio();
+  }
+  
+  async processCommand(audioInput) {
+    await this.audioPlayer.play(this.audioLibrary.processingStart);
+    
+    try {
+      const transcript = await this.agent.voice.listen(audioInput);
+      const response = await this.agent.generate(transcript);
+      
+      await this.audioPlayer.play(this.audioLibrary.success);
+      await this.agent.voice.speak(response.text);
+      
+      return response;
+    } catch (error) {
+      await this.audioPlayer.play(this.audioLibrary.error);
+      await this.agent.voice.speak("I'm sorry, I encountered an error processing your request.");
+      throw error;
+    }
+  }
+  
+  async alertUser(priority = 'normal') {
+    if (priority === 'high') {
+      await this.audioPlayer.play(this.audioLibrary.alert);
+    }
+    
+    // Then deliver message
+  }
+}
+```
+
+### 2. Voice Personas
+
+Design consistent voice personalities for your application:
+
+- Choose appropriate voice characteristics
+- Maintain consistent language patterns and vocabulary
+- Define a personality that aligns with your brand
+- Consider the context and purpose of the interaction
+
+**Implementation example:**
+
+```typescript
+// Voice persona definition
+const customerServicePersona = {
+  voiceId: 'alloy',
+  language: 'en-US',
+  speechRate: 1.0,
+  responseStyle: 'professional',
+  vocabularyLevel: 'accessible',
+  personalityTraits: [
+    'helpful', 'patient', 'knowledgeable', 'friendly'
+  ],
+  commonPhrases: [
+    "I'd be happy to help with that.",
+    "Let me look into that for you.",
+    "Is there anything else you need assistance with?",
+    "Thank you for your patience."
+  ]
+};
+
+const technicalSupportPersona = {
+  voiceId: 'echo',
+  language: 'en-US',
+  speechRate: 1.1,
+  responseStyle: 'technical',
+  vocabularyLevel: 'advanced',
+  personalityTraits: [
+    'precise', 'systematic', 'thorough', 'instructive'
+  ],
+  commonPhrases: [
+    "Let's troubleshoot this step by step.",
+    "I'll guide you through the process.",
+    "That should resolve the technical issue.",
+    "Let me know if you encounter any further issues."
+  ]
+};
+
+// Applying voice persona
+function applyPersona(agent, persona) {
+  // Set voice characteristics
+  agent.voice.updateOptions({
+    speaker: persona.voiceId,
+    properties: {
+      speed: persona.speechRate,
+    }
+  });
+  
+  // Update agent instructions
+  const personalityInstructions = `
+    You are a ${persona.personalityTraits.join(', ')} assistant.
+    Use a ${persona.responseStyle} tone and ${persona.vocabularyLevel} vocabulary.
+    Feel free to use phrases like: ${persona.commonPhrases.join('; ')}.
+  `;
+  
+  agent.updateInstructions(personalityInstructions);
+  
+  return agent;
+}
+
+// Create agents with different personas
+const customerServiceAgent = applyPersona(new Agent({
+  name: 'CustomerService',
+  model: openai('gpt-4o'),
+  voice: new OpenAIVoice(),
+}), customerServicePersona);
+
+const technicalSupportAgent = applyPersona(new Agent({
+  name: 'TechnicalSupport',
+  model: openai('gpt-4o'),
+  voice: new OpenAIVoice(),
+}), technicalSupportPersona);
+```
+
+### 3. Handling Voice Fatigue
+
+Design voice interactions to minimize user fatigue:
+
+- Keep voice interactions brief and efficient
+- Provide alternatives to long audio output
+- Remember user preferences for verbosity
+- Offer ways to skip or speed up content
+
+**Implementation example:**
+
+```typescript
+class AdaptiveVoiceInterface {
+  constructor(agent) {
+    this.agent = agent;
+    this.userPreferences = {
+      verbosityLevel: 'normal', // 'concise', 'normal', 'detailed'
+      speechRate: 1.0,
+      interactionLength: 0,
+    };
+  }
+  
+  async presentInformation(content, options = {}) {
+    // Adapt content based on verbosity preference
+    let adaptedContent;
+    
+    switch (this.userPreferences.verbosityLevel) {
+      case 'concise':
+        adaptedContent = this.createConciseVersion(content);
+        break;
+      case 'detailed':
+        adaptedContent = this.createDetailedVersion(content);
+        break;
+      default:
+        adaptedContent = content;
+    }
+    
+    // Track interaction length
+    this.userPreferences.interactionLength += adaptedContent.split(' ').length;
+    
+    // Check for potential voice fatigue
+    if (this.userPreferences.interactionLength > 500 && !options.bypassFatigueCheck) {
+      await this.offerAlternatives(adaptedContent);
+    } else {
+      // Speak with preferred rate
+      await this.agent.voice.speak(adaptedContent, {
+        properties: {
+          speed: this.userPreferences.speechRate,
+        }
+      });
+    }
+  }
+  
+  async offerAlternatives(content) {
+    await this.agent.voice.speak(
+      "This is a longer response. Would you prefer that I continue speaking, " +
+      "send this information as text, or provide a shorter summary?"
+    );
+    
+    const preference = await this.listenForPreference();
+    
+    if (preference.includes('speak') || preference.includes('continue')) {
+      // Reset counter and continue
+      this.userPreferences.interactionLength = 0;
+      await this.agent.voice.speak(content, {
+        properties: {
+          speed: this.userPreferences.speechRate,
+        }
+      });
+    } else if (preference.includes('text') || preference.includes('send')) {
+      await this.agent.voice.speak("I've sent the information as text.");
+      sendAsText(content);
+    } else {
+      // Create and speak summary
+      const summary = await this.createSummary(content);
+      await this.agent.voice.speak(summary);
+    }
+  }
+  
+  async updateUserPreferences(interaction) {
+    // Listen for preference signals
+    if (interaction.includes('too long') || interaction.includes('be brief')) {
+      this.userPreferences.verbosityLevel = 'concise';
+    } else if (interaction.includes('more detail') || interaction.includes('tell me more')) {
+      this.userPreferences.verbosityLevel = 'detailed';
+    }
+    
+    if (interaction.includes('speak faster')) {
+      this.userPreferences.speechRate += 0.1;
+    } else if (interaction.includes('speak slower')) {
+      this.userPreferences.speechRate -= 0.1;
+    }
+    
+    // Ensure speech rate stays in reasonable bounds
+    this.userPreferences.speechRate = Math.max(0.8, Math.min(1.5, this.userPreferences.speechRate));
+  }
+  
+  // Other helper methods...
+}
+```
+
+### 4. Multimodal Experiences
+
+When possible, enhance voice with visual and tactile elements:
+
+- Provide visual confirmation of voice commands
+- Show transcripts alongside spoken responses
+- Use visual cues to indicate listening state
+- Complement voice with touch interactions
+
+**Implementation example:**
+
+```typescript
+class MultimodalInterface {
+  constructor(agent, displayElement) {
+    this.agent = agent;
+    this.display = displayElement;
+    this.currentState = 'idle';
+    
+    // Initialize visual components
+    this.initializeDisplay();
+  }
+  
+  initializeDisplay() {
+    // Create visual components
+    this.components = {
+      transcript: document.createElement('div'),
+      responseArea: document.createElement('div'),
+      statusIndicator: document.createElement('div'),
+      actionButtons: document.createElement('div'),
+    };
+    
+    // Add styling
+    this.components.transcript.className = 'transcript-area';
+    this.components.responseArea.className = 'response-area';
+    this.components.statusIndicator.className = 'status-idle';
+    this.components.actionButtons.className = 'action-buttons';
+    
+    // Add to display
+    Object.values(this.components).forEach(component => {
+      this.display.appendChild(component);
+    });
+    
+    // Add action buttons
+    this.addActionButtons();
+  }
+  
+  updateStatus(status) {
+    this.currentState = status;
+    this.components.statusIndicator.className = `status-${status}`;
+    
+    // Update visual indicator
+    switch (status) {
+      case 'listening':
+        this.components.statusIndicator.innerHTML = '🎤 Listening...';
+        // Add animated waveform
+        this.showWaveform();
+        break;
+      case 'processing':
+        this.components.statusIndicator.innerHTML = '⏳ Processing...';
+        // Add processing animation
+        this.showProcessingSpinner();
+        break;
+      case 'speaking':
+        this.components.statusIndicator.innerHTML = '🔊 Speaking...';
+        // Add speaking animation
+        this.showSpeakingAnimation();
+        break;
+      default:
+        this.components.statusIndicator.innerHTML = 'Ready';
+        this.hideAnimations();
+    }
+  }
+  
+  async handleVoiceInteraction() {
+    // Update status
+    this.updateStatus('listening');
+    
+    // Record audio
+    const audioInput = await this.recordAudio();
+    
+    // Update status
+    this.updateStatus('processing');
+    
+    // Process input
+    const transcript = await this.agent.voice.listen(audioInput);
+    
+    // Show transcript
+    this.updateTranscript('user', transcript);
+    
+    // Generate response
+    const response = await this.agent.generate(transcript);
+    
+    // Update status
+    this.updateStatus('speaking');
+    
+    // Show response text
+    this.updateTranscript('assistant', response.text);
+    
+    // Speak response
+    await this.agent.voice.speak(response.text);
+    
+    // Update status
+    this.updateStatus('idle');
+  }
+  
+  updateTranscript(role, text) {
+    const messageElement = document.createElement('div');
+    messageElement.className = `message ${role}`;
+    messageElement.innerText = text;
+    
+    this.components.transcript.appendChild(messageElement);
+    this.components.transcript.scrollTop = this.components.transcript.scrollHeight;
+  }
+  
+  // Other methods for visual components...
+}
+```
+
+## Testing Voice Interfaces
+
+### 1. Voice-Specific User Testing
+
+Test voice interfaces with real users for best results:
+
+- Observe how users naturally interact with voice
+- Test in realistic environments with background noise
+- Include users with different accents and speech patterns
+- Test with users of different ages and technical abilities
+
+### 2. Measuring Voice Experience Quality
+
+Track key metrics to evaluate and improve your voice interface:
+
+- **Word Error Rate (WER)**: Accuracy of speech recognition
+- **Task Completion Rate**: Percentage of successfully completed voice interactions
+- **Turn Count**: Number of back-and-forth exchanges needed to complete a task
+- **Speech-to-Response Time**: Latency between user speech and system response
+- **User Satisfaction**: Subjective ratings of the voice experience
+
+**Implementation example:**
+
+```typescript
+class VoiceMetricsCollector {
+  constructor() {
+    this.metrics = {
+      interactions: [],
+      wordErrorRate: [],
+      taskCompletions: { success: 0, failure: 0 },
+      turnCounts: [],
+      responseTimes: [],
+      userRatings: []
+    };
+  }
+  
+  startInteraction() {
+    return {
+      id: uuidv4(),
+      startTime: Date.now(),
+      turns: [],
+      completed: false,
+      taskType: null,
+      finalOutcome: null,
+    };
+  }
+  
+  recordTurn(interactionId, userInput, systemResponse, metrics = {}) {
+    const interaction = this.getInteraction(interactionId);
+    
+    if (!interaction) return;
+    
+    const turn = {
+      userInput,
+      systemResponse,
+      startTime: metrics.startTime || Date.now(),
+      responseTime: metrics.responseTime || 0,
+      wordErrorRate: metrics.wordErrorRate || null,
+    };
+    
+    interaction.turns.push(turn);
+    
+    // Update metrics
+    if (metrics.responseTime) {
+      this.metrics.responseTimes.push(metrics.responseTime);
+    }
+    
+    if (metrics.wordErrorRate !== undefined) {
+      this.metrics.wordErrorRate.push(metrics.wordErrorRate);
+    }
+  }
+  
+  completeInteraction(interactionId, outcome, taskType, userRating) {
+    const interaction = this.getInteraction(interactionId);
+    
+    if (!interaction) return;
+    
+    interaction.completed = true;
+    interaction.endTime = Date.now();
+    interaction.duration = interaction.endTime - interaction.startTime;
+    interaction.finalOutcome = outcome;
+    interaction.taskType = taskType;
+    
+    // Update metrics
+    this.metrics.turnCounts.push(interaction.turns.length);
+    
+    if (outcome === 'success') {
+      this.metrics.taskCompletions.success++;
+    } else {
+      this.metrics.taskCompletions.failure++;
+    }
+    
+    if (userRating) {
+      this.metrics.userRatings.push(userRating);
+    }
+  }
+  
+  generateReport() {
+    const totalInteractions = this.metrics.taskCompletions.success + this.metrics.taskCompletions.failure;
+    
+    return {
+      totalInteractions,
+      taskCompletionRate: totalInteractions > 0 ? 
+        (this.metrics.taskCompletions.success / totalInteractions) * 100 : 0,
+      averageTurnCount: this.calculateAverage(this.metrics.turnCounts),
+      averageResponseTime: this.calculateAverage(this.metrics.responseTimes),
+      averageWordErrorRate: this.calculateAverage(this.metrics.wordErrorRate),
+      averageUserRating: this.calculateAverage(this.metrics.userRatings),
+      interactionBreakdown: this.getInteractionBreakdown(),
+    };
+  }
+  
+  // Helper methods...
+}
+```
+
+## Next Steps
+
+- Explore [Voice-to-Voice](../voice-to-voice) capabilities for real-time interactions
+- Learn about [Adding Voice to Agents](../../agents/adding-voice) for implementation details
+- See [Common Use Cases](./common) for practical implementation examples
+- Compare [Voice Providers](../../reference/voice/providers) to select the best option for your needs

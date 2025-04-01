@@ -1,0 +1,216 @@
+---
+title: Getting Started with Voice | Mastra Docs
+description: A step-by-step guide to implementing voice capabilities in your Mastra applications, from installation to basic usage patterns.
+---
+
+# Getting Started with Voice
+
+This guide will walk you through the process of adding voice capabilities to your Mastra application, from installation to implementation of basic voice interactions.
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- A Mastra project set up
+- API keys for at least one voice provider (e.g., OpenAI, ElevenLabs)
+- Basic understanding of TypeScript and async/await patterns
+
+## Installation
+
+First, install the core voice package and at least one provider:
+
+```bash
+# Install the core voice package
+npm install @mastra/core
+
+# Install one or more voice providers
+npm install @mastra/voice-openai
+# or
+npm install @mastra/voice-elevenlabs
+# or
+npm install @mastra/voice-playai
+```
+
+## Quick Start: Text-to-Speech
+
+The simplest way to get started is with text-to-speech functionality:
+
+```typescript
+import { OpenAIVoice } from "@mastra/voice-openai";
+
+// Initialize the voice provider
+const voice = new OpenAIVoice({
+  speechModel: {
+    name: 'tts-1-hd',
+    apiKey: process.env.OPENAI_API_KEY,
+  },
+  speaker: 'alloy', // Voice ID
+});
+
+// Convert text to speech
+async function speakText() {
+  try {
+    const audioStream = await voice.speak("Hello! This is my first Mastra voice application.");
+    
+    // The audioStream is a standard Node.js ReadableStream
+    // How you play it depends on your environment:
+    
+    // Pipe to a file or audio player
+    audioStream.pipe(fs.createWriteStream('output.mp3'));
+    
+  } catch (error) {
+    console.error("Error generating speech:", error);
+  }
+}
+
+speakText();
+```
+
+## Quick Start: Speech-to-Text
+
+To implement basic speech transcription:
+
+```typescript
+import { OpenAIVoice } from "@mastra/voice-openai";
+
+// Initialize the voice provider with listening model
+const voice = new OpenAIVoice({
+  listeningModel: {
+    name: 'whisper-1',
+    apiKey: process.env.OPENAI_API_KEY,
+  },
+});
+
+// Convert speech to text
+async function transcribeAudio(audioFilePath) {
+  try {
+    // Create a readable stream from your audio source
+    const audioStream = fs.createReadStream(audioFilePath);
+    
+    // Transcribe the audio
+    const transcript = await voice.listen(audioStream, {
+      filetype: 'mp3', // Specify the audio format
+    });
+    
+    console.log("Transcription:", transcript);
+    return transcript;
+    
+  } catch (error) {
+    console.error("Error transcribing audio:", error);
+  }
+}
+
+transcribeAudio('input.mp3');
+```
+
+## Adding Voice to an Agent
+
+The most common use case is adding voice capabilities to an agent:
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { OpenAIVoice } from "@mastra/voice-openai";
+
+// Create a voice-enabled agent
+const agent = new Agent({
+  name: 'CustomerSupport',
+  instructions: 'You are a helpful customer support assistant.',
+  model: openai('gpt-4o'),
+  voice: new OpenAIVoice({
+    speechModel: {
+      name: 'tts-1-hd',
+      apiKey: process.env.OPENAI_API_KEY,
+    },
+    listeningModel: {
+      name: 'whisper-1',
+      apiKey: process.env.OPENAI_API_KEY,
+    },
+    speaker: 'alloy',
+  }),
+});
+
+// Use the agent with voice
+async function handleCustomerQuery(audioInput) {
+  // Transcribe customer audio
+  const transcript = await agent.voice.listen(audioInput);
+  
+  // Generate a response from the agent
+  const response = await agent.generate(transcript);
+  
+  // Convert the response to speech
+  const audioStream = await agent.voice.speak(response.text);
+  
+  return {
+    transcript,
+    responseText: response.text,
+    audioStream,
+  };
+}
+```
+
+## Using Multiple Voice Providers
+
+You can combine the strengths of different providers using `CompositeVoice`:
+
+```typescript
+import { CompositeVoice } from "@mastra/core/voice";
+import { OpenAIVoice } from "@mastra/voice-openai";
+import { ElevenLabsVoice } from "@mastra/voice-elevenlabs";
+
+// Initialize individual providers
+const openAIVoice = new OpenAIVoice({
+  listeningModel: {
+    name: 'whisper-1',
+    apiKey: process.env.OPENAI_API_KEY,
+  },
+});
+
+const elevenLabsVoice = new ElevenLabsVoice({
+  speechModel: {
+    name: 'eleven_multilingual_v2',
+    apiKey: process.env.ELEVENLABS_API_KEY,
+  },
+  speaker: '9BWtsMINqrJLrRacOk9x', // Aria voice
+});
+
+// Combine the providers
+const voice = new CompositeVoice({
+  listeningProvider: openAIVoice,    // Use OpenAI for STT
+  speakingProvider: elevenLabsVoice, // Use ElevenLabs for TTS
+});
+
+// Now use the composite voice
+const transcript = await voice.listen(audioStream);
+const responseAudio = await voice.speak(`You said: ${transcript}`);
+```
+
+## Environment Setup
+
+It's recommended to store API keys in environment variables:
+
+```
+# .env file
+OPENAI_API_KEY=your-openai-api-key
+ELEVENLABS_API_KEY=your-elevenlabs-api-key
+PLAYAI_API_KEY=your-playai-api-key
+PLAYAI_USER_ID=your-playai-user-id
+```
+
+Then load them using a package like dotenv:
+
+```typescript
+import dotenv from 'dotenv';
+dotenv.config();
+
+// Now process.env.OPENAI_API_KEY etc. are available
+```
+
+## Next Steps
+
+Now that you have a basic understanding of voice implementation:
+
+- Learn more about [Text-to-Speech](./text-to-speech) capabilities
+- Explore [Speech-to-Text](./speech-to-text) options
+- Discover [Voice-to-Voice](./voice-to-voice) for real-time interactions
+- Compare different [Voice Providers](../reference/voice/providers) to choose the best fit
+- See [Common Use Cases](./use-cases/common) for real-world implementation patterns

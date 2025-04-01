@@ -1,25 +1,29 @@
 ---
 title: Speech-to-Text (STT) in Mastra | Mastra Docs
-description: Overview of Speech-to-Text capabilities in Mastra, including configuration, usage, and integration with voice providers.
+description: A comprehensive guide to implementing Speech-to-Text capabilities in Mastra, from basic audio transcription to advanced configuration and best practices.
 ---
+
+import { Callout } from "nextra/components";
 
 # Speech-to-Text (STT)
 
-Speech-to-Text (STT) in Mastra provides a standardized interface for converting audio input into text across multiple service providers. This section covers STT configuration and usage. Check out the [Adding Voice to Agents](../agents/adding-voice.mdx) documentation to learn how to use STT in an agent.
+<Callout>
+  Speech-to-Text (STT) converts spoken audio into written text, enabling your applications to understand and process voice input from users.
+</Callout>
 
-## Speech Configuration
+## Overview
 
-To use STT in Mastra, you need to provide a `listeningModel` configuration when initializing the voice provider. This configuration includes parameters such as:
+Speech-to-Text in Mastra provides a standardized interface for converting audio input into text across multiple service providers. The system is designed to handle various audio formats, languages, and specialized domains while maintaining a consistent API.
 
-- **`name`**: The specific STT model to use.
-- **`apiKey`**: Your API key for authentication.
-- **Provider-specific options**: Additional options that may be required or supported by the specific voice provider.
+## Quick Start
 
-**Note**: All of these parameters are optional. You can use the default settings provided by the voice provider, which will depend on the specific provider you are using.
-
-### Example Configuration
+Here's a minimal example to get started with STT using OpenAI:
 
 ```typescript
+import { OpenAIVoice } from "@mastra/voice-openai";
+import fs from 'fs';
+
+// Initialize the voice provider with default settings
 const voice = new OpenAIVoice({
   listeningModel: {
     name: "whisper-1",
@@ -27,19 +31,241 @@ const voice = new OpenAIVoice({
   },
 });
 
-// If using default settings the configuration can be simplified to:
-const voice = new OpenAIVoice();
+// Convert speech to text
+async function transcribeAudio(audioFilePath) {
+  // Create a readable stream from your audio source
+  const audioStream = fs.createReadStream(audioFilePath);
+  
+  // Transcribe the audio
+  const transcript = await voice.listen(audioStream, {
+    filetype: 'mp3', // Specify the audio format
+  });
+  
+  console.log("Transcription:", transcript);
+  return transcript;
+}
+
+transcribeAudio('recording.mp3');
 ```
 
-## Using the Listen Method
+## STT Configuration
 
-The primary method for STT is the `listen()` method, which converts spoken audio into text. Here's how to use it:
+To customize your STT implementation, you can provide a `listeningModel` configuration when initializing the voice provider:
 
 ```typescript
-const audioStream = getMicrophoneStream(); // Assume this function gets audio input
-const transcript = await voice.listen(audioStream, {
-  filetype: "m4a", // Optional: specify the audio file type
+const voice = new OpenAIVoice({
+  listeningModel: {
+    name: "whisper-1",            // The specific STT model to use
+    apiKey: process.env.OPENAI_API_KEY,  // Your API key
+  },
 });
 ```
 
-**Note**: If you are using a voice-to-voice provider, such as `OpenAIRealtimeVoice`, the `listen()` method will emit a "writing" event instead of returning a transcript directly.
+### Common Configuration Parameters
+
+| Parameter | Description | Example Values |
+| --- | --- | --- |
+| `name` | The model identifier | `'whisper-1'`, `'nova-2'`, `'saarika:v2'` |
+| `apiKey` | Provider API authentication key | Environment variable recommended |
+| `language` | Target language (optional) | ISO code (`'en'`, `'fr'`, `'es'`) |
+
+## Using the Listen Method
+
+The primary method for STT is the `listen()` method, which converts audio to text:
+
+```typescript
+// Basic usage with file stream
+const audioStream = fs.createReadStream('recording.wav');
+const transcript = await voice.listen(audioStream);
+
+// With custom options
+const transcript = await voice.listen(audioStream, {
+  filetype: 'wav',        // Audio format
+  language: 'en-US',      // Language hint
+  timestamps: true,       // Get word timestamps (if supported)
+});
+```
+
+## Audio Input Sources
+
+The `listen()` method accepts a standard Node.js `ReadableStream`. You can source this audio from various inputs:
+
+### File System
+
+```typescript
+import fs from 'fs';
+const audioStream = fs.createReadStream('recording.mp3');
+```
+
+### Microphone (Node.js)
+
+```typescript
+import mic from 'mic'; // or similar library
+
+const micInstance = mic({
+  rate: '16000',
+  channels: '1',
+  fileType: 'wav',
+});
+
+const micStream = micInstance.getAudioStream();
+micInstance.start();
+
+// For short recordings
+setTimeout(() => {
+  micInstance.stop();
+  voice.listen(micStream).then(transcript => {
+    console.log("You said:", transcript);
+  });
+}, 5000); // Record for 5 seconds
+```
+
+## Provider Comparison
+
+Different STT providers have unique strengths:
+
+| Provider | Accuracy | Languages | Latency | Special Features |
+| --- | --- | --- | --- | --- |
+| OpenAI (Whisper) | Very High | 100+ | Medium | Multilingual support |
+| Deepgram | High | 40+ | Low | Real-time streaming |
+| Google | High | 120+ | Low | Custom vocabularies |
+| ElevenLabs | Medium-High | 30+ | Medium | Speaker diarization |
+| Sarvam | High | 10+ | Medium | Indian language expertise |
+
+## Handling Audio Files
+
+### Supported Audio Formats
+
+Most providers support these common formats:
+
+- **MP3**: Widely supported, good compression
+- **WAV**: Uncompressed, highest quality
+- **OGG**: Open format with good compression
+- **WEBM**: Common for browser-recorded audio
+
+Always specify the correct format using the `filetype` option:
+
+```typescript
+const transcript = await voice.listen(audioStream, {
+  filetype: 'mp3' // or 'wav', 'ogg', 'webm', etc.
+});
+```
+
+### Optimizing Audio for Transcription
+
+For best results:
+
+1. **Sample rate**: 16kHz or higher
+2. **Bit depth**: 16-bit
+3. **Channels**: Mono (single channel)
+4. **Audio quality**: Clear with minimal background noise
+5. **Duration**: Split long recordings (>10 minutes) into smaller chunks
+
+## Advanced Usage
+
+### Language Detection and Specification
+
+For multilingual applications:
+
+```typescript
+// Let the model detect the language (supported by most providers)
+const transcript = await voice.listen(audioStream);
+
+// Specify a language for better accuracy
+const transcript = await voice.listen(audioStream, {
+  language: 'fr-FR', // French
+});
+
+// Get language detection results (provider-specific)
+const result = await deepgramVoice.listen(audioStream, {
+  detectLanguage: true,
+});
+console.log(`Detected language: ${result.languageCode}`);
+```
+
+### Real-time Transcription
+
+Some providers support streaming transcription:
+
+```typescript
+import { DeepgramVoice } from "@mastra/voice-deepgram";
+
+const voice = new DeepgramVoice();
+const micStream = getMicrophoneStream();
+
+// Stream mode returns partial results as they're processed
+voice.listen(micStream, { stream: true })
+  .on('transcription', (partial) => {
+    console.log("Partial:", partial.text);
+  })
+  .on('final', (final) => {
+    console.log("Final:", final.text);
+  });
+```
+
+### Post-processing Transcriptions
+
+Improve accuracy with post-processing:
+
+```typescript
+// Apply text normalization to transcription results
+function normalizeTranscription(text) {
+  return text
+    // Fix common errors
+    .replace(/(\d),(\d)/g, '$1.$2') // Fix comma/decimal confusion
+    .replace(/(\w)\.(\w)/g, '$1,$2') // Fix period/comma confusion
+    .replace(/(\d)([a-zA-Z])/g, '$1 $2') // Add space between numbers and words
+    // Domain-specific corrections
+    .replace(/API/g, 'API')
+    .replace(/HTTPS/g, 'HTTPS')
+    .replace(/URL/g, 'URL');
+}
+
+const transcript = await voice.listen(audioStream);
+const normalized = normalizeTranscription(transcript);
+```
+
+## Best Practices
+
+### Improve Transcription Accuracy
+
+- **Reduce background noise** in the recording environment
+- **Position microphones correctly** for clear audio capture
+- **Consider domain-specific vocabulary** for specialized contexts
+- **Use the highest quality audio** your system can handle
+- **Specify the expected language** when known
+
+### Optimize for Performance
+
+- **Balance accuracy vs. speed** by selecting appropriate models
+- **Process audio in smaller chunks** for faster response times
+- **Implement audio preprocessing** to remove noise when possible
+- **Cache results** for frequently transcribed audio
+
+## Troubleshooting
+
+### Poor Transcription Quality
+
+- Check audio quality (noise, clarity, volume)
+- Try specifying the language explicitly
+- Use a higher-quality model if available
+- Consider pre-processing audio to remove background noise
+
+### API Authentication Errors
+
+- Verify your API key is correct
+- Check if you've reached API rate limits
+- Ensure your account has access to the requested model
+
+### File Format Issues
+
+- Confirm the audio format matches the specified `filetype` parameter
+- Try converting to a universally supported format (like WAV)
+- Check if the audio file is corrupted
+
+## Next Steps
+
+- Explore [Text-to-Speech](./text-to-speech) to enable bi-directional voice interactions
+- Learn about [Voice-to-Voice](./voice-to-voice) for real-time conversations
+- See how to use [CompositeVoice](../reference/voice/composite-voice) to mix providers
+- Browse available [Voice Providers](../reference/voice/providers) to select the best option
