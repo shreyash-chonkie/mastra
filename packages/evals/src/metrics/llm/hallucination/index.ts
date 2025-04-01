@@ -1,7 +1,7 @@
 import { Metric } from '@mastra/core/eval';
 import type { LanguageModel } from '@mastra/core/llm';
 import { Hallucination } from '../../../evaluators/llm/hallucination/index';
-import type { MetricResultWithReason } from '../types';
+import type { MetricResultWithReason } from '../../../evaluators/types';
 
 export interface HallucinationMetricOptions {
   scale?: number;

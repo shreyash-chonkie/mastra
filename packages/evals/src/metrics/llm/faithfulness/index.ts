@@ -1,7 +1,7 @@
 import { Metric } from '@mastra/core/eval';
 import type { LanguageModel } from '@mastra/core/llm';
 import { Faithfulness } from '../../../evaluators/llm/faithfulness/index';
-import type { MetricResultWithReason } from '../types';
+import type { MetricResultWithReason } from '../../../evaluators/types';
 
 export interface FaithfulnessMetricOptions {
   scale?: number;

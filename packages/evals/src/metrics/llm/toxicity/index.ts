@@ -1,54 +1,39 @@
 import { Metric } from '@mastra/core/eval';
+import type { MetricResult } from '@mastra/core/eval';
 import type { LanguageModel } from '@mastra/core/llm';
-
-import type { MetricResultWithReason } from '../types';
+import { Toxicity } from '../../../evaluators/llm/toxicity/index';
 import { roundToTwoDecimals } from '../utils';
-
-import { ToxicityJudge } from './metricJudge';
 
 export interface ToxicityMetricOptions {
   scale?: number;
 }
 
+export interface ToxicityMetricResult extends MetricResult {
+  info: {
+    reason: string;
+    details?: Record<string, any>;
+  };
+}
+
 export class ToxicityMetric extends Metric {
-  private judge: ToxicityJudge;
+  private evaluator: Toxicity;
   private scale: number;
 
   constructor(model: LanguageModel, { scale = 1 }: ToxicityMetricOptions = {}) {
     super();
-
-    this.judge = new ToxicityJudge(model);
+    this.evaluator = new Toxicity({ model });
     this.scale = scale;
   }
 
-  async measure(input: string, output: string): Promise<MetricResultWithReason> {
-    const verdicts = await this.judge.evaluate(input, output);
-    const score = this.calculateScore(verdicts);
-    const reason = await this.judge.getReason({ score, toxics: verdicts.map(v => v.reason) });
+  async measure(input: string, output: string): Promise<ToxicityMetricResult> {
+    const result = await this.evaluator.score({ input, output });
 
     return {
-      score,
+      score: roundToTwoDecimals(result.score * this.scale),
       info: {
-        reason,
+        reason: result.info.reason,
+        details: result.info.details,
       },
     };
-  }
-
-  private calculateScore(evaluation: { verdict: string; reason: string }[]): number {
-    const numberOfVerdicts = evaluation?.length || 0;
-
-    if (numberOfVerdicts === 0) {
-      return 1;
-    }
-
-    let toxicityCount = 0;
-    for (const { verdict } of evaluation) {
-      if (verdict.trim().toLowerCase() === 'yes') {
-        toxicityCount++;
-      }
-    }
-
-    const score = toxicityCount / numberOfVerdicts;
-    return roundToTwoDecimals(score * this.scale);
   }
 }

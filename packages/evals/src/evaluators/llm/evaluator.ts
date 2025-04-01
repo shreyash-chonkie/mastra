@@ -142,8 +142,6 @@ export class LLMEvaluator {
       context: this.settings.context,
     });
 
-    console.log(score, details);
-
     const reason = await this.reason({
       input,
       output,
@@ -152,6 +150,8 @@ export class LLMEvaluator {
       outcomes,
       context: this.settings.context,
     });
+
+    console.log(score, details, reason);
 
     return {
       score,

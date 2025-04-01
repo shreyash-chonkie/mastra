@@ -8,15 +8,17 @@ export interface PromptAlignmentMetricOptions {
   instructions: string[];
 }
 
+type PromptAlignmentScoreDetails = {
+  totalInstructions: number;
+  applicableInstructions: number;
+  followedInstructions: number;
+  naInstructions: number;
+};
+
 export interface PromptAlignmentMetricResult extends MetricResult {
   info: {
     reason: string;
-    scoreDetails: {
-      totalInstructions: number;
-      applicableInstructions: number;
-      followedInstructions: number;
-      naInstructions: number;
-    };
+    scoreDetails: PromptAlignmentScoreDetails;
     details?: Record<string, any>;
   };
 }
@@ -32,11 +34,13 @@ export class PromptAlignmentMetric extends Metric {
   async measure(input: string, output: string): Promise<PromptAlignmentMetricResult> {
     const result = await this.evaluator.score({ input, output });
 
+    console.log(result);
+
     return {
       score: result.score,
       info: {
         reason: result.info.reason,
-        scoreDetails: result.info.details?.scoreDetails || {
+        scoreDetails: (result.info.details as PromptAlignmentScoreDetails) || {
           totalInstructions: 0,
           applicableInstructions: 0,
           followedInstructions: 0,
