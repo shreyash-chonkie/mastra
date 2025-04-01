@@ -1,6 +1,6 @@
 import { Metric } from '@mastra/core/eval';
 import type { MetricResult } from '@mastra/core/eval';
-import stringSimilarity from 'string-similarity';
+import { ContentSimilarity } from '../../../evaluators/code/content-similarity';
 
 interface ContentSimilarityResult extends MetricResult {
   info: {
@@ -14,36 +14,21 @@ interface ContentSimilarityOptions {
 }
 
 export class ContentSimilarityMetric extends Metric {
-  private options: ContentSimilarityOptions;
+  private evaluator: ContentSimilarity;
 
   constructor(options: ContentSimilarityOptions = {}) {
     super();
-    this.options = {
-      ignoreCase: true,
-      ignoreWhitespace: true,
-      ...options,
-    };
+    this.evaluator = new ContentSimilarity(options);
   }
 
   async measure(input: string, output: string): Promise<ContentSimilarityResult> {
-    let processedInput = input;
-    let processedOutput = output;
-
-    if (this.options.ignoreCase) {
-      processedInput = processedInput.toLowerCase();
-      processedOutput = processedOutput.toLowerCase();
-    }
-
-    if (this.options.ignoreWhitespace) {
-      processedInput = processedInput.replace(/\s+/g, ' ').trim();
-      processedOutput = processedOutput.replace(/\s+/g, ' ').trim();
-    }
-
-    const similarity = stringSimilarity.compareTwoStrings(processedInput, processedOutput);
+    const result = await this.evaluator.score({ input, output });
 
     return {
-      score: similarity,
-      info: { similarity },
+      score: result.score,
+      info: {
+        similarity: result.score,
+      },
     };
   }
 }

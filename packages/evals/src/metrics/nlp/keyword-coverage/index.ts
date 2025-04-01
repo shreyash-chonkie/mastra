@@ -1,6 +1,6 @@
 import { Metric } from '@mastra/core/eval';
 import type { MetricResult } from '@mastra/core/eval';
-import keyword_extractor from 'keyword-extractor';
+import { KeywordCoverage } from '../../../evaluators/code/keyword-coverage';
 
 interface KeywordCoverageResult extends MetricResult {
   info: {
@@ -9,40 +9,29 @@ interface KeywordCoverageResult extends MetricResult {
   };
 }
 
+interface KeywordCoverageOptions {
+  language?: string;
+  removeDigits?: boolean;
+  returnChangedCase?: boolean;
+  removeDuplicates?: boolean;
+}
+
 export class KeywordCoverageMetric extends Metric {
+  private evaluator: KeywordCoverage;
+
+  constructor(options: KeywordCoverageOptions = {}) {
+    super();
+    this.evaluator = new KeywordCoverage(options);
+  }
+
   async measure(input: string, output: string): Promise<KeywordCoverageResult> {
-    // Handle empty strings case
-    if (!input && !output) {
-      return {
-        score: 1,
-        info: {
-          totalKeywords: 0,
-          matchedKeywords: 0,
-        },
-      };
-    }
-
-    const extractKeywords = (text: string) => {
-      return keyword_extractor.extract(text, {
-        language: 'english',
-        remove_digits: true,
-        return_changed_case: true,
-        remove_duplicates: true,
-      });
-    };
-
-    const referenceKeywords = new Set(extractKeywords(input));
-    const responseKeywords = new Set(extractKeywords(output));
-
-    const matchedKeywords = [...referenceKeywords].filter(k => responseKeywords.has(k));
-    const totalKeywords = referenceKeywords.size;
-    const coverage = totalKeywords > 0 ? matchedKeywords.length / totalKeywords : 0;
+    const result = await this.evaluator.score({ input, output });
 
     return {
-      score: coverage,
+      score: result.score,
       info: {
-        totalKeywords: referenceKeywords.size,
-        matchedKeywords: matchedKeywords.length,
+        totalKeywords: result.info?.details?.totalKeywords ?? 0,
+        matchedKeywords: result.info?.details?.matchedKeywords ?? 0,
       },
     };
   }
