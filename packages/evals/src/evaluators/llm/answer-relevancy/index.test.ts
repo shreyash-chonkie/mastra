@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import type { TestCase } from '../types';
 import { isCloserTo } from '../utils';
 
-import { createAnswerRelevancy } from './index';
+import { AnswerRelevancy } from './index';
 
 const testCases: TestCase[] = [
   {
@@ -102,7 +102,7 @@ const model = openai('gpt-4o');
 describe(
   'AnswerRelevancyEvaluator',
   () => {
-    const evaluator = createAnswerRelevancy({
+    const evaluator = new AnswerRelevancy({
       model,
       scale: 1,
     });

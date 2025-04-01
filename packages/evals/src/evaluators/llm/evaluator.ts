@@ -2,7 +2,14 @@ import type { LanguageModel } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
 import { z } from 'zod';
 import type { MetricResultWithReason } from '../../metrics/llm/types';
-import type { LLMEvaluatorEvalPrompt, LLMEvaluatorReasonPrompt, LLMEvaluatorScorer } from './types';
+import type { LLMEvaluatorEvalPrompt, LLMEvaluatorReasonPrompt, LLMEvaluatorScorer, Outcome } from './types';
+
+export interface EvaluatorSettings {
+  scale?: number;
+  uncertaintyWeight?: number;
+  context?: string[];
+  [key: string]: any; // Allow for additional settings
+}
 
 export interface EvaluatorConfig {
   name: string;
@@ -11,8 +18,7 @@ export interface EvaluatorConfig {
   evalPrompt?: LLMEvaluatorEvalPrompt;
   scorer: LLMEvaluatorScorer;
   model: LanguageModel;
-  scale?: number;
-  uncertaintyWeight?: number;
+  settings?: EvaluatorSettings;
 }
 
 export interface EvaluationResult {
@@ -27,8 +33,7 @@ export interface EvaluationResult {
  */
 export class LLMEvaluator {
   protected agent: Agent;
-  protected scale: number;
-  protected uncertaintyWeight: number;
+  protected settings: EvaluatorSettings;
   protected name: string;
   protected reasonPrompt?: LLMEvaluatorReasonPrompt;
   protected evalPrompt?: LLMEvaluatorEvalPrompt;
@@ -36,8 +41,7 @@ export class LLMEvaluator {
 
   constructor(config: EvaluatorConfig) {
     this.name = config.name;
-    this.scale = config.scale || 1;
-    this.uncertaintyWeight = config.uncertaintyWeight || 0;
+    this.settings = config.settings || {};
     this.agent = new Agent({
       name: `Mastra Evaluator: ${config.name}`,
       instructions: config.instructions,
@@ -53,13 +57,15 @@ export class LLMEvaluator {
     output,
     score,
     scale,
-    verdicts,
+    context,
+    outcomes,
   }: {
     input: string;
     output: string;
     score: number;
     scale: number;
-    verdicts: { verdict: string; reason: string }[];
+    context?: string[];
+    outcomes: Outcome[];
   }): Promise<string> {
     const prompt = await Promise.resolve(
       this.reasonPrompt?.({
@@ -68,7 +74,8 @@ export class LLMEvaluator {
         output,
         score,
         scale,
-        verdicts,
+        outcomes,
+        context,
       }),
     );
 
@@ -85,12 +92,21 @@ export class LLMEvaluator {
     return result.object.reason;
   }
 
-  async evaluate(input: string, actualOutput: string): Promise<{ verdict: string; reason: string }[]> {
+  async evaluate({
+    input,
+    output,
+    context,
+  }: {
+    input: string;
+    output: string;
+    context?: string[];
+  }): Promise<Outcome[]> {
     const prompt = await Promise.resolve(
       this.evalPrompt?.({
         agent: this.agent,
         input,
-        output: actualOutput,
+        output,
+        context,
       }),
     );
 
@@ -100,22 +116,39 @@ export class LLMEvaluator {
 
     const result = await this.agent.generate(prompt, {
       output: z.object({
-        verdicts: z.array(
+        outcomes: z.array(
           z.object({
-            verdict: z.string(),
+            outcome: z.string(),
             reason: z.string(),
+            claim: z.string(),
           }),
         ),
       }),
     });
 
-    return result.object.verdicts;
+    return result.object.outcomes;
   }
 
-  async score(input: string, output: string): Promise<MetricResultWithReason> {
-    const verdicts = await this.evaluate(input, output);
-    const score = this.scorer({ verdicts, scale: this.scale, uncertaintyWeight: this.uncertaintyWeight });
-    const reason = await this.reason({ input, output, score, scale: this.scale, verdicts });
+  async score({ input, output }: { input: string; output: string }): Promise<MetricResultWithReason> {
+    const outcomes = await this.evaluate({ input, output, context: this.settings.context });
+    const scale = this.settings.scale ?? 1;
+    const uncertaintyWeight = this.settings.uncertaintyWeight ?? 0;
+
+    const score = this.scorer({
+      outcomes,
+      scale,
+      uncertaintyWeight,
+      context: this.settings.context,
+    });
+
+    const reason = await this.reason({
+      input,
+      output,
+      score,
+      scale,
+      outcomes,
+      context: this.settings.context,
+    });
 
     return {
       score,

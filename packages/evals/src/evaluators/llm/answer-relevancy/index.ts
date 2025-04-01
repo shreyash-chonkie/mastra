@@ -1,30 +1,30 @@
 import type { MastraLanguageModel } from '@mastra/core/agent';
 import { LLMEvaluator } from '../evaluator';
-import { calculateScore } from '../utils';
-import { AGENT_INSTRUCTIONS, generateReasonPrompt, generateEvaluationPrompt } from './prompts';
+import { ANSWER_RELEVANCY_INSTRUCTIONS, generateReasonPrompt, generateEvaluationPrompt } from './prompts';
+import { calculateAnswerRelevancyScore } from './score';
 
-/**
- * Creates an Answer Relevancy evaluator
- * @param options Configuration options for the evaluator
- * @returns A new LLMEvaluator instance configured for answer relevancy evaluation
- */
-export function createAnswerRelevancy({
-  model,
-  scale = 1,
-  uncertaintyWeight = 0.5,
-}: {
+export interface AnswerRelevancyOptions {
   model: MastraLanguageModel;
   scale?: number;
   uncertaintyWeight?: number;
-}): LLMEvaluator {
+}
+
+/**
+ * Creates an answer relevancy evaluator
+ * @param options Options for the evaluator
+ * @returns A new LLMEvaluator instance
+ */
+export function createAnswerRelevancyEvaluator(options: AnswerRelevancyOptions): LLMEvaluator {
   return new LLMEvaluator({
     name: 'Answer Relevancy',
-    instructions: AGENT_INSTRUCTIONS,
-    model,
+    instructions: ANSWER_RELEVANCY_INSTRUCTIONS,
+    model: options.model,
     reasonPrompt: generateReasonPrompt,
     evalPrompt: generateEvaluationPrompt,
-    scorer: calculateScore,
-    scale,
-    uncertaintyWeight,
+    scorer: calculateAnswerRelevancyScore,
+    settings: {
+      scale: options.scale ?? 1,
+      uncertaintyWeight: options.uncertaintyWeight ?? 0.5,
+    },
   });
 }

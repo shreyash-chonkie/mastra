@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { LLMEvaluatorPromptArgs, LLMEvaluatorReasonPromptArgs } from '../types';
 
-export const AGENT_INSTRUCTIONS = `
+export const ANSWER_RELEVANCY_INSTRUCTIONS = `
     You are a balanced and nuanced answer relevancy evaluator. Your job is to determine if LLM outputs are relevant to the input, including handling partially relevant or uncertain cases.
 
     Key Principles:
@@ -11,32 +11,6 @@ export const AGENT_INSTRUCTIONS = `
     4. Recognize that responses can be partially relevant
     5. Empty inputs or error messages should always be marked as "no"
     6. Responses that discuss the type of information being asked show partial relevance
-`;
-
-export const EXTRACT_STATEMENTS_PROMPT = `
-    Given the text, break it down into meaningful statements while preserving context and relationships.
-    Don't split too aggressively.
-
-    Split compound statements particularly when they:
-    - Are joined by "and"
-    - Contain multiple distinct facts or claims
-    - Have multiple descriptive elements about the subject
-
-    Handle special cases:
-    - A single word answer should be treated as a complete statement
-    - Error messages should be treated as a single statement
-    - Empty strings should return an empty list
-    - When splitting text, keep related information together
-
-    Example:
-    Example text: Look! A bird! Birds are an interesting animal.
-
-    {{
-        "statements": ["Look!", "A bird!", "Birds are interesting animals."]
-    }}
-
-    Please return only JSON format with "statements" array.
-    Return empty list for empty input.
 `;
 
 export function generateEvaluationStatementsPrompt({ output }: { output: string }) {
@@ -72,13 +46,13 @@ export function generateEvaluationStatementsPrompt({ output }: { output: string 
   `;
 }
 
-export function generateReasonPrompt({ input, output, score, scale, verdicts }: LLMEvaluatorReasonPromptArgs) {
+export function generateReasonPrompt({ input, output, score, scale, outcomes }: LLMEvaluatorReasonPromptArgs) {
   return `Explain the irrelevancy score where 0 is the lowest and ${scale} is the highest for the LLM's response using this context:
     Context:
     Input: ${input}
     Output: ${output}
     Score: ${score}
-    Verdicts: ${JSON.stringify(verdicts)}
+    Outcomes: ${JSON.stringify(outcomes)}
     
     Rules:
     - Explain score based on mix of direct answers and related context
@@ -182,43 +156,43 @@ export function generateEvaluatePrompt({ input, statements }: { input: string; s
       ]
       JSON:
       {{
-          "verdicts": [
+          "outcomes": [
               {{
-                  "verdict": "yes",
+                  "outcome": "yes",
                   "reason": "This statement explicitly answers what color the sky is during daytime"
               }},
               {{
-                  "verdict": "unsure",
+                  "outcome": "unsure",
                   "reason": "This statement describes the sky but doesn't address its color"
               }},
               {{
-                  "verdict": "no",
+                  "outcome": "no",
                   "reason": "This statement about breakfast is completely unrelated to the sky"
               }},
               {{
-                  "verdict": "unsure",
+                  "outcome": "unsure",
                   "reason": "This statement about blue is related to color but doesn't address the sky"
               }},
               {{
-                  "verdict": "unsure",
+                  "outcome": "unsure",
                   "reason": "This statement is about the sky but doesn't address its color"
               }},
               {{
-                  "verdict": "no",
+                  "outcome": "no",
                   "reason": "This statement is empty"
               }},
               {{
-                  "verdict": "unsure",
+                  "outcome": "unsure",
                   "reason": "This statement is incorrect but contains relevant information and still addresses the question"
               }},
               {{
-                  "verdict": "no",
+                  "outcome": "no",
                   "reason": "This statement is about daytime but doesn't address the sky"
               }}
           ]
       }}
   
-  The number of verdicts MUST MATCH the number of statements exactly.
+  The number of outcomes MUST MATCH the number of statements exactly.
   
     Input:
     ${input}
