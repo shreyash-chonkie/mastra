@@ -59,7 +59,7 @@ Make sure you have a local postgres database running at `5433:5432` with the dat
 
 ```bash
 # Setup config keys (one time setup)
-dane config --set ANTHROPIC_API_KEY=""
+dane config --set ANTHROPIC_API_KEY=<your-key>
 ```
 
 ```bash
