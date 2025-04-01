@@ -1,8 +1,8 @@
 import type { LanguageModel } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
 import { z } from 'zod';
-import type { LLMEvaluatorEvalPrompt, LLMEvaluatorReasonPrompt, LLMEvaluatorScorer, Outcome } from './types';
 import type { MetricResultWithReason } from '../types';
+import type { LLMEvaluatorEvalPrompt, LLMEvaluatorReasonPrompt, LLMEvaluatorScorer, Outcome } from './types';
 
 export interface EvaluatorSettings {
   scale?: number;
@@ -20,13 +20,6 @@ export interface EvaluatorConfig {
   model: LanguageModel;
   settings?: EvaluatorSettings;
 }
-
-export interface EvaluationResult {
-  score: number;
-  reason: string;
-  details?: Record<string, any>;
-}
-
 /**
  * Base Evaluator class that combines the functionality of metrics and judges.
  * This class provides a unified interface for evaluating model outputs.
@@ -151,13 +144,11 @@ export class LLMEvaluator {
       context: this.settings.context,
     });
 
-    console.log(score, details, reason);
-
     return {
       score,
       info: {
         reason,
-        details: details ?? {},
+        ...(details ?? {}),
       },
     };
   }

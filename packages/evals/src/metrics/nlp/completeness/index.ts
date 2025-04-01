@@ -8,10 +8,7 @@ export class CompletenessMetric extends Metric {
 
     return {
       score: score.score,
-      info: {
-        ...score.info,
-        ...(score.info?.details ?? {}),
-      },
+      info: score.info,
     };
   }
 }

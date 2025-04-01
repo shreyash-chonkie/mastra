@@ -30,8 +30,8 @@ export class KeywordCoverageMetric extends Metric {
     return {
       score: result.score,
       info: {
-        totalKeywords: result.info?.details?.totalKeywords ?? 0,
-        matchedKeywords: result.info?.details?.matchedKeywords ?? 0,
+        totalKeywords: result.info?.totalKeywords ?? 0,
+        matchedKeywords: result.info?.matchedKeywords ?? 0,
       },
     };
   }

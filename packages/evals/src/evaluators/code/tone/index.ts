@@ -32,10 +32,8 @@ async function score({ input, output }: { input: string; output: string }): Prom
   return {
     score: stability,
     info: {
-      details: {
-        avgSentiment,
-        sentimentVariance: variance,
-      },
+      avgSentiment,
+      sentimentVariance: variance,
     },
   };
 }

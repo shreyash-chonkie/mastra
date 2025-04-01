@@ -11,7 +11,7 @@ describe('CompletenessMetric', () => {
       const result = await evaluator.score({ input: text, output: text });
 
       expect(result.score).toBeCloseTo(1.0);
-      expect(result.info?.details?.elementCounts).toBeDefined();
+      expect(result.info?.elementCounts).toBeDefined();
     });
 
     it('should return lower score for simplified text missing elements', async () => {
@@ -21,8 +21,8 @@ describe('CompletenessMetric', () => {
 
       expect(result.score).toBeLessThan(1.0);
       expect(result.score).toBeGreaterThan(0.5);
-      expect(result.info?.details?.missingElements).toContain('brown');
-      expect(result.info?.details?.missingElements).toContain('lazy');
+      expect(result.info?.missingElements).toContain('brown');
+      expect(result.info?.missingElements).toContain('lazy');
     });
 
     it('should handle completely different texts', async () => {
@@ -41,7 +41,7 @@ describe('CompletenessMetric', () => {
     it('should handle both empty strings', async () => {
       const result = await evaluator.score({ input: '', output: '' });
       expect(result.score).toBe(1);
-      const { input, output } = result.info?.details?.elementCounts as { input: number; output: number };
+      const { input, output } = result.info?.elementCounts as { input: number; output: number };
       expect(input).toBe(0);
       expect(output).toBe(0);
     });
@@ -54,7 +54,7 @@ describe('CompletenessMetric', () => {
     it('should handle whitespace-only strings', async () => {
       const result = await evaluator.score({ input: '   \n  ', output: '  \n  ' });
       expect(result.score).toBe(1);
-      const { input, output } = result.info?.details?.elementCounts as { input: number; output: number };
+      const { input, output } = result.info?.elementCounts as { input: number; output: number };
       expect(input).toBe(0);
       expect(output).toBe(0);
     });
@@ -71,7 +71,7 @@ describe('CompletenessMetric', () => {
     it('should handle lists and enumerations', async () => {
       const result = await evaluator.score({ input: 'apples, oranges, and bananas', output: 'apples and bananas' });
       expect(result.score).toBeLessThan(0.8);
-      expect(result.info?.details?.missingElements).toContain('oranges');
+      expect(result.info?.missingElements).toContain('oranges');
     });
 
     it('should handle repeated elements', async () => {
@@ -88,7 +88,7 @@ describe('CompletenessMetric', () => {
       const result = await evaluator.score({ input: original, output: simplified });
 
       expect(result.score).toBeGreaterThan(0.5);
-      expect(result.info?.details?.missingElements).toBeDefined();
+      expect(result.info?.missingElements).toBeDefined();
     });
   });
 });

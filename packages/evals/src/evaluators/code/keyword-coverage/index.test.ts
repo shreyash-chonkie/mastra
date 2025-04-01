@@ -11,8 +11,8 @@ describe('KeywordCoverage', () => {
       output: 'The quick brown fox jumps over the lazy dog',
     });
     expect(result.score).toBe(1);
-    expect(result.info?.details?.matchedKeywords).toBe(6);
-    expect(result.info?.details?.totalKeywords).toBe(6);
+    expect(result.info?.matchedKeywords).toBe(6);
+    expect(result.info?.totalKeywords).toBe(6);
   });
 
   it('should handle partial keyword coverage', async () => {
@@ -22,8 +22,8 @@ describe('KeywordCoverage', () => {
     });
     expect(result.score).toBeGreaterThan(0.3);
     expect(result.score).toBeLessThan(0.7);
-    const matched = result.info?.details?.matchedKeywords as number;
-    const total = result.info?.details?.totalKeywords as number;
+    const matched = result.info?.matchedKeywords as number;
+    const total = result.info?.totalKeywords as number;
     expect(matched).toBeLessThan(total);
   });
 
@@ -33,8 +33,8 @@ describe('KeywordCoverage', () => {
       output: 'A quick brown fox',
     });
     expect(result.score).toBe(1); // "the" and "a" should be ignored
-    const matched = result.info?.details?.matchedKeywords as number;
-    const total = result.info?.details?.totalKeywords as number;
+    const matched = result.info?.matchedKeywords as number;
+    const total = result.info?.totalKeywords as number;
     expect(matched).toBe(total);
   });
 
@@ -44,8 +44,8 @@ describe('KeywordCoverage', () => {
       output: 'the quick brown fox',
     });
     expect(result.score).toBe(1);
-    const matched = result.info?.details?.matchedKeywords as number;
-    const total = result.info?.details?.totalKeywords as number;
+    const matched = result.info?.matchedKeywords as number;
+    const total = result.info?.totalKeywords as number;
     expect(matched).toBe(total);
   });
 
@@ -55,8 +55,8 @@ describe('KeywordCoverage', () => {
       output: '',
     });
     expect(result.score).toBe(1);
-    expect(result.info?.details?.totalKeywords).toBe(0);
-    expect(result.info?.details?.matchedKeywords).toBe(0);
+    expect(result.info?.totalKeywords).toBe(0);
+    expect(result.info?.matchedKeywords).toBe(0);
   });
 
   it('should handle one empty string', async () => {
@@ -65,8 +65,8 @@ describe('KeywordCoverage', () => {
       output: '',
     });
     expect(result.score).toBe(0);
-    expect(result.info?.details?.matchedKeywords).toBe(0);
-    expect(result.info?.details?.totalKeywords).toBeGreaterThan(0);
+    expect(result.info?.matchedKeywords).toBe(0);
+    expect(result.info?.totalKeywords).toBeGreaterThan(0);
   });
 
   it('should ignore numbers by default', async () => {
@@ -93,7 +93,7 @@ describe('KeywordCoverage', () => {
       output: 'Lorem ipsum dolor sit amet',
     });
     expect(result.score).toBe(0);
-    expect(result.info?.details?.matchedKeywords).toBe(0);
+    expect(result.info?.matchedKeywords).toBe(0);
   });
 
   it('should include coverage details in result', async () => {
@@ -101,7 +101,7 @@ describe('KeywordCoverage', () => {
       input: 'quick brown fox',
       output: 'quick brown fox',
     });
-    expect(result.info?.details?.totalKeywords).toBe(3);
-    expect(result.info?.details?.matchedKeywords).toBe(3);
+    expect(result.info?.totalKeywords).toBe(3);
+    expect(result.info?.matchedKeywords).toBe(3);
   });
 });
