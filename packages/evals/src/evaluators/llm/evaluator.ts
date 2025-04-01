@@ -134,7 +134,7 @@ export class LLMEvaluator {
     const scale = this.settings.scale ?? 1;
     const uncertaintyWeight = this.settings.uncertaintyWeight ?? 0;
 
-    const score = this.scorer({
+    const { score, details } = this.scorer({
       outcomes,
       scale,
       uncertaintyWeight,
@@ -154,6 +154,7 @@ export class LLMEvaluator {
       score,
       info: {
         reason,
+        details: details ?? {},
       },
     };
   }

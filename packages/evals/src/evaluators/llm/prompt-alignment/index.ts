@@ -1,28 +1,28 @@
 import type { MastraLanguageModel } from '@mastra/core/agent';
 import { LLMEvaluator } from '../evaluator';
 import { AGENT_INSTRUCTIONS, generateReasonPrompt, generateEvaluationPrompt } from './prompts';
-import { calculateFaithfulnessScore } from './score';
+import { calculateScore } from './score';
 
-export interface FaithfulnessOptions {
+export interface PromptAlignmentOptions {
   model: MastraLanguageModel;
   scale?: number;
   uncertaintyWeight?: number;
-  context?: string[];
+  context: string[];
 }
 
 /**
- * Faithfulness evaluator class that extends LLMEvaluator
- * Evaluates how factually consistent the output is with the provided context
+ * Prompt Alignment evaluator class that extends LLMEvaluator
+ * Evaluates how well an LLM's output follows the given prompt instructions
  */
-export class Faithfulness extends LLMEvaluator {
-  constructor(options: FaithfulnessOptions) {
+export class PromptAlignment extends LLMEvaluator {
+  constructor(options: PromptAlignmentOptions) {
     super({
-      name: 'Faithfulness',
+      name: 'Prompt Alignment',
       instructions: AGENT_INSTRUCTIONS,
       model: options.model,
       reasonPrompt: generateReasonPrompt,
       evalPrompt: generateEvaluationPrompt,
-      scorer: calculateFaithfulnessScore,
+      scorer: calculateScore,
       settings: {
         scale: options.scale ?? 1,
         uncertaintyWeight: options.uncertaintyWeight ?? 0,

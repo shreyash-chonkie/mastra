@@ -1,9 +1,9 @@
 import type { MastraLanguageModel } from '@mastra/core/agent';
 import { LLMEvaluator } from '../evaluator';
 import { AGENT_INSTRUCTIONS, generateReasonPrompt, generateEvaluationPrompt } from './prompts';
-import { calculateFaithfulnessScore } from './score';
+import { calculateScore } from './score';
 
-export interface FaithfulnessOptions {
+export interface HallucinationOptions {
   model: MastraLanguageModel;
   scale?: number;
   uncertaintyWeight?: number;
@@ -11,18 +11,18 @@ export interface FaithfulnessOptions {
 }
 
 /**
- * Faithfulness evaluator class that extends LLMEvaluator
- * Evaluates how factually consistent the output is with the provided context
+ * Hallucination evaluator class that extends LLMEvaluator
+ * Evaluates how much an LLM's output contains information not supported by the provided context
  */
-export class Faithfulness extends LLMEvaluator {
-  constructor(options: FaithfulnessOptions) {
+export class Hallucination extends LLMEvaluator {
+  constructor(options: HallucinationOptions) {
     super({
-      name: 'Faithfulness',
+      name: 'Hallucination',
       instructions: AGENT_INSTRUCTIONS,
       model: options.model,
       reasonPrompt: generateReasonPrompt,
       evalPrompt: generateEvaluationPrompt,
-      scorer: calculateFaithfulnessScore,
+      scorer: calculateScore,
       settings: {
         scale: options.scale ?? 1,
         uncertaintyWeight: options.uncertaintyWeight ?? 0,
