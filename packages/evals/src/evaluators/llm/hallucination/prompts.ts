@@ -110,7 +110,7 @@ Rules:
 - Allow reasonable approximations and less precise dates
 - Every factual claim must be verified
 - Never use prior knowledge in your judgment
-- Provide clear reasoning for each verdict
+- Provide clear reasoning for each outcome
 - Be specific about what information is or isn't supported by context
 
 Format:

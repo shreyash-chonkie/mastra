@@ -1,8 +1,8 @@
 import type { LanguageModel } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
 import { z } from 'zod';
-import type { MetricResultWithReason } from '../../metrics/llm/types';
 import type { LLMEvaluatorEvalPrompt, LLMEvaluatorReasonPrompt, LLMEvaluatorScorer, Outcome } from './types';
+import type { MetricResultWithReason } from '../types';
 
 export interface EvaluatorSettings {
   scale?: number;
@@ -131,6 +131,7 @@ export class LLMEvaluator {
 
   async score({ input, output }: { input: string; output: string }): Promise<MetricResultWithReason> {
     const outcomes = await this.evaluate({ input, output, context: this.settings.context });
+    console.log(outcomes);
     const scale = this.settings.scale ?? 1;
     const uncertaintyWeight = this.settings.uncertaintyWeight ?? 0;
 
@@ -140,6 +141,8 @@ export class LLMEvaluator {
       uncertaintyWeight,
       context: this.settings.context,
     });
+
+    console.log(score, details);
 
     const reason = await this.reason({
       input,
