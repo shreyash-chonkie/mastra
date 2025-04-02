@@ -2,7 +2,13 @@ import type { LanguageModel } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
 import { z } from 'zod';
 import type { MetricResultWithReason } from '../types';
-import type { LLMEvaluatorEvalPrompt, LLMEvaluatorReasonPrompt, LLMEvaluatorScorer, Outcome } from './types';
+import type {
+  LLMEvaluatorEvalPrompt,
+  LLMEvaluatorReasonPrompt,
+  LLMEvaluatorScorer,
+  LLMEvaluatorScoreResult,
+  Outcome,
+} from './types';
 
 export interface EvaluatorSettings {
   scale?: number;
@@ -55,7 +61,7 @@ export class LLMEvaluator {
   }: {
     input: string;
     output: string;
-    score: number;
+    score: LLMEvaluatorScoreResult;
     scale: number;
     context?: string[];
     outcomes: Outcome[];
@@ -104,7 +110,7 @@ export class LLMEvaluator {
     );
 
     if (!prompt) {
-      prompt = 'No evaluation prompt provided.';
+      return [];
     }
 
     const result = await this.agent.generate(prompt, {
@@ -126,14 +132,17 @@ export class LLMEvaluator {
     const outcomes = await this.evaluate({ input, output, context: this.settings.context });
     console.log(outcomes);
     const scale = this.settings.scale ?? 1;
-    const uncertaintyWeight = this.settings.uncertaintyWeight ?? 0;
 
-    const { score, details } = this.scorer({
-      outcomes,
-      scale,
-      uncertaintyWeight,
-      context: this.settings.context,
-    });
+    const score = await Promise.resolve(
+      this.scorer({
+        outcomes,
+        scale,
+        context: this.settings.context,
+        agent: this.agent,
+        input,
+        output,
+      }),
+    );
 
     const reason = await this.reason({
       input,
@@ -145,10 +154,10 @@ export class LLMEvaluator {
     });
 
     return {
-      score,
+      score: score.score,
       info: {
         reason,
-        ...(details ?? {}),
+        ...(score.details ?? {}),
       },
     };
   }

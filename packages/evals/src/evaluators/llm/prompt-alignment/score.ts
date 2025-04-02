@@ -22,8 +22,6 @@ export function calculateScore({
 }: {
   outcomes: Outcome[];
   scale: number;
-  uncertaintyWeight: number;
-  context?: string[];
 }): PromptAlignmentScoreDetails {
   const totalInstructions = outcomes?.length || 0;
 

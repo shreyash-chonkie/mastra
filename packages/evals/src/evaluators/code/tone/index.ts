@@ -2,6 +2,11 @@ import type { MetricResult } from '@mastra/core/eval';
 import Sentiment from 'sentiment';
 import { CodeEvaluator } from '../evaluator';
 
+export interface ToneOptions {
+  language?: string;
+  extras?: Record<string, number>;
+}
+
 async function score({ input, output }: { input: string; output: string }): Promise<MetricResult> {
   const sentiment = new Sentiment();
   const responseSentiment = sentiment.analyze(input);
@@ -39,7 +44,7 @@ async function score({ input, output }: { input: string; output: string }): Prom
 }
 
 export class ToneConsistency extends CodeEvaluator {
-  constructor() {
-    super(score);
+  constructor(options: ToneOptions = {}) {
+    super(score, options);
   }
 }
