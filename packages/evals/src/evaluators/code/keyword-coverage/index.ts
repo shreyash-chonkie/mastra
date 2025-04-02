@@ -1,4 +1,4 @@
-import type { MetricResult } from '@mastra/core';
+import type { EvaluationResult } from '@mastra/core';
 import keyword_extractor from 'keyword-extractor';
 import { CodeEvaluator } from '../evaluator';
 
@@ -17,7 +17,7 @@ async function score({
   input: string;
   output: string;
   options?: KeywordCoverageOptions;
-}): Promise<MetricResult> {
+}): Promise<EvaluationResult> {
   const defaultOptions = {
     language: 'english',
     removeDigits: true,

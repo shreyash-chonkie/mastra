@@ -1,4 +1,4 @@
-import type { MetricResult } from '@mastra/core';
+import type { EvaluationResult } from '@mastra/core/eval';
 
 export type CodeScorer = ({
   input,
@@ -8,7 +8,7 @@ export type CodeScorer = ({
   input: string;
   output: string;
   options?: Record<string, any>;
-}) => Promise<MetricResult>;
+}) => Promise<EvaluationResult>;
 
 export class CodeEvaluator {
   private scorer: CodeScorer;
@@ -25,7 +25,7 @@ export class CodeEvaluator {
     input: string;
     output: string;
     options?: Record<string, any>;
-  }): Promise<MetricResult> {
+  }): Promise<EvaluationResult> {
     return await this.scorer({ input, output, options: { ...this.options, ...options } });
   }
 }

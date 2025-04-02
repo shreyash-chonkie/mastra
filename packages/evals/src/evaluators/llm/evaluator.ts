@@ -1,7 +1,8 @@
 import type { LanguageModel } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
+import { Evaluator } from '@mastra/core/eval';
+import type { EvaluatorSettings, EvaluationResult } from '@mastra/core/eval';
 import { z } from 'zod';
-import type { MetricResultWithReason } from '../types';
 import type {
   LLMEvaluatorEvalPrompt,
   LLMEvaluatorReasonPrompt,
@@ -9,13 +10,6 @@ import type {
   LLMEvaluatorScoreResult,
   Outcome,
 } from './types';
-
-export interface EvaluatorSettings {
-  scale: number;
-  uncertaintyWeight?: number;
-  context?: string[];
-  [key: string]: any; // Allow for additional settings
-}
 
 export interface EvaluatorConfig {
   name: string;
@@ -26,23 +20,26 @@ export interface EvaluatorConfig {
   model: LanguageModel;
   settings?: EvaluatorSettings;
 }
+
 /**
  * Base Evaluator class that combines the functionality of metrics and judges.
  * This class provides a unified interface for evaluating model outputs.
  */
-export class LLMEvaluator {
+export class LLMEvaluator extends Evaluator {
   protected agent: Agent;
   protected settings: EvaluatorSettings;
-  protected name: string;
+  protected _name: string;
   protected reasonPrompt?: LLMEvaluatorReasonPrompt;
   protected evalPrompt?: LLMEvaluatorEvalPrompt;
   protected scorer: LLMEvaluatorScorer;
 
   constructor(config: EvaluatorConfig) {
-    this.name = config.name;
+    super();
+    this._name = config.name;
     this.settings = config.settings || {
       scale: 1,
       uncertaintyWeight: 0,
+      context: [],
     };
     this.agent = new Agent({
       name: `Mastra Evaluator: ${config.name}`,
@@ -54,18 +51,20 @@ export class LLMEvaluator {
     this.scorer = config.scorer;
   }
 
+  get name(): string {
+    return this._name;
+  }
+
   async reason({
     input,
     output,
     eval_result,
-    scale,
     context,
     outcomes,
   }: {
     input: string;
     output: string;
     eval_result: LLMEvaluatorScoreResult;
-    scale: number;
     context?: string[];
     outcomes: Outcome[];
   }): Promise<string> {
@@ -131,16 +130,23 @@ export class LLMEvaluator {
     return result.object.outcomes;
   }
 
-  async score({ input, output }: { input: string; output: string }): Promise<MetricResultWithReason> {
-    const outcomes = await this.evaluate({ input, output, context: this.settings.context });
-    console.log(outcomes);
-    const scale = this.settings.scale ?? 1;
+  async score({
+    input,
+    output,
+    options,
+  }: {
+    input: string;
+    output: string;
+    options?: Record<string, any>;
+  }): Promise<EvaluationResult> {
+    const context = options?.context || this.settings.context;
+    const outcomes = await this.evaluate({ input, output, context });
 
     const eval_result = await Promise.resolve(
       this.scorer({
         outcomes,
-        settings: this.settings,
-        context: this.settings.context,
+        settings: { ...this.settings, ...options },
+        context,
         agent: this.agent,
         input,
         output,
@@ -151,9 +157,8 @@ export class LLMEvaluator {
       input,
       output,
       eval_result,
-      scale,
       outcomes,
-      context: this.settings.context,
+      context,
     });
 
     return {

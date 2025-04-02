@@ -1,7 +1,6 @@
 import { Metric } from '@mastra/core/eval';
 import type { LanguageModel } from '@mastra/core/llm';
 import { Faithfulness } from '../../../evaluators/llm/faithfulness/index';
-import type { MetricResultWithReason } from '../../../evaluators/types';
 
 export interface FaithfulnessMetricOptions {
   scale?: number;
@@ -16,7 +15,7 @@ export class FaithfulnessMetric extends Metric {
     this.evaluator = new Faithfulness({ model, scale, context });
   }
 
-  async measure(input: string, output: string): Promise<MetricResultWithReason> {
+  async measure(input: string, output: string) {
     return this.evaluator.score({ input, output });
   }
 }

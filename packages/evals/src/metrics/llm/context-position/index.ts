@@ -1,7 +1,6 @@
 import { Metric } from '@mastra/core/eval';
 import type { LanguageModel } from '@mastra/core/llm';
 import { ContextPosition } from '../../../evaluators/llm/context-position/index';
-import type { MetricResultWithReason } from '../../../evaluators/types';
 
 export interface ContextPositionMetricOptions {
   scale?: number;
@@ -16,7 +15,7 @@ export class ContextPositionMetric extends Metric {
     this.evaluator = new ContextPosition({ model, scale, context });
   }
 
-  async measure(input: string, output: string): Promise<MetricResultWithReason> {
+  async measure(input: string, output: string) {
     return this.evaluator.score({ input, output });
   }
 }

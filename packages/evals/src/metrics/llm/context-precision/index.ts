@@ -1,7 +1,6 @@
 import { Metric } from '@mastra/core/eval';
 import type { LanguageModel } from '@mastra/core/llm';
 import { ContextPrecision } from '../../../evaluators/llm/context-precision/index';
-import type { MetricResultWithReason } from '../../../evaluators/types';
 
 export interface ContextPrecisionMetricOptions {
   scale?: number;
@@ -16,7 +15,7 @@ export class ContextPrecisionMetric extends Metric {
     this.evaluator = new ContextPrecision({ model, scale, context });
   }
 
-  async measure(input: string, output: string): Promise<MetricResultWithReason> {
+  async measure(input: string, output: string) {
     return this.evaluator.score({ input, output });
   }
 }

@@ -1,4 +1,4 @@
-import type { MetricResult } from '@mastra/core';
+import type { EvaluationResult } from '@mastra/core';
 import { SequenceMatcher } from 'difflib';
 import { CodeEvaluator } from '../evaluator';
 
@@ -15,7 +15,7 @@ async function score({
   input: string;
   output: string;
   options?: TextualDifferenceOptions;
-}): Promise<MetricResult> {
+}): Promise<EvaluationResult> {
   const defaultOptions = {
     isCaseSensitive: false,
     ignoreWhitespace: false,

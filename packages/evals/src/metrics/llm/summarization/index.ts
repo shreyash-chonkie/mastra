@@ -1,5 +1,4 @@
 import { Metric } from '@mastra/core/eval';
-import type { MetricResult } from '@mastra/core/eval';
 import type { LanguageModel } from '@mastra/core/llm';
 
 import { Summarization } from '../../../evaluators/llm/summarization';
@@ -19,7 +18,7 @@ export class SummarizationMetric extends Metric {
     this.scale = scale;
   }
 
-  async measure(input: string, output: string): Promise<MetricResult> {
+  async measure(input: string, output: string) {
     return this.evaluator.score({ input, output });
   }
 }

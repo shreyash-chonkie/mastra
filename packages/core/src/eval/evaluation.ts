@@ -1,7 +1,8 @@
 import type { Agent } from '../agent';
 import { AvailableHooks, executeHook } from '../hooks';
+import type { Evaluator } from './evaluator';
 
-import type { Metric } from './metric';
+import { Metric } from './metric';
 import type { TestInfo } from './types';
 
 export async function evaluate<T extends Agent>({
@@ -16,7 +17,7 @@ export async function evaluate<T extends Agent>({
 }: {
   agentName: string;
   input: Parameters<T['generate']>[0];
-  metric: Metric;
+  metric: Metric | Evaluator;
   output: string;
   globalRunId: string;
   runId?: string;
@@ -25,7 +26,14 @@ export async function evaluate<T extends Agent>({
 }) {
   const runIdToUse = runId || crypto.randomUUID();
 
-  const metricResult = await metric.measure(input.toString(), output);
+  let metricResult;
+
+  if (metric instanceof Metric) {
+    metricResult = await metric.measure(input.toString(), output);
+  } else {
+    metricResult = await metric.score({ input: input.toString(), output });
+  }
+
   const traceObject = {
     input: input.toString(),
     output: output,

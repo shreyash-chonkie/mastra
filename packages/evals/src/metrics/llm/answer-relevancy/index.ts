@@ -1,7 +1,6 @@
 import { Metric } from '@mastra/core/eval';
 import type { LanguageModel } from '@mastra/core/llm';
 import { AnswerRelevancy } from '../../../evaluators/llm/answer-relevancy/index';
-import type { MetricResultWithReason } from '../../../evaluators/types';
 
 export interface AnswerRelevancyMetricOptions {
   uncertaintyWeight?: number;
@@ -16,7 +15,7 @@ export class AnswerRelevancyMetric extends Metric {
     this.evaluator = new AnswerRelevancy({ model, scale, uncertaintyWeight });
   }
 
-  async measure(input: string, output: string): Promise<MetricResultWithReason> {
+  async measure(input: string, output: string) {
     return this.evaluator.score({ input, output });
   }
 }

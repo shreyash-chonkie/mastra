@@ -1,10 +1,10 @@
 import type { Agent } from '@mastra/core/agent';
+import type { EvaluatorSettings } from '@mastra/core/eval';
 import { z } from 'zod';
 import { roundToTwoDecimals } from '../../scoring/utils';
 import { generateClaimExtractionPrompt } from '../faithfulness/prompts';
 import type { LLMEvaluatorScorerArgs, Outcome } from '../types';
 import { generateAlignmentPrompt, generateAnswersPrompt, generateQuestionsPrompt } from './prompts';
-import type { EvaluatorSettings } from '../evaluator';
 
 async function evaluateAlignment({ output, agent }: LLMEvaluatorScorerArgs) {
   const claimsPrompt = generateClaimExtractionPrompt({ output });

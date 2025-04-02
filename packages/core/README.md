@@ -68,7 +68,7 @@ The evaluation system enables quantitative assessment of AI outputs. Create cust
 import { Metric, evaluate } from '@mastra/core';
 
 class CustomMetric extends Metric {
-  async measure(input: string, output: string): Promise<MetricResult> {
+  async measure(input: string, output: string): Promise<EvaluationResult> {
     // Your evaluation logic
     return { score: 0.95 };
   }

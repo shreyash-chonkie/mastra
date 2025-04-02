@@ -1,7 +1,6 @@
 import { Metric } from '@mastra/core/eval';
 import type { LanguageModel } from '@mastra/core/llm';
 import { ContextRelevancy } from '../../../evaluators/llm/context-relevancy/index';
-import type { MetricResultWithReason } from '../../../evaluators/types';
 
 export interface ContextRelevancyOptions {
   scale?: number;
@@ -16,7 +15,7 @@ export class ContextRelevancyMetric extends Metric {
     this.evaluator = new ContextRelevancy({ model, scale, context });
   }
 
-  async measure(input: string, output: string): Promise<MetricResultWithReason> {
+  async measure(input: string, output: string) {
     return this.evaluator.score({ input, output });
   }
 }

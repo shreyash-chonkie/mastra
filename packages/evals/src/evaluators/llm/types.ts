@@ -1,5 +1,5 @@
 import type { Agent } from '@mastra/core/agent';
-import type { EvaluatorSettings } from './evaluator';
+import type { EvaluatorSettings } from '@mastra/core/eval';
 
 export type InputOutputPair = {
   input: string;

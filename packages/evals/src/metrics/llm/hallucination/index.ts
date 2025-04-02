@@ -1,7 +1,7 @@
 import { Metric } from '@mastra/core/eval';
+import type { EvaluationResult } from '@mastra/core/eval';
 import type { LanguageModel } from '@mastra/core/llm';
 import { Hallucination } from '../../../evaluators/llm/hallucination/index';
-import type { MetricResultWithReason } from '../../../evaluators/types';
 
 export interface HallucinationMetricOptions {
   scale?: number;
@@ -16,7 +16,7 @@ export class HallucinationMetric extends Metric {
     this.evaluator = new Hallucination({ model, scale, context });
   }
 
-  async measure(input: string, output: string): Promise<MetricResultWithReason> {
+  async measure(input: string, output: string): Promise<EvaluationResult> {
     return this.evaluator.score({ input, output });
   }
 }

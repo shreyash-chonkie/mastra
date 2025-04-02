@@ -1,4 +1,4 @@
-import type { MetricResult } from '@mastra/core';
+import type { EvaluationResult } from '@mastra/core';
 import stringSimilarity from 'string-similarity';
 import { CodeEvaluator } from '../evaluator';
 
@@ -15,7 +15,7 @@ async function score({
   input: string;
   output: string;
   options?: ContentSimilarityOptions;
-}): Promise<MetricResult> {
+}): Promise<EvaluationResult> {
   const defaultOptions = {
     ignoreCase: true,
     ignoreWhitespace: true,

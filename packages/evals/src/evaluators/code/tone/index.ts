@@ -1,4 +1,4 @@
-import type { MetricResult } from '@mastra/core/eval';
+import type { EvaluationResult } from '@mastra/core/eval';
 import Sentiment from 'sentiment';
 import { CodeEvaluator } from '../evaluator';
 
@@ -7,7 +7,7 @@ export interface ToneOptions {
   extras?: Record<string, number>;
 }
 
-async function score({ input, output }: { input: string; output: string }): Promise<MetricResult> {
+async function score({ input, output }: { input: string; output: string }): Promise<EvaluationResult> {
   const sentiment = new Sentiment();
   const responseSentiment = sentiment.analyze(input);
 

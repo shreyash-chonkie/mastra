@@ -1,4 +1,4 @@
-import type { MetricResult } from '@mastra/core/eval';
+import type { EvaluationResult } from '@mastra/core/eval';
 import nlp from 'compromise';
 import { normalizeString } from '../../scoring/utils';
 import { CodeEvaluator } from '../evaluator';
@@ -72,7 +72,7 @@ async function calculateCoverage({
   return covered.length / original.length;
 }
 
-async function score({ input, output }: { input: string; output: string }): Promise<MetricResult> {
+async function score({ input, output }: { input: string; output: string }): Promise<EvaluationResult> {
   // Handle null/undefined inputs
   if (input === null || input === undefined || output === null || output === undefined) {
     throw new Error('Inputs cannot be null or undefined');

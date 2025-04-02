@@ -1,5 +1,5 @@
 import { Metric } from '@mastra/core/eval';
-import type { MetricResult } from '@mastra/core/eval';
+import type { EvaluationResult } from '@mastra/core/eval';
 import { ToneConsistency } from '../../../evaluators/code/tone';
 import type { ToneOptions } from '../../../evaluators/code/tone';
 
@@ -11,7 +11,7 @@ export class ToneConsistencyMetric extends Metric {
     this.evaluator = new ToneConsistency(options);
   }
 
-  async measure(input: string, output: string): Promise<MetricResult> {
+  async measure(input: string, output: string): Promise<EvaluationResult> {
     const result = await this.evaluator.score({ input, output });
     return result;
   }
