@@ -43,18 +43,18 @@ ${context}
 `;
 }
 
-export function generateReasonPrompt({ output, score, outcomes, scale }: LLMEvaluatorReasonPromptArgs) {
+export function generateReasonPrompt({ output, eval_result, outcomes, settings }: LLMEvaluatorReasonPromptArgs) {
   // Extract supportive and unsupportive reasons from outcomes
   const supportiveReasons = outcomes.filter(v => v.outcome === 'yes').map(v => v.reason);
 
   const unsupportiveReasons = outcomes.filter(v => v.outcome === 'no').map(v => v.reason);
 
-  return `Explain the contextual recall score where 0 is the lowest and ${scale} is the highest:
+  return `Explain the contextual recall score where 0 is the lowest and ${settings.scale} is the highest:
   
   Expected Output:
   ${output}
   
-  Score: ${score}
+  Score: ${eval_result?.score}
   
   Supportive Reasons:
   ${supportiveReasons.length > 0 ? supportiveReasons.join('\n') : 'None'}

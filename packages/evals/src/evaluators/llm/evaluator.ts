@@ -11,7 +11,7 @@ import type {
 } from './types';
 
 export interface EvaluatorSettings {
-  scale?: number;
+  scale: number;
   uncertaintyWeight?: number;
   context?: string[];
   [key: string]: any; // Allow for additional settings
@@ -40,7 +40,10 @@ export class LLMEvaluator {
 
   constructor(config: EvaluatorConfig) {
     this.name = config.name;
-    this.settings = config.settings || {};
+    this.settings = config.settings || {
+      scale: 1,
+      uncertaintyWeight: 0,
+    };
     this.agent = new Agent({
       name: `Mastra Evaluator: ${config.name}`,
       instructions: config.instructions,
@@ -54,14 +57,14 @@ export class LLMEvaluator {
   async reason({
     input,
     output,
-    score,
+    eval_result,
     scale,
     context,
     outcomes,
   }: {
     input: string;
     output: string;
-    score: LLMEvaluatorScoreResult;
+    eval_result: LLMEvaluatorScoreResult;
     scale: number;
     context?: string[];
     outcomes: Outcome[];
@@ -71,8 +74,8 @@ export class LLMEvaluator {
         agent: this.agent,
         input,
         output,
-        score,
-        scale,
+        eval_result,
+        settings: this.settings,
         outcomes,
         context,
       }),
@@ -133,10 +136,10 @@ export class LLMEvaluator {
     console.log(outcomes);
     const scale = this.settings.scale ?? 1;
 
-    const score = await Promise.resolve(
+    const eval_result = await Promise.resolve(
       this.scorer({
         outcomes,
-        scale,
+        settings: this.settings,
         context: this.settings.context,
         agent: this.agent,
         input,
@@ -147,17 +150,17 @@ export class LLMEvaluator {
     const reason = await this.reason({
       input,
       output,
-      score,
+      eval_result,
       scale,
       outcomes,
       context: this.settings.context,
     });
 
     return {
-      score: score.score,
+      score: eval_result.score,
       info: {
         reason,
-        ...(score.details ?? {}),
+        ...(eval_result.details ?? {}),
       },
     };
   }

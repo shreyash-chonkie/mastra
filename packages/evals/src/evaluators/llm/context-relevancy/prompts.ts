@@ -25,9 +25,9 @@ export function generateEvaluatePrompt({
   return `Based on the input and context, please generate a JSON object to indicate whether each statement found in the context is relevant to the provided input. First extract high-level statements from the context, then evaluate each for relevance.
 You should first extract statements found in the context, which are high level information found in the context, before deciding on a outcome, reason, and claim for each statement.
 
-Each verdict in the JSON must have:
+Each outcome in the JSON must have:
 1. 'claim': The high-level information extracted from context
-2. 'verdict': STRICTLY either 'yes' or 'no'
+2. 'outcome': STRICTLY either 'yes' or 'no'
 3. 'reason': REQUIRED for ALL outcomes to explain the evaluation
 
 For 'yes' outcomes:
@@ -78,18 +78,18 @@ JSON:
 `;
 }
 
-export function generateReasonPrompt({ input, output, score, outcomes, scale }: LLMEvaluatorReasonPromptArgs) {
+export function generateReasonPrompt({ input, output, eval_result, outcomes, settings }: LLMEvaluatorReasonPromptArgs) {
   // Extract relevant and irrelevant statements from outcomes
   const relevantStatements = outcomes.filter(v => v.outcome.toLowerCase() === 'yes').map(v => v.reason);
 
   const irrelevancies = outcomes.filter(v => v.outcome.toLowerCase() === 'no').map(v => v.reason);
 
-  return `Explain the context relevancy score where 0 is the lowest and ${scale} is the highest for the LLM's response using this context:
+  return `Explain the context relevancy score where 0 is the lowest and ${settings.scale} is the highest for the LLM's response using this context:
   
   Context:
   Input: ${input}
   Output: ${output}
-  Score: ${score}
+  Score: ${eval_result?.score}
   
   Relevant statements:
   ${relevantStatements.length > 0 ? relevantStatements.join('\n') : 'None'}

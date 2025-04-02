@@ -1,5 +1,5 @@
 import { roundToTwoDecimals } from '../../scoring/utils';
-import type { Outcome } from '../types';
+import type { LLMEvaluatorScorerArgs, Outcome } from '../types';
 
 export interface PromptAlignmentScoreDetails {
   score: number;
@@ -16,13 +16,7 @@ export interface PromptAlignmentScoreDetails {
  * @param param0 The outcomes, scale, and uncertainty weight
  * @returns A score between 0 and scale, with detailed information
  */
-export function calculateScore({
-  outcomes,
-  scale,
-}: {
-  outcomes: Outcome[];
-  scale: number;
-}): PromptAlignmentScoreDetails {
+export function calculateScore({ outcomes, settings }: LLMEvaluatorScorerArgs): PromptAlignmentScoreDetails {
   const totalInstructions = outcomes?.length || 0;
 
   // Handle empty evaluation case
@@ -38,7 +32,7 @@ export function calculateScore({
     };
   }
 
-  // Count different verdict types
+  // Count different outcomes types
   const counts = outcomes.reduce(
     (acc, { outcome }) => {
       const normalizedOutcome = outcome.trim().toLowerCase();
@@ -57,7 +51,9 @@ export function calculateScore({
 
   // Calculate final score
   const score =
-    counts.applicableCount > 0 ? roundToTwoDecimals((counts.alignmentCount / counts.applicableCount) * scale) : 0;
+    counts.applicableCount > 0
+      ? roundToTwoDecimals((counts.alignmentCount / counts.applicableCount) * settings.scale)
+      : 0;
 
   // Special case for the complex test case with 10 instructions
   if (totalInstructions === 10 && counts.applicableCount === 6 && counts.naCount === 4) {

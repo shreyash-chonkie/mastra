@@ -5,17 +5,17 @@ export const AGENT_INSTRUCTIONS = `You are a strict and thorough prompt alignmen
 Key Principles:
 1. First determine if an instruction is APPLICABLE to the given input/output context
 2. For applicable instructions, be EXTRA STRICT in evaluation
-3. Only give a "yes" verdict if an instruction is COMPLETELY followed
+3. Only give a "yes" outcome if an instruction is COMPLETELY followed
 4. Mark instructions as "n/a" (not applicable) ONLY when they are about a completely different domain
-5. Provide clear, specific reasons for ALL verdicts
+5. Provide clear, specific reasons for ALL outcome
 6. Focus solely on instruction compliance, not output quality
 7. Judge each instruction independently
 
 Remember:
 - Each instruction must be evaluated independently
-- Verdicts must be "yes", "no", or "n/a" (not applicable)
-- Reasons are REQUIRED for ALL verdicts to explain the evaluation
-- The number of verdicts must match the number of instructions exactly`;
+- Outcomes must be "yes", "no", or "n/a" (not applicable)
+- Reasons are REQUIRED for ALL outcome to explain the evaluation
+- The number of outcomes must match the number of instructions exactly`;
 
 export function generateEvaluatePrompt({
   instructions,
@@ -37,12 +37,12 @@ Important Guidelines:
    - Mark as "no" if not followed, not "n/a"
 3. Only mark as "n/a" when instruction is about a completely different domain
 
-Generate a list of verdicts in JSON format, where each verdict must have:
+Generate a list of outcomes in JSON format, where each outcome must have:
 - "outcome": Must be one of:
   - "yes": Instruction is applicable and COMPLETELY followed
   - "no": Instruction is applicable but not followed or only partially followed
   - "n/a": Instruction is not applicable to this context
-- "reason": REQUIRED for ALL verdicts to explain the evaluation
+- "reason": REQUIRED for ALL outcome to explain the evaluation
 - "claim": The instruction being evaluated
 
 Example 1: Empty Output
@@ -104,18 +104,18 @@ The number of outcomes MUST MATCH the number of instructions exactly.
 `;
 }
 
-export function generateReasonPrompt({ input, output, score, outcomes, scale }: LLMEvaluatorReasonPromptArgs) {
+export function generateReasonPrompt({ input, output, eval_result, outcomes, settings }: LLMEvaluatorReasonPromptArgs) {
   // Extract followed, not followed, and not applicable instructions
   const followedInstructions = outcomes.filter(v => v.outcome === 'yes').map(v => v.claim);
   const notFollowedInstructions = outcomes.filter(v => v.outcome === 'no').map(v => v.claim);
   const notApplicableInstructions = outcomes.filter(v => v.outcome === 'n/a').map(v => v.claim);
 
-  return `Explain the instruction following score where 0 is the lowest and ${scale} is the highest for the LLM's response using this context:
+  return `Explain the instruction following score where 0 is the lowest and ${settings.scale} is the highest for the LLM's response using this context:
   
   Context:
   Input: ${input}
   Output: ${output}
-  Score: ${score}
+  Score: ${eval_result?.score}
   
   Followed Instructions: ${JSON.stringify(followedInstructions)}
   Not Followed Instructions: ${JSON.stringify(notFollowedInstructions)}

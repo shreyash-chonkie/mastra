@@ -1,5 +1,5 @@
 import { roundToTwoDecimals } from '../../scoring/utils';
-import type { Outcome } from '../types';
+import type { LLMEvaluatorScorerArgs, LLMEvaluatorScoreResult } from '../types';
 
 /**
  * Calculates a contextual recall score based on outcomes
@@ -8,13 +8,8 @@ import type { Outcome } from '../types';
  */
 export function calculateContextualRecallScore({
   outcomes,
-  scale,
-}: {
-  outcomes: Outcome[];
-  scale: number;
-  uncertaintyWeight: number;
-  context?: string[];
-}): { score: number } {
+  settings,
+}: LLMEvaluatorScorerArgs): LLMEvaluatorScoreResult {
   const totalClaims = outcomes?.length || 0;
   if (totalClaims === 0) {
     return { score: 0 };
@@ -23,5 +18,5 @@ export function calculateContextualRecallScore({
   const justifiedClaims = outcomes.filter(v => v.outcome === 'yes');
   const score = justifiedClaims.length / totalClaims;
 
-  return { score: roundToTwoDecimals(score * scale) };
+  return { score: roundToTwoDecimals(score * settings.scale) };
 }

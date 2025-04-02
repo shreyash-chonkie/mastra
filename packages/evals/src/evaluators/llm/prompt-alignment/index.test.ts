@@ -313,7 +313,7 @@ describe(
       expect(result.info.details).toEqual(testCase.expectedResult.scoreDetails);
     });
 
-    it('should calculate correct score with mix of yes, no, and n/a verdicts', async () => {
+    it('should calculate correct score with mix of yes, no, and n/a outcomes', async () => {
       const testCase = testCases[8]!;
       const metric = new PromptAlignment({
         model,

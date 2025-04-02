@@ -4,13 +4,16 @@ import { generateReasonPrompt, SUMMARIZATION_AGENT_INSTRUCTIONS } from './prompt
 import { score } from './score';
 
 export class Summarization extends LLMEvaluator {
-  constructor({ model }: { model: LanguageModel }) {
+  constructor({ model, scale }: { model: LanguageModel; scale?: number }) {
     super({
       name: 'Summarization',
       instructions: SUMMARIZATION_AGENT_INSTRUCTIONS,
       scorer: score,
       model: model,
       reasonPrompt: generateReasonPrompt,
+      settings: {
+        scale: scale ?? 1,
+      },
     });
   }
 }

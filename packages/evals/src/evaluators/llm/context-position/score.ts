@@ -1,19 +1,12 @@
 import { roundToTwoDecimals } from '../../scoring/utils';
-import type { Outcome } from '../types';
+import type { LLMEvaluatorScorerArgs, LLMEvaluatorScoreResult } from '../types';
 
 /**
  * Calculates a context position score based on outcomes
  * @param param0 The outcomes, scale, and uncertainty weight
  * @returns A score between 0 and scale
  */
-export function calculateContextPositionScore({
-  outcomes,
-  scale,
-}: {
-  outcomes: Outcome[];
-  scale: number;
-  uncertaintyWeight: number;
-}): { score: number } {
+export function calculateContextPositionScore({ outcomes, settings }: LLMEvaluatorScorerArgs): LLMEvaluatorScoreResult {
   const totalOutcomes = outcomes?.length || 0;
   if (totalOutcomes === 0) {
     return { score: 0 };
@@ -39,6 +32,6 @@ export function calculateContextPositionScore({
   }
 
   // Normalize against the maximum possible score
-  const finalScore = (weightedSum / maxPossibleSum) * scale;
+  const finalScore = (weightedSum / maxPossibleSum) * settings.scale;
   return { score: roundToTwoDecimals(finalScore) };
 }

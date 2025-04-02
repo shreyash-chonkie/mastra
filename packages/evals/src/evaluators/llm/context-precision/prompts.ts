@@ -97,13 +97,13 @@ JSON:
 `;
 }
 
-export function generateReasonPrompt({ input, output, score, outcomes, scale }: LLMEvaluatorReasonPromptArgs) {
-  return `Explain the context precision score where 0 is the lowest and ${scale} is the highest for the LLM's response using this context:
+export function generateReasonPrompt({ input, output, eval_result, outcomes, settings }: LLMEvaluatorReasonPromptArgs) {
+  return `Explain the context precision score where 0 is the lowest and ${settings.scale} is the highest for the LLM's response using this context:
   
   Context:
   Input: ${input}
   Output: ${output}
-  Score: ${score}
+  Score: ${eval_result.score}
   Outcomes: ${JSON.stringify(outcomes)}
   
   Rules:

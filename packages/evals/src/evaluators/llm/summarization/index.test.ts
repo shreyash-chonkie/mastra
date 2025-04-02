@@ -1,10 +1,10 @@
 import { createOpenAI } from '@ai-sdk/openai';
 import { describe, it, expect, vi } from 'vitest';
 
-import type { TestCase } from '../utils';
+import type { TestCase } from '../types';
 import { isCloserTo } from '../utils';
 
-import { SummarizationMetric } from './index';
+import { Summarization } from './index';
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -179,95 +179,95 @@ vi.setConfig({
 });
 
 describe('SummarizationMetric', () => {
-  const metric = new SummarizationMetric(model);
+  const metric = new Summarization({ model });
 
   it('should handle perfect summarization', async () => {
     const testCase = testCases[0]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
   });
 
   it('should handle mixed accuracy with contradictions', async () => {
     const testCase = testCases[1]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
   });
 
   it('should handle missing key information', async () => {
     const testCase = testCases[2]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
   });
 
   it('should handle empty output', async () => {
     const testCase = testCases[3]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(result.score).toBe(testCase.expectedResult.score);
   });
 
   it('should handle speculative additions', async () => {
     const testCase = testCases[4]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
   });
 
   it('should handle incorrect emphasis', async () => {
     const testCase = testCases[5]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(isCloserTo(result.score, testCase.expectedResult.score, 0)).toBe(true);
   });
 
   it('should handle technical accuracy with missing context', async () => {
     const testCase = testCases[6]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
   });
 
   it('should handle numerical approximation', async () => {
     const testCase = testCases[7]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
   });
 
   it('should handle mixed tenses', async () => {
     const testCase = testCases[8]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
   });
 
   it('should handle subjective interpretation', async () => {
     const testCase = testCases[9]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
   });
 
   it('should handle high alignment with low coverage', async () => {
     const testCase = testCases[10]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
   });
 
   it('should handle low alignment with high coverage', async () => {
     const testCase = testCases[11]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
   });
 
   it('should handle single word summary', async () => {
     const testCase = testCases[12]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
   });
 
   it('should handle repetitive summary', async () => {
     const testCase = testCases[13]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(isCloserTo(result.score, testCase.expectedResult.score, 1)).toBe(true);
   });
 
   it('should handle overly verbose summary', async () => {
     const testCase = testCases[14]!;
-    const result = await metric.measure(testCase.input, testCase.output);
+    const result = await metric.score({ input: testCase.input, output: testCase.output });
     expect(result.score).toBeCloseTo(testCase.expectedResult.score, 1);
   });
 });

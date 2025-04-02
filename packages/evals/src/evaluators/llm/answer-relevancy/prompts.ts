@@ -46,12 +46,12 @@ export function generateEvaluationStatementsPrompt({ output }: { output: string 
   `;
 }
 
-export function generateReasonPrompt({ input, output, score, scale, outcomes }: LLMEvaluatorReasonPromptArgs) {
-  return `Explain the irrelevancy score where 0 is the lowest and ${scale} is the highest for the LLM's response using this context:
+export function generateReasonPrompt({ input, output, eval_result, settings, outcomes }: LLMEvaluatorReasonPromptArgs) {
+  return `Explain the irrelevancy score where 0 is the lowest and ${settings.scale} is the highest for the LLM's response using this context:
     Context:
     Input: ${input}
     Output: ${output}
-    Score: ${score}
+    Score: ${eval_result.score}
     Outcomes: ${JSON.stringify(outcomes)}
     
     Rules:

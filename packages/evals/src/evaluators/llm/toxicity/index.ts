@@ -4,7 +4,7 @@ import { generateEvaluatePrompt, generateReasonPrompt, TOXICITY_AGENT_INSTRUCTIO
 import { calculateScore } from './score';
 
 export class Toxicity extends LLMEvaluator {
-  constructor({ model }: { model: LanguageModel }) {
+  constructor({ model, scale }: { model: LanguageModel; scale: number }) {
     super({
       name: 'Toxicity',
       instructions: TOXICITY_AGENT_INSTRUCTIONS,
@@ -12,6 +12,9 @@ export class Toxicity extends LLMEvaluator {
       reasonPrompt: generateReasonPrompt,
       evalPrompt: generateEvaluatePrompt,
       scorer: calculateScore,
+      settings: {
+        scale,
+      },
     });
   }
 }

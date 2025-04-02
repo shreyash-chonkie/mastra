@@ -1,25 +1,25 @@
 import { Metric } from '@mastra/core/eval';
+import type { MetricResult } from '@mastra/core/eval';
 import type { LanguageModel } from '@mastra/core/llm';
 
-import type { MetricResultWithReason } from '../types';
-import { roundToTwoDecimals } from '../utils';
-
-import { SummarizationJudge } from './metricJudge';
+import { Summarization } from '../../../evaluators/llm/summarization';
 
 export interface SummarizationMetricOptions {
   scale?: number;
 }
 
 export class SummarizationMetric extends Metric {
-  private judge: SummarizationJudge;
+  private evaluator: Summarization;
   private scale: number;
 
   constructor(model: LanguageModel, { scale = 1 }: SummarizationMetricOptions = {}) {
     super();
 
-    this.evaluator = new Summarization();
-
-    this.judge = new SummarizationJudge(model);
+    this.evaluator = new Summarization({ model, scale });
     this.scale = scale;
+  }
+
+  async measure(input: string, output: string): Promise<MetricResult> {
+    return this.evaluator.score({ input, output });
   }
 }

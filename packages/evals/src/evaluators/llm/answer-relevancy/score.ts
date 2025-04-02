@@ -1,15 +1,7 @@
 import { roundToTwoDecimals } from '../../scoring/utils';
-import type { Outcome } from '../types';
+import type { LLMEvaluatorScorerArgs, LLMEvaluatorScoreResult } from '../types';
 
-export function calculateAnswerRelevancyScore({
-  outcomes,
-  scale,
-  uncertaintyWeight,
-}: {
-  outcomes: Outcome[];
-  scale: number;
-  uncertaintyWeight: number;
-}): { score: number } {
+export function calculateAnswerRelevancyScore({ outcomes, settings }: LLMEvaluatorScorerArgs): LLMEvaluatorScoreResult {
   const numberOfOutcomes = outcomes?.length || 0;
   if (numberOfOutcomes === 0) {
     return { score: 1 };
@@ -20,10 +12,10 @@ export function calculateAnswerRelevancyScore({
     if (outcome.trim().toLowerCase() === 'yes') {
       relevancyCount++;
     } else if (outcome.trim().toLowerCase() === 'unsure') {
-      relevancyCount += uncertaintyWeight;
+      relevancyCount += settings.uncertaintyWeight ?? 0;
     }
   }
 
   const score = relevancyCount / numberOfOutcomes;
-  return { score: roundToTwoDecimals(score * scale) };
+  return { score: roundToTwoDecimals(score * settings.scale) };
 }

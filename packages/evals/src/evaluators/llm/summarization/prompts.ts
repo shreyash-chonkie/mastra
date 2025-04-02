@@ -5,7 +5,7 @@ You are a strict and thorough summarization evaluator. Your job is to determine 
 
 Key Principles:
 1. Be EXTRA STRICT in evaluating factual correctness and coverage.
-2. Only give a "yes" verdict if a statement is COMPLETELY supported by the original text.
+2. Only give a "yes" outcome if a statement is COMPLETELY supported by the original text.
 3. Give "no" if the statement contradicts or deviates from the original text.
 4. Focus on both factual accuracy and coverage of key information.
 5. Exact details matter - approximations or generalizations count as deviations.
@@ -133,10 +133,10 @@ export function generateAlignmentPrompt({ input, context }: { input: string; con
   return `
       For the provided list of summary claims, determine whether each statement is factually correct and supported by the original text.
       Make sure to judge each statement independently. Do not let statements influence each other.
-      Generate a list of verdicts in JSON format, where each verdict must have:
+      Generate a list of outcomes in JSON format, where each outcome must have:
       - "claim": The original claim being evaluated
-      - "verdict": Strictly "yes", "no", or "unsure"
-      - "reason": Always provide a reason explaining your verdict
+      - "outcome": Strictly "yes", "no", or "unsure"
+      - "reason": Always provide a reason explaining your outcome
   
       Be EXTRA STRICT in your evaluation:
       - Give "yes" if the statement is COMPLETELY supported by the original text
@@ -144,7 +144,7 @@ export function generateAlignmentPrompt({ input, context }: { input: string; con
       - Give "unsure" if the statement cannot be verified from the original text
       - Allow for approximate language if directionally correct (e.g., "around 1995" for "1995")
   
-      The number of verdicts MUST MATCH the number of claims exactly.
+      The number of outcomes MUST MATCH the number of claims exactly.
   
       Example:
       Original Text: "The company was founded in 1995 by John Smith. It started with 10 employees and grew to 500 by 2020. The company is based in Seattle."
@@ -156,30 +156,30 @@ export function generateAlignmentPrompt({ input, context }: { input: string; con
         "The company is growing rapidly"
       ]
       {
-        "verdicts": [
+        "outcomes": [
           {
             "claim": "The company was established around 1995",
-            "verdict": "yes",
+            "outcome": "yes",
             "reason": "The founding year is correctly stated with acceptable approximation ('around 1995' matches '1995')"
           },
           {
             "claim": "The company has thousands of employees",
-            "verdict": "no",
+            "outcome": "no",
             "reason": "The original text states 500 employees, which contradicts thousands"
           },
           {
             "claim": "The founder was John Smith",
-            "verdict": "yes",
+            "outcome": "yes",
             "reason": "The founder John Smith is correctly identified from the original text"
           },
           {
             "claim": "The business might be doing well in the Pacific Northwest",
-            "verdict": "unsure",
+            "outcome": "unsure",
             "reason": "While the location (Pacific Northwest/Seattle) is correct, the business performance claim cannot be verified from the original text"
           },
           {
             "claim": "The company is growing rapidly",
-            "verdict": "no",
+            "outcome": "no",
             "reason": "The original text does not mention growth or a specific rate of growth"
           }
         ]
@@ -195,24 +195,24 @@ export function generateAlignmentPrompt({ input, context }: { input: string; con
     `;
 }
 
-export function generateReasonPrompt({ input, output, score, scale }: LLMEvaluatorReasonPromptArgs) {
+export function generateReasonPrompt({ input, output, eval_result, settings }: LLMEvaluatorReasonPromptArgs) {
   return `
-    Explain the summarization score where 0 is the lowest and ${scale} is the highest for the LLM's summary using this context:
+    Explain the summarization score where 0 is the lowest and ${settings.scale} is the highest for the LLM's summary using this context:
 
     Context:
     Original Text: ${input}
     Summary: ${output}
-    Alignment Score: ${score?.details?.alignmentScore}
-    Coverage Score: ${score?.details?.coverageScore}
-    Final Score: ${score?.score}
-    Alignment Outcomes: ${JSON.stringify(score?.details?.alignmentVerdicts)}
-    Coverage Outcomes: ${JSON.stringify(score?.details?.coverageVerdicts)}
+    Alignment Score: ${eval_result?.details?.alignmentScore}
+    Coverage Score: ${eval_result?.details?.coverageScore}
+    Final Score: ${eval_result?.score}
+    Alignment Outcomes: ${JSON.stringify(eval_result?.details?.alignmentOutcomes)}
+    Coverage Outcomes: ${JSON.stringify(eval_result?.details?.coverageOutcomes)}
 
     Rules (follow these rules exactly. do not deviate):
     - Keep your response concise and to the point
     - Do not change scores from what is given
     - Explain both alignment and coverage aspects
-    - If there are "no" verdicts, explain why the scores are not higher
+    - If there are "no" outcomes, explain why the scores are not higher
 
     Output format:
     {
@@ -221,7 +221,7 @@ export function generateReasonPrompt({ input, output, score, scale }: LLMEvaluat
 
     Example Responses:
     {
-      "reason": "The score is ${scale} because the summary is completely factual and covers all key information from the original text"
+      "reason": "The score is ${settings.scale} because the summary is completely factual and covers all key information from the original text"
     }
     {
       "reason": "The score is 0 because the summary contains hallucinations and misses critical information"

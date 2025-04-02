@@ -125,8 +125,15 @@ Format:
 }`;
 }
 
-export function generateReasonPrompt({ input, output, context, score, scale, outcomes }: LLMEvaluatorReasonPromptArgs) {
-  return `Explain the hallucination score where 0 is the lowest and ${scale} is the highest for the LLM's response using this context:
+export function generateReasonPrompt({
+  input,
+  output,
+  context,
+  eval_result,
+  settings,
+  outcomes,
+}: LLMEvaluatorReasonPromptArgs) {
+  return `Explain the hallucination score where 0 is the lowest and ${settings.scale} is the highest for the LLM's response using this context:
   
   Context:
   ${context?.join('\n')}
@@ -137,7 +144,7 @@ export function generateReasonPrompt({ input, output, context, score, scale, out
   Output:
   ${output}
   
-  Score: ${score}
+  Score: ${eval_result?.score}
   
   Outcomes:
   ${JSON.stringify(outcomes)}
@@ -176,7 +183,7 @@ export async function generateEvaluationPrompt({ agent, output, context }: LLMEv
   const claims = claimsResult.object.claims;
 
   if (claims.length === 0) {
-    return [];
+    return '';
   }
 
   const evaluatePrompt = generateEvaluatePrompt({ claims, context: context ?? [] });

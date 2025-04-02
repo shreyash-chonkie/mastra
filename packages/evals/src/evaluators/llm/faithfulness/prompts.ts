@@ -127,7 +127,14 @@ Context:
 ${context.map((c, i) => `${i + 1}. ${c}`).join('\n')}`;
 }
 
-export function generateReasonPrompt({ input, output, context, score, scale, outcomes }: LLMEvaluatorReasonPromptArgs) {
+export function generateReasonPrompt({
+  input,
+  output,
+  context,
+  eval_result,
+  settings,
+  outcomes,
+}: LLMEvaluatorReasonPromptArgs) {
   // Filter outcomes by type
   const supportedClaims = outcomes.filter(v => v.outcome === 'yes').map(v => v.claim);
 
@@ -135,7 +142,7 @@ export function generateReasonPrompt({ input, output, context, score, scale, out
 
   const unsureClaims = outcomes.filter(v => v.outcome === 'unsure').map(v => v.claim);
 
-  return `Explain the faithfulness score where 0 is the lowest and ${scale} is the highest:
+  return `Explain the faithfulness score where 0 is the lowest and ${settings.scale} is the highest:
   
   Input: ${input}
   
@@ -144,7 +151,7 @@ export function generateReasonPrompt({ input, output, context, score, scale, out
   Context:
   ${context?.join('\n\n') || 'No context provided'}
   
-  Score: ${score}
+  Score: ${eval_result?.score}
   
   Supported Claims:
   ${supportedClaims.length > 0 ? supportedClaims.map((claim, i) => `${i + 1}. ${claim}`).join('\n') : 'None'}

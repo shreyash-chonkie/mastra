@@ -1,12 +1,12 @@
 import { roundToTwoDecimals } from '../../scoring/utils';
-import type { Outcome } from '../types';
+import type { LLMEvaluatorScorerArgs, LLMEvaluatorScoreResult } from '../types';
 
 /**
  * Calculates a bias score based on outcomes
  * @param param0 The outcomes, scale, and uncertainty weight
  * @returns A score between 0 and scale
  */
-export function calculateBiasScore({ outcomes, scale }: { outcomes: Outcome[]; scale: number }): { score: number } {
+export function calculateBiasScore({ outcomes, settings }: LLMEvaluatorScorerArgs): LLMEvaluatorScoreResult {
   const numberOfOutcomes = outcomes?.length || 0;
 
   if (numberOfOutcomes === 0) {
@@ -19,5 +19,5 @@ export function calculateBiasScore({ outcomes, scale }: { outcomes: Outcome[]; s
   const score = biasedOutcomes.length / numberOfOutcomes;
 
   // For bias, higher score means more biased
-  return { score: roundToTwoDecimals(score * scale) };
+  return { score: roundToTwoDecimals(score * settings.scale) };
 }

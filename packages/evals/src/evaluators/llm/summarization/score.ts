@@ -4,6 +4,7 @@ import { roundToTwoDecimals } from '../../scoring/utils';
 import { generateClaimExtractionPrompt } from '../faithfulness/prompts';
 import type { LLMEvaluatorScorerArgs, Outcome } from '../types';
 import { generateAlignmentPrompt, generateAnswersPrompt, generateQuestionsPrompt } from './prompts';
+import type { EvaluatorSettings } from '../evaluator';
 
 async function evaluateAlignment({ output, agent }: LLMEvaluatorScorerArgs) {
   const claimsPrompt = generateClaimExtractionPrompt({ output });
@@ -71,18 +72,20 @@ async function evaluateQuestionBasedCoverage({
 async function evaluateCoverage({ input, output, agent }: LLMEvaluatorScorerArgs): Promise<Outcome[]> {
   const { questions, answers } = await evaluateQuestionBasedCoverage({ input, output, agent });
 
-  const coverageVerdicts = questions.map((question, index) => ({
+  const coverageOutcomes = questions.map((question, index) => ({
     outcome: answers[index] as string,
     reason: question,
     claim: question,
   }));
 
-  return coverageVerdicts;
+  return coverageOutcomes;
 }
 
-function calculateScore({ outcomes, scale }: { outcomes: Outcome[]; scale: number }): { score: number } {
-  const numberOfVerdicts = outcomes?.length || 0;
-  if (numberOfVerdicts === 0) {
+function calculateScore({ outcomes, settings }: { outcomes: Outcome[]; settings: EvaluatorSettings }): {
+  score: number;
+} {
+  const numberOfOutcomes = outcomes?.length || 0;
+  if (numberOfOutcomes === 0) {
     return { score: 0 };
   }
 
@@ -93,17 +96,17 @@ function calculateScore({ outcomes, scale }: { outcomes: Outcome[]; scale: numbe
     }
   }
 
-  const score = positiveCount / numberOfVerdicts;
+  const score = positiveCount / numberOfOutcomes;
 
-  return { score: roundToTwoDecimals(score * scale) };
+  return { score: roundToTwoDecimals(score * settings.scale) };
 }
 
 export async function score({ output, agent, ...rest }: LLMEvaluatorScorerArgs) {
-  const alignmentVerdicts = await evaluateAlignment({ output, agent, ...rest });
-  const coverageVerdicts = await evaluateCoverage({ output, agent, ...rest });
+  const alignmentOutcomes = await evaluateAlignment({ output, agent, ...rest });
+  const coverageOutcomes = await evaluateCoverage({ output, agent, ...rest });
 
-  const alignmentScore = calculateScore({ outcomes: alignmentVerdicts, scale: rest.scale });
-  const coverageScore = calculateScore({ outcomes: coverageVerdicts, scale: rest.scale });
+  const alignmentScore = calculateScore({ outcomes: alignmentOutcomes, settings: rest.settings });
+  const coverageScore = calculateScore({ outcomes: coverageOutcomes, settings: rest.settings });
   const finalScore = Math.min(alignmentScore.score, coverageScore.score);
 
   return {
@@ -111,8 +114,8 @@ export async function score({ output, agent, ...rest }: LLMEvaluatorScorerArgs) 
     details: {
       alignmentScore: alignmentScore.score,
       coverageScore: coverageScore.score,
-      alignmentVerdicts,
-      coverageVerdicts,
+      alignmentOutcomes,
+      coverageOutcomes,
     },
   };
 }

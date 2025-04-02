@@ -1,4 +1,5 @@
 import type { Agent } from '@mastra/core/agent';
+import type { EvaluatorSettings } from './evaluator';
 
 export type InputOutputPair = {
   input: string;
@@ -23,8 +24,8 @@ export type LLMEvaluatorScoreResult = { score: number; details?: Record<string, 
 
 export type LLMEvaluatorReasonPromptArgs = InputOutputPair & {
   agent: Agent;
-  score: LLMEvaluatorScoreResult;
-  scale: number;
+  eval_result: LLMEvaluatorScoreResult;
+  settings: EvaluatorSettings;
   context?: string[];
   outcomes: Outcome[];
 };
@@ -42,7 +43,7 @@ export type LLMEvaluatorEvalPrompt = (args: LLMEvaluatorPromptArgs) => Promise<s
 export type LLMEvaluatorScorerArgs = InputOutputPair & {
   agent: Agent;
   context?: string[];
-  scale: number;
+  settings: EvaluatorSettings;
   outcomes: Outcome[];
 };
 

@@ -1,4 +1,5 @@
 import { roundToTwoDecimals } from '../../scoring/utils';
+import type { LLMEvaluatorScorerArgs, LLMEvaluatorScoreResult } from '../types';
 
 /**
  * Calculates a context relevancy score based on outcomes
@@ -7,13 +8,8 @@ import { roundToTwoDecimals } from '../../scoring/utils';
  */
 export function calculateContextRelevancyScore({
   outcomes,
-  scale,
-}: {
-  outcomes: { outcome: string; reason: string }[];
-  scale: number;
-  uncertaintyWeight: number;
-  context?: string[];
-}): { score: number } {
+  settings,
+}: LLMEvaluatorScorerArgs): LLMEvaluatorScoreResult {
   const totalOutcomes = outcomes?.length || 0;
   if (totalOutcomes === 0) {
     return { score: 0 };
@@ -22,5 +18,5 @@ export function calculateContextRelevancyScore({
   const relevantOutcomes = outcomes.filter(v => v.outcome.toLowerCase() === 'yes');
   const score = relevantOutcomes.length / totalOutcomes;
 
-  return { score: roundToTwoDecimals(score * scale) };
+  return { score: roundToTwoDecimals(score * settings.scale) };
 }

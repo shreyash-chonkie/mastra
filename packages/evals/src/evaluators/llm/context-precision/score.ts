@@ -1,5 +1,5 @@
 import { roundToTwoDecimals } from '../../scoring/utils';
-import type { Outcome } from '../types';
+import type { LLMEvaluatorScorerArgs, LLMEvaluatorScoreResult } from '../types';
 
 /**
  * Calculates a context precision score based on outcomes
@@ -8,13 +8,8 @@ import type { Outcome } from '../types';
  */
 export function calculateContextPrecisionScore({
   outcomes,
-  scale,
-}: {
-  outcomes: Outcome[];
-  scale: number;
-  uncertaintyWeight: number;
-  context?: string[];
-}): { score: number } {
+  settings,
+}: LLMEvaluatorScorerArgs): LLMEvaluatorScoreResult {
   const totalOutcomes = outcomes?.length || 0;
   if (totalOutcomes === 0) {
     return { score: 0 };
@@ -40,5 +35,5 @@ export function calculateContextPrecisionScore({
   }
 
   const finalScore = weightedPrecisionSum / relevantCount;
-  return { score: roundToTwoDecimals(finalScore * scale) };
+  return { score: roundToTwoDecimals(finalScore * settings.scale) };
 }
