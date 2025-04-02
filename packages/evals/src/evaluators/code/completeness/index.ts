@@ -3,20 +3,6 @@ import nlp from 'compromise';
 import { normalizeString } from '../../scoring/utils';
 import { CodeEvaluator } from '../evaluator';
 
-interface CompletenessMetricResult extends MetricResult {
-  info: {
-    details: {
-      inputElements: string[];
-      outputElements: string[];
-      missingElements: string[];
-      elementCounts: {
-        input: number;
-        output: number;
-      };
-    };
-  };
-}
-
 function extractElements(doc: any): string[] {
   // Get more specific elements and ensure they're arrays
   const nouns = doc.nouns().out('array') || [];
@@ -86,7 +72,7 @@ async function calculateCoverage({
   return covered.length / original.length;
 }
 
-async function score({ input, output }: { input: string; output: string }): Promise<CompletenessMetricResult> {
+async function score({ input, output }: { input: string; output: string }): Promise<MetricResult> {
   // Handle null/undefined inputs
   if (input === null || input === undefined || output === null || output === undefined) {
     throw new Error('Inputs cannot be null or undefined');
@@ -109,14 +95,12 @@ async function score({ input, output }: { input: string; output: string }): Prom
   return {
     score: coverage,
     info: {
-      details: {
-        inputElements,
-        outputElements,
-        missingElements: inputElements.filter(e => !outputElements.includes(e)),
-        elementCounts: {
-          input: inputElements.length,
-          output: outputElements.length,
-        },
+      inputElements,
+      outputElements,
+      missingElements: inputElements.filter(e => !outputElements.includes(e)),
+      elementCounts: {
+        input: inputElements.length,
+        output: outputElements.length,
       },
     },
   };
