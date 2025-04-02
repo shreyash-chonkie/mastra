@@ -23,7 +23,7 @@ const instructions = `You are a BigQuery data analyst assistant. You help users 
 
 const initialMessage = `Ask the user what they would like to analyze today.`;
 
-export const OpenAIRealtime = () => {
+export const MastraRealtime = () => {
   const [text, setText] = useState('');
   const [toolCalls, setToolCalls] = useState<any[]>([]);
   const [chart, setChart] = useState<RenderChartInput | null>(null);
@@ -37,13 +37,14 @@ export const OpenAIRealtime = () => {
     await createSession({
       instructions,
       initialMessage,
-      onMessage: data => {
-        if (data.type === 'agent.stream' && typeof data.data === 'string') {
-          setText(data.data);
-        }
-        if (data.type === 'agent.tool_call' && typeof data.data === 'object') {
-          setToolCalls(c => [...c, data.data]);
-        }
+      onTextPart: (text) => {
+        setText(text as string)
+      },
+      onToolCallPart: (data) => {
+        setToolCalls(c => [...c, data]);
+      },
+      onToolResultPart: (data) => {
+        setToolCalls(c => [...c, data]);
       },
       browserTools: [
         renderChartTool(({ data }, { connection }) => {

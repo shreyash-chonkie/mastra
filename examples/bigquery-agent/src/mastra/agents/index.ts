@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { Agent } from '@mastra/core/agent';
+import { Agent } from '@mastra/core';
 import { listDatasetsTool, listTablesTool, getTableSchemaTool, executeQueryTool } from '../tools';
 
 export const bigQueryAgent = new Agent({
@@ -25,7 +25,7 @@ export const bigQueryAgent = new Agent({
   `,
   model: openai('gpt-4o'),
   tools: {
-    // listDatasetsTool,
+    listDatasetsTool,
     listTablesTool,
     getTableSchemaTool,
     executeQueryTool,

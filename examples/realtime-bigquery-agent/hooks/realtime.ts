@@ -32,11 +32,19 @@ export function useRealtimeSession() {
     instructions,
     browserTools,
     onMessage,
+    onTextPart,
+    onReasoningPart,
+    onToolCallPart,
+    onToolResultPart
   }: {
     instructions: string;
     initialMessage: string;
     browserTools: Tool<any>[];
     onMessage?: (data: { type: string; data: unknown }) => void;
+    onTextPart?: (data: string) => void;
+    onReasoningPart?: (data: string) => void;
+    onToolCallPart?: (data: { toolCallName: string; args: unknown }) => void;
+    onToolResultPart?: (data: { toolCallName: string; args: unknown }) => void;
   }) => {
     try {
       setConnectionState('pending');
@@ -49,6 +57,10 @@ export function useRealtimeSession() {
         instructions,
         initialMessage,
         onMessage,
+        onTextPart,
+        onReasoningPart,
+        onToolCallPart,
+        onToolResultPart
       });
 
       setConnectionState('connected');

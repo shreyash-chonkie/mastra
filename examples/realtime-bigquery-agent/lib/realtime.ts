@@ -61,6 +61,10 @@ export async function connectToOpenAIRealtime({
   instructions,
   initialMessage,
   onMessage,
+  onTextPart,
+  onReasoningPart,
+  onToolCallPart,
+  onToolResultPart
 }: {
   mastra: MastraClient;
   model: string;
@@ -69,9 +73,12 @@ export async function connectToOpenAIRealtime({
   instructions: string;
   initialMessage: string;
   onMessage?: (data: { type: string; data: unknown }) => void;
+  onTextPart?: (data: string) => void;
+  onReasoningPart?: (data: string) => void;
+  onToolCallPart?: (data: { toolCallName: string; args: unknown }) => void;
+  onToolResultPart?: (data: { toolCallName: string; args: unknown }) => void;
 }) {
   const agents = await mastra.getAgents();
-  console.log(agents);
 
   const response = await createSession({ model, voice });
 
@@ -121,23 +128,10 @@ export async function connectToOpenAIRealtime({
             let text = '';
 
             await res.processDataStream({
-              onTextPart: data => {
-                console.log('HANDLE TEXT PART', data);
-                text += data;
-                onMessage?.({ type: 'agent.stream', data: text });
-              },
-              onReasoningPart: data => {
-                onMessage?.({ type: 'agent.reasoning', data });
-                console.log('HANDLE REASONING PART', data);
-              },
-              onToolCallPart: data => {
-                onMessage?.({ type: 'agent.tool_call', data });
-                console.log('HANDLE TOOL PART', data);
-              },
-              onToolResultPart: data => {
-                onMessage?.({ type: 'agent.tool_result', data });
-                console.log('HANDLE TOOL RESULT PART', data);
-              },
+              onTextPart,
+              onReasoningPart,
+              onToolCallPart,
+              onToolResultPart,
             });
 
             console.log(text);
