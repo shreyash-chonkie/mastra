@@ -57,7 +57,7 @@ export async function connectToOpenAIRealtime({
   mastra,
   model,
   voice,
-  tools,
+  browserTools,
   instructions,
   initialMessage,
   onMessage,
@@ -65,10 +65,10 @@ export async function connectToOpenAIRealtime({
   mastra: MastraClient;
   model: string;
   voice: string;
-  tools: Tool[];
+  browserTools: Tool[];
   instructions: string;
   initialMessage: string;
-  onMessage?: (data: any) => void;
+  onMessage?: (data: { type: string; data: unknown }) => void;
 }) {
   const agents = await mastra.getAgents();
   console.log(agents);
@@ -100,7 +100,7 @@ export async function connectToOpenAIRealtime({
 
     if (data.type === 'session.created') {
       // Send the initial session update
-      const openaiTools = [...fromBrowserTools(tools), ...fromMastraAgents(agents)];
+      const openaiTools = [...fromBrowserTools(browserTools), ...fromMastraAgents(agents)];
 
       sendSessionUpdate({
         instructions,
@@ -112,25 +112,42 @@ export async function connectToOpenAIRealtime({
     } else if (data.type === 'response.done' && data.response.output) {
       for (const output of data.response.output) {
         if (output.type === 'function_call') {
+          console.log('output', output);
           if (agents[output.name]) {
             const agent = mastra.getAgent(output.name);
             const input = JSON.parse(output.arguments);
-            console.log('Calling agent', agent, input);
-            const res = await agent.generate(input);
+            const res = await agent.stream(input);
 
-            // await res.processDataStream({
-            //   onTextPart: (data) => {
-            //     console.log('HANDLE TEXT PART',  data);
-            //   },
-            // });
+            let text = '';
 
-            console.log(res);
-            sendResponse(res.text);
+            await res.processDataStream({
+              onTextPart: data => {
+                console.log('HANDLE TEXT PART', data);
+                text += data;
+                onMessage?.({ type: 'agent.stream', data: text });
+              },
+              onReasoningPart: data => {
+                onMessage?.({ type: 'agent.reasoning', data });
+                console.log('HANDLE REASONING PART', data);
+              },
+              onToolCallPart: data => {
+                onMessage?.({ type: 'agent.tool_call', data });
+                console.log('HANDLE TOOL PART', data);
+              },
+              onToolResultPart: data => {
+                onMessage?.({ type: 'agent.tool_result', data });
+                console.log('HANDLE TOOL RESULT PART', data);
+              },
+            });
 
-            return res;
+            console.log(text);
+            onMessage?.({ type: 'agent.done', data: text });
+            sendResponse(`Render the information: ${text}`);
+
+            return text;
           }
 
-          const tool = tools.find(t => t.id === output.name);
+          const tool = browserTools.find(t => t.id === output.name);
           if (tool) {
             const input = JSON.parse(output.arguments);
             const result = await tool.execute(input, { connection });

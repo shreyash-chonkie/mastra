@@ -2,16 +2,7 @@
 
 import { useRealtimeSession } from '@/hooks/realtime';
 import { useRef, useState } from 'react';
-import {
-  createExerciseLogTool,
-  createTimerTool,
-  createWorkoutSummaryTool,
-  createWorkoutTool,
-  type ExerciseLogInput,
-  type TimerInput,
-  type WorkoutInput,
-  type WorkoutSummaryInput,
-} from '../tools';
+import { createTimerTool, createWorkoutTool, type TimerInput, type WorkoutInput } from '../tools';
 import { Button } from './Button';
 import { Workout } from './Workout';
 
@@ -61,18 +52,6 @@ export const OpenAIRealtime = () => {
           connection.sendResponse(
             `Workout created. ${name} with ${exercises.length} exercises and a rest time of ${restTime} seconds.`,
           );
-        }),
-        createExerciseLogTool(({ exercise, sentiment, sets, reps }, { connection }) => {
-          console.log('Exercise logged', exercise, sentiment, sets, reps);
-          setExerciseLog(log => [...log, { exercise, sentiment, sets, reps }]);
-          connection.sendResponse(
-            `Exercise logged. ${exercise} with ${sentiment} sentiment, ${sets} sets, ${reps} reps.`,
-          );
-        }),
-        createWorkoutSummaryTool((input, { connection }) => {
-          console.log('Workout summary requested');
-          setWorkoutSummary({});
-          connection.sendResponse(`Workout summary requested. ${JSON.stringify(workoutSummary)}`);
         }),
       ],
     });

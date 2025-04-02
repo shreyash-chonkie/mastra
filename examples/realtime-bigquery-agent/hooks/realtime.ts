@@ -30,11 +30,13 @@ export function useRealtimeSession() {
   const createSession = async ({
     initialMessage,
     instructions,
-    tools,
+    browserTools,
+    onMessage,
   }: {
     instructions: string;
     initialMessage: string;
-    tools: Tool<any>[];
+    browserTools: Tool<any>[];
+    onMessage?: (data: { type: string; data: unknown }) => void;
   }) => {
     try {
       setConnectionState('pending');
@@ -43,9 +45,10 @@ export function useRealtimeSession() {
         mastra,
         model,
         voice,
-        tools,
+        browserTools,
         instructions,
         initialMessage,
+        onMessage,
       });
 
       setConnectionState('connected');

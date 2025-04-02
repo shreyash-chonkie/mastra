@@ -220,4 +220,14 @@ export class MastraClient extends BaseResource {
   public getNetwork(networkId: string) {
     return new Network(this.options, networkId);
   }
+
+  /**
+   * Executes a tool
+   * @param toolId - ID of the tool to execute
+   * @param data - Input for the tool
+   * @returns Promise containing the tool response
+   */
+  public executeTool(toolId: string, data: any) {
+    return this.request(`/api/tools/${toolId}/execute`, { method: 'POST', body: { data } });
+  }
 }
