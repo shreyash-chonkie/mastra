@@ -148,7 +148,15 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     return new Promise<TOutput>((resolve, reject) => {
       actor.subscribe(state => {
         if (state.value === 'completed') {
-          resolve(state.context as TOutput);
+          const lastStepId = steps[steps.length - 1]!.id;
+
+          const stepsFromContext = state.context.steps?.[lastStepId];
+
+          if (!stepsFromContext) {
+            throw new Error('Last step not found in context');
+          }
+
+          resolve(stepsFromContext.output as TOutput);
         }
 
         if (state.value === 'failed') {
