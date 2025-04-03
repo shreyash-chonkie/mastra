@@ -23,9 +23,10 @@ describe('Workflow', () => {
     description: 'Test step',
     inputSchema,
     outputSchema,
-    execute: async ({ input }) => {
+    execute: async props => {
+      console.log('SUH DUDE', props);
       return {
-        result: input.name,
+        result: props.input.name,
       };
     },
   });
@@ -41,6 +42,6 @@ describe('Workflow', () => {
       });
 
       console.log(res);
-    });
+    }, 500000);
   });
 });

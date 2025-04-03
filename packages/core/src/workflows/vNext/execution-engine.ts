@@ -1,3 +1,5 @@
+import { MastraBase } from '../../base';
+import { RegisteredLogger } from '../../logger';
 import type { NewStep as Step } from './step';
 
 /**
@@ -12,14 +14,10 @@ export interface ExecutionGraph {
  * Execution engine abstract class for building and executing workflow graphs
  * Providers will implement this class to provide their own execution logic
  */
-export abstract class ExecutionEngine {
-  /**
-   * Builds an execution graph from the provided steps
-   * @param steps The steps to include in the execution graph
-   * @returns The built execution graph
-   */
-  abstract buildExecutionGraph(steps: Step[]): ExecutionGraph;
-
+export abstract class ExecutionEngine extends MastraBase {
+  constructor() {
+    super({ name: 'ExecutionEngine', component: RegisteredLogger.WORKFLOW });
+  }
   /**
    * Executes a workflow run with the provided execution graph and input
    * @param graph The execution graph to execute
