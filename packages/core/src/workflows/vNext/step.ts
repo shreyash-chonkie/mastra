@@ -4,10 +4,14 @@ import type { z } from 'zod';
 export type ExecuteFunction<TStepInput, TStepOutput> = (params: { inputData: TStepInput }) => Promise<TStepOutput>;
 
 // Define a Step interface
-export interface NewStep<TStepInput = any, TStepOutput = any> {
-  id: string;
+export interface NewStep<
+  TStepId extends string = string,
+  TSchemaIn extends z.ZodType = z.ZodType<any>,
+  TSchemaOut extends z.ZodType = z.ZodType<any>,
+> {
+  id: TStepId;
   description?: string;
-  inputSchema: z.ZodType<TStepInput>;
-  outputSchema: z.ZodType<TStepOutput>;
-  execute: ExecuteFunction<TStepInput, TStepOutput>;
+  inputSchema: TSchemaIn;
+  outputSchema: TSchemaOut;
+  execute: ExecuteFunction<z.infer<TSchemaIn>, z.infer<TSchemaOut>>;
 }

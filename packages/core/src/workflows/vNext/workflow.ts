@@ -7,12 +7,14 @@ import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep as Step } from './step';
 
 export class NewWorkflow<
+  TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
+  TWorkflowId extends string = string,
   TInput extends z.ZodObject<any> = z.ZodObject<any>,
   TOutput extends z.ZodObject<any> = z.ZodObject<any>,
 > extends MastraBase {
   protected inputSchema: TInput;
   protected outputSchema: TOutput;
-  protected steps: Step[] = [];
+  protected stepFlow: Step[];
   protected executionEngine: ExecutionEngine;
   protected executionGraph: ExecutionGraph;
 
@@ -22,16 +24,18 @@ export class NewWorkflow<
     outputSchema,
     executionEngine = new DefaultExecutionEngine(),
   }: {
-    id: string;
+    id: TWorkflowId;
     inputSchema: TInput;
     outputSchema: TOutput;
     executionEngine?: ExecutionEngine;
+    steps?: TSteps;
   }) {
     super({ name: id, component: RegisteredLogger.WORKFLOW });
     this.inputSchema = inputSchema;
     this.outputSchema = outputSchema;
     this.executionEngine = executionEngine;
     this.executionGraph = this.buildExecutionGraph();
+    this.stepFlow = [];
   }
 
   /**
@@ -39,8 +43,10 @@ export class NewWorkflow<
    * @param step The step to add to the workflow
    * @returns The workflow instance for chaining
    */
-  then(step: Step): this {
-    this.steps.push(step);
+  then<TStepId extends string, TSchemaIn extends z.ZodType, TSchemaOut extends z.ZodType>(
+    step: Step<TStepId, TSchemaIn, TSchemaOut>,
+  ): this {
+    this.stepFlow.push(step as any); // Type assertion needed due to variance issues
     return this;
   }
 
@@ -54,13 +60,13 @@ export class NewWorkflow<
    * @param params.execute Function that performs the step's operations
    * @returns A Step object that can be added to the workflow
    */
-  createStep<TStepInput, TStepOutput>(params: {
-    id: string;
+  createStep<TStepId extends string, TStepInput extends z.ZodType, TStepOutput extends z.ZodType>(params: {
+    id: TStepId;
     description?: string;
-    inputSchema: z.ZodType<TStepInput>;
-    outputSchema: z.ZodType<TStepOutput>;
-    execute: ExecuteFunction<TStepInput, TStepOutput>;
-  }): Step<TStepInput, TStepOutput> {
+    inputSchema: TStepInput;
+    outputSchema: TStepOutput;
+    execute: ExecuteFunction<z.infer<TStepInput>, z.infer<TStepOutput>>;
+  }): Step<TStepId, TStepInput, TStepOutput> {
     return {
       id: params.id,
       description: params.description,
@@ -77,7 +83,7 @@ export class NewWorkflow<
   buildExecutionGraph(): ExecutionGraph {
     return {
       id: randomUUID(),
-      steps: this.steps,
+      steps: this.stepFlow,
     };
   }
 

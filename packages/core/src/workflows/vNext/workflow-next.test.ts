@@ -11,6 +11,7 @@ describe('Workflow', () => {
   const outputSchema = z.object({
     result: z.string(),
   });
+
   // Create a new workflow instance for each test
   const workflow = new NewWorkflow({
     id: 'test-workflow',
