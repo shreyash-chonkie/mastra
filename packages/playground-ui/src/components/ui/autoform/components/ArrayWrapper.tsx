@@ -6,9 +6,15 @@ import { ArrayWrapperProps } from '@autoform/react';
 export const ArrayWrapper: React.FC<ArrayWrapperProps> = ({ label, children, onAddItem }) => {
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">{label}</h3>
+      <h3 className="text-sm font-medium">{label}</h3>
       {children}
-      <Button onClick={onAddItem} variant="outline" size="sm" type="button">
+      <Button
+        className="w-full flex items-center justify-center"
+        onClick={onAddItem}
+        variant="outline"
+        size="sm"
+        type="button"
+      >
         <PlusIcon className="h-4 w-4" />
       </Button>
     </div>

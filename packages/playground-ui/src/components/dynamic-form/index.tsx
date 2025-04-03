@@ -3,10 +3,9 @@
 import { Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
-import { AutoForm } from '@/components/ui/autoform';
-import { ExtendableAutoFormProps } from '@autoform/react';
+import { AutoForm, CustomZodProvider } from '@/components/ui/autoform';
+import type { ExtendableAutoFormProps, AutoFormFieldComponents } from '@autoform/react';
 import z from 'zod';
-import { ZodProvider } from '@autoform/zod';
 import { Label } from '../ui/label';
 
 interface DynamicFormProps<T extends z.ZodSchema> {
@@ -24,16 +23,28 @@ export function DynamicForm<T extends z.ZodSchema>({
   isSubmitLoading,
   submitButtonLabel = 'Submit',
 }: DynamicFormProps<T>) {
+  console.log({
+    schema,
+  });
+
   if (!schema) {
     console.error('no form schema found');
     return null;
   }
 
-  const schemaProvider = new ZodProvider(schema as any);
+  const normalizedSchema = (schema: z.ZodSchema) => {
+    return z.object({
+      schema: schema,
+    });
+  };
+
+  const schemaProvider = new CustomZodProvider(normalizedSchema(schema));
 
   const formProps: ExtendableAutoFormProps<z.infer<T>> = {
     schema: schemaProvider,
-    onSubmit,
+    onSubmit: async values => {
+      await onSubmit(values.schema);
+    },
     defaultValues,
     formProps: {
       className: 'space-y-4 p-4',
@@ -50,6 +61,8 @@ export function DynamicForm<T extends z.ZodSchema>({
     },
     withSubmit: true,
   };
+
+  const formComponents: AutoFormFieldComponents = {};
 
   return (
     <ScrollArea className="h-full w-full">
