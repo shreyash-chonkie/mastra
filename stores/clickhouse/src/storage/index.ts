@@ -1,6 +1,6 @@
 import type { ClickHouseClient } from '@clickhouse/client';
 import { createClient } from '@clickhouse/client';
-import type { MetricResult, TestInfo } from '@mastra/core/eval';
+import type { EvaluationResult, TestInfo } from '@mastra/core/eval';
 import type { MessageType, StorageThreadType } from '@mastra/core/memory';
 import {
   MastraStorage,
@@ -114,13 +114,13 @@ export class ClickhouseStore extends MastraStorage {
     const testInfoValue = row.test_info ? JSON.parse(row.test_info as string) : undefined;
 
     if (!resultValue || typeof resultValue !== 'object' || !('score' in resultValue)) {
-      throw new Error(`Invalid MetricResult format: ${JSON.stringify(resultValue)}`);
+      throw new Error(`Invalid EvaluationResult format: ${JSON.stringify(resultValue)}`);
     }
 
     return {
       input: row.input as string,
       output: row.output as string,
-      result: resultValue as MetricResult,
+      result: resultValue as EvaluationResult,
       agentName: row.agent_name as string,
       metricName: row.metric_name as string,
       instructions: row.instructions as string,
@@ -329,8 +329,13 @@ export class ClickhouseStore extends MastraStorage {
         )
         ENGINE = ${TABLE_ENGINES[tableName]}
         PARTITION BY "createdAt"
+<<<<<<< HEAD
         PRIMARY KEY (createdAt, id)
         ORDER BY (createdAt, id)
+=======
+        PRIMARY KEY (createdAt, ${tableName === TABLE_EVALS ? 'run_id' : 'id'})
+        ORDER BY (createdAt, ${tableName === TABLE_EVALS ? 'run_id' : 'id'})
+>>>>>>> 4d678262ebb60711b88676144525899707b3abab
         ${this.ttl?.[tableName]?.row ? `TTL toDateTime(createdAt) + INTERVAL ${this.ttl[tableName].row.interval} ${this.ttl[tableName].row.unit}` : ''}
         SETTINGS index_granularity = 8192
       `;

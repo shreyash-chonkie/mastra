@@ -1,4 +1,4 @@
-import type { MetricResult, TestInfo } from '@mastra/core/eval';
+import type { EvaluationResult, TestInfo } from '@mastra/core/eval';
 import type { StorageThreadType, MessageType } from '@mastra/core/memory';
 import {
   MastraStorage,
@@ -112,7 +112,7 @@ export class UpstashStore extends MastraStorage {
       agentName: record.agent_name,
       input: record.input,
       output: record.output,
-      result: result as MetricResult,
+      result: result as EvaluationResult,
       metricName: record.metric_name,
       instructions: record.instructions,
       testInfo: testInfo as TestInfo | undefined,
@@ -198,6 +198,8 @@ export class UpstashStore extends MastraStorage {
         workflow_name: record.workflow_name,
         run_id: record.run_id,
       });
+    } else if (tableName === TABLE_EVALS) {
+      key = this.getKey(tableName, { id: record.run_id });
     } else {
       key = this.getKey(tableName, { id: record.id });
     }

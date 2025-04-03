@@ -1,5 +1,4 @@
 import { randomUUID } from 'crypto';
-import type { MetricResult, TestInfo } from '@mastra/core/eval';
 import type { MessageType } from '@mastra/core/memory';
 import type { TABLE_NAMES } from '@mastra/core/storage';
 import { TABLE_MESSAGES, TABLE_THREADS, TABLE_WORKFLOW_SNAPSHOT, TABLE_EVALS } from '@mastra/core/storage';
@@ -59,7 +58,6 @@ const createSampleEval = (agentName: string, isTest = false) => {
   const testInfo = isTest ? { testPath: 'test/path.ts', testName: 'Test Name' } : undefined;
 
   return {
-    id: randomUUID(),
     agent_name: agentName,
     input: 'Sample input',
     output: 'Sample output',
