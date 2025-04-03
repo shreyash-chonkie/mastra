@@ -30,7 +30,7 @@ export function DynamicForm<T extends z.ZodSchema>({
 
   const normalizedSchema = (schema: z.ZodSchema) => {
     return z.object({
-      schema: schema,
+      form: schema,
     });
   };
 
@@ -39,7 +39,7 @@ export function DynamicForm<T extends z.ZodSchema>({
   const formProps: ExtendableAutoFormProps<z.infer<T>> = {
     schema: schemaProvider,
     onSubmit: async values => {
-      await onSubmit(values.schema);
+      await onSubmit(values.form);
     },
     defaultValues,
     formProps: {

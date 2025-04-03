@@ -10,7 +10,7 @@ function parseField(key: string, schema: z.ZodTypeAny): ParsedField {
   const defaultValue = getDefaultValueInZodStack(schema);
 
   // Enums
-  const options = baseSchema._def.values;
+  const options = baseSchema._def?.values;
   let optionValues: [string, string][] = [];
   if (options) {
     if (!Array.isArray(options)) {
@@ -50,7 +50,6 @@ function getBaseSchema<ChildType extends z.ZodAny | z.ZodTypeAny | z.AnyZodObjec
   if ('schema' in schema._def) {
     return getBaseSchema(schema._def.schema as ChildType);
   }
-
   return schema as ChildType;
 }
 
