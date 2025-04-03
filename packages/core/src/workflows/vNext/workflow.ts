@@ -1,0 +1,159 @@
+import { randomUUID } from 'crypto';
+import type { z } from 'zod';
+import { MastraBase } from '../../base';
+import { RegisteredLogger } from '../../logger';
+import { DefaultExecutionEngine } from './default';
+import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
+import type { ExecuteFunction, NewStep as Step } from './step';
+
+export class NewWorkflow<
+  TInput extends z.ZodObject<any> = z.ZodObject<any>,
+  TOutput extends z.ZodObject<any> = z.ZodObject<any>,
+> extends MastraBase {
+  protected inputSchema: TInput;
+  protected outputSchema: TOutput;
+  protected steps: Step[] = [];
+  protected executionEngine: ExecutionEngine;
+  protected executionGraph: ExecutionGraph;
+
+  constructor({
+    id,
+    inputSchema,
+    outputSchema,
+    executionEngine = new DefaultExecutionEngine(),
+  }: {
+    id: string;
+    inputSchema: TInput;
+    outputSchema: TOutput;
+    executionEngine?: ExecutionEngine;
+  }) {
+    super({ name: id, component: RegisteredLogger.WORKFLOW });
+    this.inputSchema = inputSchema;
+    this.outputSchema = outputSchema;
+    this.executionEngine = executionEngine;
+    this.executionGraph = this.buildExecutionGraph();
+  }
+
+  /**
+   * Adds a step to the workflow
+   * @param step The step to add to the workflow
+   * @returns The workflow instance for chaining
+   */
+  next(step: Step): this {
+    this.steps.push(step);
+    return this;
+  }
+
+  /**
+   * Creates a new workflow step
+   * @param id Unique identifier for the step
+   * @param description Optional description of what the step does
+   * @param inputSchema Zod schema defining the input structure
+   * @param outputSchema Zod schema defining the output structure
+   * @param execute Function that performs the step's operations
+   * @returns A Step object that can be added to the workflow
+   */
+  createStep<TStepInput, TStepOutput>(
+    id: string,
+    description: string | undefined,
+    inputSchema: z.ZodType<TStepInput>,
+    outputSchema: z.ZodType<TStepOutput>,
+    execute: ExecuteFunction<TStepInput, TStepOutput>,
+  ): Step<TStepInput, TStepOutput> {
+    return {
+      id,
+      description,
+      inputSchema,
+      outputSchema,
+      execute,
+    };
+  }
+
+  /**
+   * Builds the execution graph for this workflow
+   * @returns The execution graph that can be used to execute the workflow
+   */
+  buildExecutionGraph(): ExecutionGraph {
+    return {
+      id: randomUUID(),
+      steps: this.steps,
+    };
+  }
+
+  /**
+   * Finalizes the workflow definition and prepares it for execution
+   * This method should be called after all steps have been added to the workflow
+   * @returns A built workflow instance ready for execution
+   */
+  commit() {
+    this.executionGraph = this.buildExecutionGraph();
+    return this;
+  }
+
+  /**
+   * Creates a new workflow run instance
+   * @param options Optional configuration for the run
+   * @returns A Run instance that can be used to execute the workflow
+   */
+  createRun(options?: { runId?: string }): Run<TInput, TOutput> {
+    const runIdToUse = options?.runId || randomUUID();
+
+    // Return a new Run instance with object parameters
+    return new Run({
+      runId: runIdToUse,
+      executionEngine: this.executionEngine,
+      executionGraph: this.executionGraph,
+    });
+  }
+}
+
+/**
+ * Represents a workflow run that can be executed
+ */
+export class Run<TInput extends z.ZodObject<any>, TOutput extends z.ZodObject<any>> {
+  /**
+   * Unique identifier for this run
+   */
+  readonly runId: string;
+
+  /**
+   * Internal state of the workflow run
+   */
+  protected state: Record<string, any> = {};
+
+  /**
+   * The execution engine for this run
+   */
+  public executionEngine: ExecutionEngine;
+
+  /**
+   * The execution graph for this run
+   */
+  public executionGraph: ExecutionGraph;
+
+  constructor(params: { runId: string; executionEngine: ExecutionEngine; executionGraph: ExecutionGraph }) {
+    this.runId = params.runId;
+    this.executionEngine = params.executionEngine;
+    this.executionGraph = params.executionGraph;
+  }
+
+  /**
+   * Starts the workflow execution with the provided input
+   * @param input The input data for the workflow
+   * @returns A promise that resolves to the workflow output
+   */
+  async start(input?: z.infer<TInput>): Promise<z.infer<TOutput>> {
+    return this.executionEngine.execute<z.infer<TInput>, z.infer<TOutput>>({
+      graph: this.executionGraph,
+      input,
+    });
+  }
+
+  /**
+   * Returns the current state of the workflow run
+   * @returns The current state of the workflow run
+   */
+  getState(): Record<string, any> {
+    return this.state;
+  }
+}
