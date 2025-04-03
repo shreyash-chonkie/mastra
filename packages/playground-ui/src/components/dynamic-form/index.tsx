@@ -7,6 +7,7 @@ import { AutoForm } from '@/components/ui/autoform';
 import { ExtendableAutoFormProps } from '@autoform/react';
 import z from 'zod';
 import { ZodProvider } from '@autoform/zod';
+import { Label } from '../ui/label';
 
 interface DynamicFormProps<T extends z.ZodSchema> {
   schema: T;
@@ -23,6 +24,11 @@ export function DynamicForm<T extends z.ZodSchema>({
   isSubmitLoading,
   submitButtonLabel = 'Submit',
 }: DynamicFormProps<T>) {
+  if (!schema) {
+    console.error('no form schema found');
+    return null;
+  }
+
   const schemaProvider = new ZodProvider(schema as any);
 
   const formProps: ExtendableAutoFormProps<z.infer<T>> = {
@@ -30,15 +36,19 @@ export function DynamicForm<T extends z.ZodSchema>({
     onSubmit,
     defaultValues,
     formProps: {
-      className: 'space-y-4',
+      className: 'space-y-4 p-4',
     },
     uiComponents: {
       SubmitButton: ({ children }) => (
-        <Button type="submit" disabled={isSubmitLoading}>
+        <Button className="w-full" type="submit" disabled={isSubmitLoading}>
           {isSubmitLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : children || submitButtonLabel}
         </Button>
       ),
     },
+    formComponents: {
+      Label: ({ value }) => <Label className="text-sm font-normal">{value}</Label>,
+    },
+    withSubmit: true,
   };
 
   return (
