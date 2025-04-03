@@ -21,15 +21,24 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     }
 
     const actors = steps.reduce(
-      (acc, step) => {
+      (acc, step, index) => {
         acc[step.id] = fromPromise(async ({ input }) => {
-          console.log('Running step.');
+          console.log('Running step', step.id);
+          const inputArg = input as any;
+
+          let inputData = {};
+          const stepsFromContext = inputArg.context.steps;
+
+          if (index === 0) {
+            inputData = inputArg.context.inputData;
+          } else if (steps?.[index - 1]?.id) {
+            inputData = stepsFromContext?.[steps?.[index - 1]?.id!]?.output;
+          }
+
           //TODO
-          const stepOutput = await step.execute({
-            input: input,
-            context: {},
-          });
-          return { stepId: step.id, ...stepOutput };
+          const stepOutput = await step.execute({ inputData });
+
+          return { stepId: step.id, result: stepOutput };
         });
         return acc;
       },
@@ -58,8 +67,6 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       },
       {} as Record<string, any>,
     );
-
-    console.log({ input });
 
     const machine = setup({
       types: {

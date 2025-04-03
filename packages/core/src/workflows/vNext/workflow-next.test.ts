@@ -23,7 +23,8 @@ describe('Workflow', () => {
     description: 'Test step',
     inputSchema,
     outputSchema,
-    execute: async _ => {
+    execute: async ({ inputData }) => {
+      console.log('Step 1 Input Data:', inputData);
       return {
         result: 'Step 1',
       };
@@ -33,11 +34,14 @@ describe('Workflow', () => {
   const step2 = workflow.createStep({
     id: 'test-step2',
     description: 'Test step 2',
-    inputSchema,
+    inputSchema: z.object({
+      result: z.string(),
+    }),
     outputSchema,
-    execute: async _ => {
+    execute: async ({ inputData }) => {
+      console.log('Step 2 Input Data:', inputData);
       return {
-        result: 'Step 2',
+        result: `Step 2 ${inputData.result}`,
       };
     },
   });
