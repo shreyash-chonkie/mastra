@@ -1,9 +1,8 @@
 import type { Agent } from '../agent';
 import { AvailableHooks, executeHook } from '../hooks';
 import type { Evaluator } from './evaluator';
-
 import { Metric } from './metric';
-import type { TestInfo } from './types';
+import type { TestInfo, EvaluationResult } from './types';
 
 export async function evaluate<T extends Agent>({
   agentName,
@@ -23,7 +22,7 @@ export async function evaluate<T extends Agent>({
   runId?: string;
   testInfo?: TestInfo;
   instructions: string;
-}) {
+}): Promise<EvaluationResult> {
   const runIdToUse = runId || crypto.randomUUID();
 
   let metricResult;
@@ -48,5 +47,5 @@ export async function evaluate<T extends Agent>({
 
   executeHook(AvailableHooks.ON_EVALUATION, traceObject);
 
-  return metricResult;
+  return { ...metricResult, output };
 }
