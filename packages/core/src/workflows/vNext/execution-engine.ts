@@ -1,4 +1,4 @@
-import type { Step } from './step';
+import type { NewStep as Step } from './step';
 
 /**
  * Represents an execution graph for a workflow

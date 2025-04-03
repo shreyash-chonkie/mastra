@@ -39,33 +39,34 @@ export class NewWorkflow<
    * @param step The step to add to the workflow
    * @returns The workflow instance for chaining
    */
-  next(step: Step): this {
+  then(step: Step): this {
     this.steps.push(step);
     return this;
   }
 
   /**
    * Creates a new workflow step
-   * @param id Unique identifier for the step
-   * @param description Optional description of what the step does
-   * @param inputSchema Zod schema defining the input structure
-   * @param outputSchema Zod schema defining the output structure
-   * @param execute Function that performs the step's operations
+   * @param params Configuration parameters for the step
+   * @param params.id Unique identifier for the step
+   * @param params.description Optional description of what the step does
+   * @param params.inputSchema Zod schema defining the input structure
+   * @param params.outputSchema Zod schema defining the output structure
+   * @param params.execute Function that performs the step's operations
    * @returns A Step object that can be added to the workflow
    */
-  createStep<TStepInput, TStepOutput>(
-    id: string,
-    description: string | undefined,
-    inputSchema: z.ZodType<TStepInput>,
-    outputSchema: z.ZodType<TStepOutput>,
-    execute: ExecuteFunction<TStepInput, TStepOutput>,
-  ): Step<TStepInput, TStepOutput> {
+  createStep<TStepInput, TStepOutput>(params: {
+    id: string;
+    description?: string;
+    inputSchema: z.ZodType<TStepInput>;
+    outputSchema: z.ZodType<TStepOutput>;
+    execute: ExecuteFunction<TStepInput, TStepOutput>;
+  }): Step<TStepInput, TStepOutput> {
     return {
-      id,
-      description,
-      inputSchema,
-      outputSchema,
-      execute,
+      id: params.id,
+      description: params.description,
+      inputSchema: params.inputSchema,
+      outputSchema: params.outputSchema,
+      execute: params.execute,
     };
   }
 
