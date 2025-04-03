@@ -1,16 +1,7 @@
-import { setup, assign, createActor, fromPromise } from 'xstate';
+import { setup, createActor, fromPromise, assign } from 'xstate';
 
 import { ExecutionEngine } from './execution-engine';
 import type { ExecutionGraph } from './execution-engine';
-
-interface WorkflowContext {
-  input: any;
-  stepResults: Record<string, any>;
-  currentStepId: string | null;
-  error?: Error;
-}
-
-type WorkflowEvent = { type: 'NEXT'; data?: any } | { type: 'ERROR'; error: Error } | { type: 'COMPLETE'; data?: any };
 
 /**
  * Default implementation of the ExecutionEngine using XState
@@ -21,7 +12,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
    * @param graph The execution graph to transform
    * @returns An XState state machine definition
    */
-  transform(graph: ExecutionGraph) {
+  transform<TInput, TOutput>(params: { graph: ExecutionGraph; input?: TInput }) {
+    const { graph, input } = params;
     const steps = graph.steps;
 
     if (!steps || steps?.length === 0) {
@@ -30,10 +22,14 @@ export class DefaultExecutionEngine extends ExecutionEngine {
 
     const actors = steps.reduce(
       (acc, step) => {
-        acc[step.id] = fromPromise(async props => {
+        acc[step.id] = fromPromise(async ({ input }) => {
           console.log('Running step.');
           //TODO
-          return await step.execute(props as any);
+          const stepOutput = await step.execute({
+            input: input,
+            context: {},
+          });
+          return { stepId: step.id, ...stepOutput };
         });
         return acc;
       },
@@ -50,9 +46,11 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             input: (props: any) => props,
             onDone: {
               target: nextStepId ? nextStepId : 'completed',
+              actions: [{ type: 'updateStepResult', params: { stepId: step.id } }],
             },
             onError: {
               target: 'failed',
+              actions: [{ type: 'updateStepError', params: { stepId: step.id } }],
             },
           },
         };
@@ -61,14 +59,50 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       {} as Record<string, any>,
     );
 
+    console.log({ input });
+
     const machine = setup({
       types: {
-        context: {} as { count: number },
-        events: {} as { type: 'inc' },
+        //TODO: Remove any
+        context: {
+          inputData: {} as TInput,
+        } as any,
+        input: {} as TInput,
+        output: {} as TOutput,
+      },
+      actions: {
+        updateStepResult: assign({
+          steps: ({ context, event }) => {
+            const { stepId, result } = event.output;
+            return {
+              ...context.steps,
+              [stepId]: {
+                status: 'success' as const,
+                output: result,
+              },
+            };
+          },
+        }),
+        updateStepError: assign({
+          steps: ({ context, event }) => {
+            const { stepId, error } = event.output;
+            return {
+              ...context.steps,
+              // TODO: need error messages
+              [stepId]: {
+                status: 'error' as const,
+                error,
+              },
+            };
+          },
+        }),
       },
       actors,
     }).createMachine({
-      context: { count: 0 },
+      context: {
+        inputData: input,
+        steps: {},
+      },
       initial: steps?.[0]?.id,
       states: {
         ...states,
@@ -100,14 +134,20 @@ export class DefaultExecutionEngine extends ExecutionEngine {
 
     this.logger.info('Transforming execution graph to XState machine');
     // Transform the graph to get the states
-    const transformedMachine = this.transform(graph);
+    const transformedMachine = this.transform<TInput, TOutput>({ graph, input });
 
     const actor = createActor(transformedMachine, { input });
 
-    return new Promise<TOutput>(resolve => {
+    return new Promise<TOutput>((resolve, reject) => {
       actor.subscribe(state => {
-        console.log(state.status, state.value, state.context);
-        resolve(state.context as TOutput);
+        if (state.value === 'completed') {
+          resolve(state.context as TOutput);
+        }
+
+        if (state.value === 'failed') {
+          //TODO: Handle errors
+          reject(new Error('Workflow execution failed'));
+        }
       });
 
       actor.start();

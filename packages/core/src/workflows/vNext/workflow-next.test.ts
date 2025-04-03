@@ -23,15 +23,26 @@ describe('Workflow', () => {
     description: 'Test step',
     inputSchema,
     outputSchema,
-    execute: async props => {
-      console.log('SUH DUDE', props);
+    execute: async _ => {
       return {
-        result: props.input.name,
+        result: 'Step 1',
       };
     },
   });
 
-  workflow.then(step).commit();
+  const step2 = workflow.createStep({
+    id: 'test-step2',
+    description: 'Test step 2',
+    inputSchema,
+    outputSchema,
+    execute: async _ => {
+      return {
+        result: 'Step 2',
+      };
+    },
+  });
+
+  workflow.then(step).then(step2).commit();
 
   describe('Workflow Execution', () => {
     it('Run shit', async () => {
