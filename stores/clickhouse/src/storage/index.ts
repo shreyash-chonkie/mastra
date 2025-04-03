@@ -329,13 +329,8 @@ export class ClickhouseStore extends MastraStorage {
         )
         ENGINE = ${TABLE_ENGINES[tableName]}
         PARTITION BY "createdAt"
-<<<<<<< HEAD
-        PRIMARY KEY (createdAt, id)
-        ORDER BY (createdAt, id)
-=======
         PRIMARY KEY (createdAt, ${tableName === TABLE_EVALS ? 'run_id' : 'id'})
         ORDER BY (createdAt, ${tableName === TABLE_EVALS ? 'run_id' : 'id'})
->>>>>>> 4d678262ebb60711b88676144525899707b3abab
         ${this.ttl?.[tableName]?.row ? `TTL toDateTime(createdAt) + INTERVAL ${this.ttl[tableName].row.interval} ${this.ttl[tableName].row.unit}` : ''}
         SETTINGS index_granularity = 8192
       `;
