@@ -7,10 +7,12 @@ import { GLOBAL_RUN_ID_ENV_KEY } from './constants';
 
 export async function attachListeners(mastra?: Mastra) {
   if (mastra?.getStorage()) {
+    console.log('Attaching listeners to storage');
     await mastra.getStorage()?.init();
   }
 
   registerHook(AvailableHooks.ON_EVALUATION, async traceObject => {
+    console.log('traceObject', traceObject);
     if (mastra?.getStorage()) {
       // Check for required fields
       const logger = mastra?.getLogger();

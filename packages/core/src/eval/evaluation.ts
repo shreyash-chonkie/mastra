@@ -1,8 +1,8 @@
 import type { Agent } from '../agent';
 import { AvailableHooks, executeHook } from '../hooks';
-import type { Evaluator } from './evaluator';
+import type { Evaluator, EvaluationResult } from './evaluator';
 import { Metric } from './metric';
-import type { TestInfo, EvaluationResult } from './types';
+import type { TestInfo } from './types';
 
 export async function evaluate<T extends Agent>({
   agentName,
@@ -33,6 +33,8 @@ export async function evaluate<T extends Agent>({
     metricResult = await metric.score({ input: input.toString(), output });
   }
 
+  console.log('metricResult', metricResult);
+
   const traceObject = {
     input: input.toString(),
     output: output,
@@ -44,6 +46,8 @@ export async function evaluate<T extends Agent>({
     runId: runIdToUse,
     testInfo,
   };
+
+  console.log('traceObject', traceObject);
 
   executeHook(AvailableHooks.ON_EVALUATION, traceObject);
 

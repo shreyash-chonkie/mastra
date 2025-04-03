@@ -1,6 +1,7 @@
 export interface EvaluationResult {
   score: number;
   info?: Record<string, any>;
+  output?: string;
 }
 
 /**

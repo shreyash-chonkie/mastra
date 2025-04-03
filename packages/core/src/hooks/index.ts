@@ -45,6 +45,7 @@ export function executeHook(hook: AvailableHooks.ON_GENERATION, action: Generati
 export function executeHook(hook: `${AvailableHooks}`, data: unknown): void {
   // do not block the main thread
   setImmediate(() => {
+    console.log('Executing hook', hook, data);
     hooks.emit(hook, data);
   });
 }

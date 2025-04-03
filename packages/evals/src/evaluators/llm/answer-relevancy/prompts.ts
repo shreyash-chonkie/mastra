@@ -160,35 +160,43 @@ export function generateEvaluatePrompt({ input, statements }: { input: string; s
           "outcomes": [
               {{
                   "outcome": "yes",
-                  "reason": "This statement explicitly answers what color the sky is during daytime"
+                  "reason": "This statement explicitly answers what color the sky is during daytime",
+                  "claim": "The sky is blue during daytime"
               }},
               {{
                   "outcome": "unsure",
-                  "reason": "This statement describes the sky but doesn't address its color"
+                  "reason": "This statement describes the sky but doesn't address its color",
+                  "claim": "The sky is full of clouds"
               }},
               {{
                   "outcome": "no",
-                  "reason": "This statement about breakfast is completely unrelated to the sky"
+                  "reason": "This statement about breakfast is completely unrelated to the sky",
+                  "claim": "I had breakfast today"
               }},
               {{
                   "outcome": "unsure",
-                  "reason": "This statement about blue is related to color but doesn't address the sky"
+                  "reason": "This statement about blue is related to color but doesn't address the sky",
+                  "claim": "Blue is a beautiful color"
               }},
               {{
                   "outcome": "unsure",
-                  "reason": "This statement is about the sky but doesn't address its color"
+                  "reason": "This statement is about the sky but doesn't address its color",
+                  "claim": "Many birds fly in the sky"
               }},
               {{
                   "outcome": "no",
-                  "reason": "This statement is empty"
+                  "reason": "This statement is empty",
+                  "claim": ""
               }},
               {{
                   "outcome": "unsure",
-                  "reason": "This statement is incorrect but contains relevant information and still addresses the question"
+                  "reason": "This statement is incorrect but contains relevant information and still addresses the question",
+                  "claim": "The sky is purple during daytime"
               }},
               {{
                   "outcome": "no",
-                  "reason": "This statement is about daytime but doesn't address the sky"
+                  "reason": "This statement is about daytime but doesn't address the sky",
+                  "claim": "Daytime is when the sun is up"
               }}
           ]
       }}
