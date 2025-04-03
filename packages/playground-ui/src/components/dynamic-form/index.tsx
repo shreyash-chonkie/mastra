@@ -23,10 +23,6 @@ export function DynamicForm<T extends z.ZodSchema>({
   isSubmitLoading,
   submitButtonLabel = 'Submit',
 }: DynamicFormProps<T>) {
-  console.log({
-    schema,
-  });
-
   if (!schema) {
     console.error('no form schema found');
     return null;
@@ -61,8 +57,6 @@ export function DynamicForm<T extends z.ZodSchema>({
     },
     withSubmit: true,
   };
-
-  const formComponents: AutoFormFieldComponents = {};
 
   return (
     <ScrollArea className="h-full w-full">

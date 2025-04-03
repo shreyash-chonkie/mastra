@@ -13,6 +13,7 @@ import { SelectField } from './components/SelectField';
 import { ObjectWrapper } from './components/ObjectWrapper';
 import { ArrayWrapper } from './components/ArrayWrapper';
 import { ArrayElementWrapper } from './components/ArrayElementWrapper';
+import { RecordField } from './components/RecordField';
 
 const ShadcnUIComponents: AutoFormUIComponents = {
   Form,
@@ -30,6 +31,7 @@ export const ShadcnAutoFormFieldComponents = {
   boolean: BooleanField,
   date: DateField,
   select: SelectField,
+  record: RecordField,
 } as const;
 export type FieldTypes = keyof typeof ShadcnAutoFormFieldComponents;
 
