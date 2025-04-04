@@ -157,7 +157,6 @@ describe('Workflow', () => {
       });
 
       console.dir(res, { depth: null });
-      console.log(res.steps['test-step'].status === 'success' ? res.steps['test-step'].output : 'Failed');
 
       const runB = workflowB.createRun();
 
@@ -176,8 +175,6 @@ describe('Workflow', () => {
         },
       });
       console.dir({ resC }, { depth: null });
-
-      console.dir(resC, { depth: null });
     }, 500000);
   });
 });
