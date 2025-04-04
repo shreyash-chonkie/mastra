@@ -6,6 +6,52 @@ import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep as Step } from './step';
 
+type StepSuccess<T> = {
+  status: 'success';
+  output: T;
+};
+
+type StepFailure = {
+  status: 'failed';
+  error: string;
+};
+
+export type StepResult<T> = StepSuccess<T> | StepFailure; /*| StepSuspended<T> | StepWaiting | StepSkipped;*/
+
+export type StepsRecord<T extends readonly Step<any, any, z.ZodType<any>>[]> = {
+  [K in T[number]['id']]: Extract<T[number], { id: K }>;
+};
+
+/**
+ * Creates a new workflow step
+ * @param params Configuration parameters for the step
+ * @param params.id Unique identifier for the step
+ * @param params.description Optional description of what the step does
+ * @param params.inputSchema Zod schema defining the input structure
+ * @param params.outputSchema Zod schema defining the output structure
+ * @param params.execute Function that performs the step's operations
+ * @returns A Step object that can be added to the workflow
+ */
+export function createStep<
+  TStepId extends string,
+  TStepInput extends z.ZodType,
+  TStepOutput extends z.ZodType,
+>(params: {
+  id: TStepId;
+  description?: string;
+  inputSchema: TStepInput;
+  outputSchema: TStepOutput;
+  execute: ExecuteFunction<z.infer<TStepInput>, z.infer<TStepOutput>>;
+}): Step<TStepId, TStepInput, TStepOutput> {
+  return {
+    id: params.id,
+    description: params.description,
+    inputSchema: params.inputSchema,
+    outputSchema: params.outputSchema,
+    execute: params.execute,
+  };
+}
+
 export class NewWorkflow<
   TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
   TWorkflowId extends string = string,
@@ -51,32 +97,6 @@ export class NewWorkflow<
   }
 
   /**
-   * Creates a new workflow step
-   * @param params Configuration parameters for the step
-   * @param params.id Unique identifier for the step
-   * @param params.description Optional description of what the step does
-   * @param params.inputSchema Zod schema defining the input structure
-   * @param params.outputSchema Zod schema defining the output structure
-   * @param params.execute Function that performs the step's operations
-   * @returns A Step object that can be added to the workflow
-   */
-  createStep<TStepId extends string, TStepInput extends z.ZodType, TStepOutput extends z.ZodType>(params: {
-    id: TStepId;
-    description?: string;
-    inputSchema: TStepInput;
-    outputSchema: TStepOutput;
-    execute: ExecuteFunction<z.infer<TStepInput>, z.infer<TStepOutput>>;
-  }): Step<TStepId, TStepInput, TStepOutput> {
-    return {
-      id: params.id,
-      description: params.description,
-      inputSchema: params.inputSchema,
-      outputSchema: params.outputSchema,
-      execute: params.execute,
-    };
-  }
-
-  /**
    * Builds the execution graph for this workflow
    * @returns The execution graph that can be used to execute the workflow
    */
@@ -102,7 +122,7 @@ export class NewWorkflow<
    * @param options Optional configuration for the run
    * @returns A Run instance that can be used to execute the workflow
    */
-  createRun(options?: { runId?: string }): Run<TInput, TOutput> {
+  createRun(options?: { runId?: string }): Run<TSteps, TInput, TOutput> {
     const runIdToUse = options?.runId || randomUUID();
 
     // Return a new Run instance with object parameters
@@ -117,7 +137,11 @@ export class NewWorkflow<
 /**
  * Represents a workflow run that can be executed
  */
-export class Run<TInput extends z.ZodObject<any>, TOutput extends z.ZodObject<any>> {
+export class Run<
+  TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
+  TInput extends z.ZodObject<any> = z.ZodObject<any>,
+  TOutput extends z.ZodObject<any> = z.ZodObject<any>,
+> {
   /**
    * Unique identifier for this run
    */
@@ -149,10 +173,27 @@ export class Run<TInput extends z.ZodObject<any>, TOutput extends z.ZodObject<an
    * @param input The input data for the workflow
    * @returns A promise that resolves to the workflow output
    */
-  async start(input?: z.infer<TInput>): Promise<z.infer<TOutput>> {
-    return this.executionEngine.execute<z.infer<TInput>, z.infer<TOutput>>({
+  async start({ inputData }: { inputData?: z.infer<TInput> }): Promise<{
+    result: TOutput;
+    steps: {
+      [K in keyof StepsRecord<TSteps>]: StepsRecord<TSteps>[K]['outputSchema'] extends undefined
+        ? StepResult<unknown>
+        : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
+    };
+  }> {
+    return this.executionEngine.execute<
+      z.infer<TInput>,
+      {
+        result: TOutput;
+        steps: {
+          [K in keyof StepsRecord<TSteps>]: StepsRecord<TSteps>[K]['outputSchema'] extends undefined
+            ? StepResult<unknown>
+            : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
+        };
+      }
+    >({
       graph: this.executionGraph,
-      input,
+      input: inputData,
     });
   }
 

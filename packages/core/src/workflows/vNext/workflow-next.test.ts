@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest';
 import { z } from 'zod';
-import { NewWorkflow } from './workflow';
+import { createStep, NewWorkflow } from './workflow';
 
 describe('Workflow', () => {
   // Input and output schemas for testing
@@ -12,14 +12,7 @@ describe('Workflow', () => {
     result: z.string(),
   });
 
-  // Create a new workflow instance for each test
-  const workflow = new NewWorkflow({
-    id: 'test-workflow',
-    inputSchema,
-    outputSchema,
-  });
-
-  const step = workflow.createStep({
+  const step = createStep({
     id: 'test-step',
     description: 'Test step',
     inputSchema,
@@ -32,7 +25,7 @@ describe('Workflow', () => {
     },
   });
 
-  const step2 = workflow.createStep({
+  const step2 = createStep({
     id: 'test-step2',
     description: 'Test step 2',
     inputSchema: z.object({
@@ -47,6 +40,14 @@ describe('Workflow', () => {
     },
   });
 
+  // Create a new workflow instance for each test
+  const workflow = new NewWorkflow({
+    id: 'test-workflow',
+    inputSchema,
+    outputSchema,
+    steps: [step, step2],
+  });
+
   workflow.then(step).then(step2).commit();
 
   describe('Workflow Execution', () => {
@@ -54,10 +55,12 @@ describe('Workflow', () => {
       const run = workflow.createRun();
 
       const res = await run.start({
-        name: 'Abhi',
+        inputData: {
+          name: 'Abhi',
+        },
       });
 
-      console.log(res);
+      console.log(res.steps['test-step'].status === 'success' ? res.steps['test-step'].output : 'Failed');
     }, 500000);
   });
 });

@@ -131,6 +131,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
    * @param input The input data for the workflow
    * @returns A promise that resolves to the workflow output
    */
+  // TODO: OVERLOAD TO SUPPORT TOUTPUT PLUS STEPS
   async execute<TInput, TOutput>(params: { graph: ExecutionGraph; input?: TInput }): Promise<TOutput> {
     const { graph, input } = params;
     const steps = graph.steps;
@@ -156,7 +157,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             throw new Error('Last step not found in context');
           }
 
-          resolve(stepsFromContext.output as TOutput);
+          resolve({ steps: state.context.steps, result: stepsFromContext.output } as TOutput);
         }
 
         if (state.value === 'failed') {
