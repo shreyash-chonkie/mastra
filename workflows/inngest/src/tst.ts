@@ -42,14 +42,14 @@ const parallel1 = createStep({
   id: 'parallel1',
   description: 'Parallel step 1',
   inputSchema: z.object({
-    message: z.string(),
+    final: z.string(),
   }),
   outputSchema: z.object({
     result: z.string(),
   }),
   execute: async ({ inputData }) => {
     return {
-      result: `Parallel 1: ${inputData.message}`,
+      result: `Parallel 1: ${inputData?.final}`,
     };
   },
 });
@@ -58,14 +58,31 @@ const parallel2 = createStep({
   id: 'parallel2',
   description: 'Parallel step 2',
   inputSchema: z.object({
-    message: z.string(),
+    final: z.string(),
   }),
   outputSchema: z.object({
     result: z.string(),
   }),
   execute: async ({ inputData }) => {
     return {
-      result: `Parallel 2: ${inputData.message}`,
+      result: `Parallel 2: ${inputData?.final}`,
+    };
+  },
+});
+
+const finalStep = createStep({
+  id: 'final',
+  description: 'Final step',
+  inputSchema: z.object({
+    parallel1: z.object({ result: z.string() }),
+    parallel2: z.object({ result: z.string() }),
+  }),
+  outputSchema: z.object({
+    final: z.string(),
+  }),
+  execute: async ({ inputData }) => {
+    return {
+      final: `Final: ${inputData.parallel1} ${inputData.parallel2}`,
     };
   },
 });
@@ -78,14 +95,14 @@ const workflow = new MastraInngestWorkflow(
       message: z.string(),
     }),
     outputSchema: z.object({
-      processed: z.string(),
+      final: z.string(),
     }),
   },
   inngest,
 );
 
 // Add steps to workflow
-workflow.then(step1).then(step2).commit();
+workflow.then(step1).then(step2).parallel([parallel1, parallel2]).then(finalStep).commit();
 
 async function test() {
   const run = workflow.createRun();
