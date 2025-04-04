@@ -154,13 +154,18 @@ export class DefaultExecutionEngine extends ExecutionEngine {
   buildActors(steps: StepFlowEntry[]) {
     const actors = steps.reduce(
       (acc, entry, index) => {
+        let stepId = this.getStepId(entry);
         if (entry.type !== 'step') {
+          const nestedActors = this.buildActors(entry.steps);
+          Object.entries(nestedActors).forEach(([nestedStepId, nestedActor]) => {
+            acc[nestedStepId] = nestedActor;
+          });
           return acc;
         }
         const { step } = entry;
 
-        acc[step.id] = fromPromise(async ({ input }) => {
-          console.log('Running step', step.id);
+        acc[stepId] = fromPromise(async ({ input }) => {
+          console.log('Running step', stepId);
           const inputArg = input as any;
 
           let inputData = {};
@@ -170,10 +175,11 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             inputData = inputArg.context.inputData;
           } else {
             const prevStep = steps?.[index - 1];
-            if (prevStep?.type !== 'step') {
-              throw new Error('Previous step is not a step');
+            if (!prevStep) {
+              throw new Error('Previous step not found');
             }
-            inputData = stepsFromContext?.[prevStep.step.id]?.output;
+            const prevStepId = this.getStepId(prevStep);
+            inputData = stepsFromContext?.[prevStepId]?.output;
           }
 
           //TODO
