@@ -2,6 +2,7 @@ import { setup, createActor, fromPromise, assign } from 'xstate';
 
 import { ExecutionEngine } from './execution-engine';
 import type { ExecutionGraph } from './execution-engine';
+import type { StepFlowEntry } from '../workflow.warning';
 
 /**
  * Default implementation of the ExecutionEngine using XState
@@ -65,36 +66,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     }
     const initialStepId = initialStep.step.id;
 
-    const states = steps.reduce(
-      (acc, entry, index) => {
-        if (entry.type !== 'step') {
-          throw new Error('Step is not a step');
-        }
-        const { step } = entry;
-        const nextStep = steps[index + 1];
-        if (nextStep?.type !== 'step') {
-          throw new Error('Next step is not a step');
-        }
-        const nextStepId = nextStep.step.id;
-
-        acc[step.id] = {
-          invoke: {
-            src: step.id,
-            input: (props: any) => props,
-            onDone: {
-              target: nextStepId ? nextStepId : 'completed',
-              actions: [{ type: 'updateStepResult', params: { stepId: step.id } }],
-            },
-            onError: {
-              target: 'failed',
-              actions: [{ type: 'updateStepError', params: { stepId: step.id } }],
-            },
-          },
-        };
-        return acc;
-      },
-      {} as Record<string, any>,
-    );
+    const states = this.buildSequentialStates(steps);
 
     const machine = setup({
       types: {
@@ -151,6 +123,41 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     });
 
     return machine;
+  }
+
+  buildSequentialStates(steps: StepFlowEntry[]) {
+    const states = steps.reduce(
+      (acc, entry, index) => {
+        if (entry.type !== 'step') {
+          throw new Error('Step is not a step');
+        }
+        const { step } = entry;
+        const nextStep = step ? steps[index + 1] : undefined;
+        if (nextStep && nextStep.type !== 'step') {
+          throw new Error('Next step is not a step');
+        }
+        const nextStepId = nextStep?.step?.id;
+
+        acc[step.id] = {
+          invoke: {
+            src: step.id,
+            input: (props: any) => props,
+            onDone: {
+              target: nextStepId ? nextStepId : 'completed',
+              actions: [{ type: 'updateStepResult', params: { stepId: step.id } }],
+            },
+            onError: {
+              target: 'failed',
+              actions: [{ type: 'updateStepError', params: { stepId: step.id } }],
+            },
+          },
+        };
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
+
+    return states;
   }
 
   /**

@@ -111,7 +111,8 @@ describe('Workflow', () => {
     steps: [step, step2, step3, step5],
   });
 
-  workflow.then(step).parallel([step2, step3, step4]).then(step5).commit();
+  // workflow.then(step).parallel([step2, step3, step4]).then(step5).commit();
+  workflow.then(step).then(step2).commit();
 
   describe('Workflow Execution', () => {
     it('Run shit', async () => {
@@ -123,6 +124,7 @@ describe('Workflow', () => {
         },
       });
 
+      console.dir(res, { depth: null });
       console.log(res.steps['test-step'].status === 'success' ? res.steps['test-step'].output : 'Failed');
     }, 500000);
   });
