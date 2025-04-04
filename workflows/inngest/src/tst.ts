@@ -82,7 +82,7 @@ const finalStep = createStep({
   }),
   execute: async ({ inputData }) => {
     return {
-      final: `Final: ${inputData.parallel1} ${inputData.parallel2}`,
+      final: `Final: ${inputData.parallel1.result} ${inputData.parallel2.result}`,
     };
   },
 });
