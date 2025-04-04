@@ -123,23 +123,30 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             },
           };
         } else if (entry.type === 'parallel') {
-          const states = {
-            ...this.buildSequentialStates(entry.steps),
-            failed: {
-              type: 'final',
+          const individualStates = entry.steps.reduce(
+            (acc, step) => {
+              const stepId = this.getStepId(step);
+              const built = this.buildSequentialStates([step]);
+              acc[stepId] = {
+                states: {
+                  initialStep: built[stepId],
+                  failed: {
+                    type: 'final',
+                  },
+                  completed: {
+                    type: 'final',
+                  },
+                },
+                initial: 'initialStep',
+              };
+
+              return acc;
             },
-            completed: {
-              type: 'final',
-            },
-          };
+            {} as Record<string, any>,
+          );
           acc[stepId] = {
             type: 'parallel',
-            states: {
-              [stepId]: {
-                states,
-                initial: this.getStepId(entry.steps[0]!),
-              },
-            },
+            states: individualStates,
             onDone: {
               target: nextStepId ? nextStepId : 'completed',
               actions: [{ type: 'updateStepResult', params: { stepId: stepId } }],
