@@ -29,7 +29,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     const initialStepId = initialStep.step.id;
 
     const states = this.buildSequentialStates(steps);
-    console.log('states', states);
+    console.dir(states, { depth: null });
 
     const machine = setup({
       types: {
@@ -134,7 +134,12 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           };
           acc[stepId] = {
             type: 'parallel',
-            states: { ...states, initial: this.getStepId(entry.steps[0]!) },
+            states: {
+              [stepId]: {
+                states,
+                initial: this.getStepId(entry.steps[0]!),
+              },
+            },
             onDone: {
               target: nextStepId ? nextStepId : 'completed',
               actions: [{ type: 'updateStepResult', params: { stepId: stepId } }],
