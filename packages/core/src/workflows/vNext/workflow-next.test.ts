@@ -104,19 +104,26 @@ describe('Workflow', () => {
   });
 
   // Create a new workflow instance for each test
-  const workflow = new NewWorkflow({
-    id: 'test-workflow',
+  const workflowA = new NewWorkflow({
+    id: 'test-workflow-a',
     inputSchema,
     outputSchema,
     steps: [step, step2, step3, step5],
   });
 
-  // workflow.then(step).parallel([step2, step3, step4]).then(step5).commit();
-  workflow.then(step).then(step2).commit();
+  workflowA.then(step).then(step2).commit();
+
+  const workflowB = new NewWorkflow({
+    id: 'test-workflow-b',
+    inputSchema,
+    outputSchema,
+    steps: [step, step2, step3, step5],
+  });
+  workflowB.then(step).parallel([step2, step3, step4]).then(step5).commit();
 
   describe('Workflow Execution', () => {
     it('Run shit', async () => {
-      const run = workflow.createRun();
+      const run = workflowA.createRun();
 
       const res = await run.start({
         inputData: {
@@ -126,6 +133,16 @@ describe('Workflow', () => {
 
       console.dir(res, { depth: null });
       console.log(res.steps['test-step'].status === 'success' ? res.steps['test-step'].output : 'Failed');
+
+      const runB = workflowB.createRun();
+
+      const resB = await runB.start({
+        inputData: {
+          name: 'Abhi',
+        },
+      });
+
+      console.dir(resB, { depth: null });
     }, 500000);
   });
 });

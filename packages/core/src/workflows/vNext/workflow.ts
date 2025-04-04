@@ -108,7 +108,7 @@ export class NewWorkflow<
   }
 
   parallel<TParallelSteps extends Step<string, TPrevSchema, any>[]>(steps: TParallelSteps) {
-    this.stepFlow.push({ type: 'parallel', steps: steps as any });
+    this.stepFlow.push({ type: 'parallel', steps: steps.map(step => ({ type: 'step', step: step as any })) });
     return this as unknown as NewWorkflow<
       TSteps,
       TWorkflowId,
