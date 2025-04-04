@@ -121,6 +121,30 @@ describe('Workflow', () => {
   });
   workflowB.then(step).parallel([step4, step2]).then(step5).commit();
 
+  const workflowC = new NewWorkflow({
+    id: 'test-workflow-c',
+    inputSchema,
+    outputSchema,
+    steps: [step, step2, step3, step4, step5],
+  });
+  workflowC
+    .then(step)
+    .branch([
+      [
+        async ({ inputData }) => {
+          return inputData.resultz === 'Abhi';
+        },
+        step2,
+      ],
+      [
+        async ({ inputData }) => {
+          return inputData.resultz !== 'Abhi';
+        },
+        step4,
+      ],
+    ])
+    .then(step5);
+
   describe('Workflow Execution', () => {
     it('Run shit', async () => {
       const run = workflowA.createRun();

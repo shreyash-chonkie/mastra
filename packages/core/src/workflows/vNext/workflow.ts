@@ -31,7 +31,7 @@ export type StepFlowEntry =
   | {
       type: 'conditional';
       steps: StepFlowEntry[];
-      condition: ExecuteFunction<any, any>;
+      conditions: ExecuteFunction<any, any>[];
     };
 
 /**
@@ -124,6 +124,37 @@ export class NewWorkflow<
       z.ZodObject<
         {
           [K in keyof StepsRecord<TParallelSteps>]: StepsRecord<TParallelSteps>[K]['outputSchema'];
+        },
+        'strip',
+        z.ZodTypeAny
+      >
+    >;
+  }
+
+  branch<TBranchSteps extends Array<[ExecuteFunction<z.infer<TPrevSchema>, any>, Step<string, TPrevSchema, any>]>>(
+    steps: TBranchSteps,
+  ) {
+    this.stepFlow.push({
+      type: 'conditional',
+      steps: steps.map(([_cond, step]) => ({ type: 'step', step: step as any })),
+      conditions: steps.map(([cond]) => cond),
+    });
+
+    // Extract just the Step elements from the tuples array
+    type BranchStepsArray = { [K in keyof TBranchSteps]: TBranchSteps[K][1] };
+
+    // This creates a mapped type that extracts the second element from each tuple
+    type ExtractedSteps = BranchStepsArray[number];
+
+    // Now we can use this type as an array, similar to TParallelSteps
+    return this as unknown as NewWorkflow<
+      TSteps,
+      TWorkflowId,
+      TInput,
+      TOutput,
+      z.ZodObject<
+        {
+          [K in keyof StepsRecord<ExtractedSteps[]>]: StepsRecord<ExtractedSteps[]>[K]['outputSchema'];
         },
         'strip',
         z.ZodTypeAny
