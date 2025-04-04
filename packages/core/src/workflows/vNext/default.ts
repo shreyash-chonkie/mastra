@@ -133,6 +133,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     } else if (entry.type === 'conditional') {
       return `conditional-${entry.steps.map(this.getStepId).join('-')}`;
     }
+
+    throw new Error(`Step type not supported ${(entry as any).type}`);
   }
 
   buildSequentialStates(steps: StepFlowEntry[]) {
