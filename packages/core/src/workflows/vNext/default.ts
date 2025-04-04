@@ -24,7 +24,15 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     let lastOutput: any;
     for (let i = 0; i < steps.length; i++) {
       const entry = steps[i]!;
-      lastOutput = await this.executeEntry({ entry, prevStep: steps[i - 1]!, stepResults });
+      try {
+        lastOutput = await this.executeEntry({ entry, prevStep: steps[i - 1]!, stepResults });
+      } catch (e) {
+        return {
+          steps: stepResults,
+          result: lastOutput,
+          error: e instanceof Error ? e.message : 'Unknown error',
+        } as TOutput;
+      }
     }
 
     return { steps: stepResults, result: lastOutput } as TOutput;
@@ -34,14 +42,14 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     if (!step) {
       return stepResults.input;
     } else if (step.type === 'step') {
-      return stepResults[step.step.id];
+      return stepResults[step.step.id]?.output;
     } else if (step.type === 'parallel') {
       return step.steps.reduce(
         (acc, entry) => {
           if (entry.type === 'step') {
-            acc[entry.step.id] = stepResults[entry.step.id];
+            acc[entry.step.id] = stepResults[entry.step.id]?.output;
           } else if (entry.type === 'parallel') {
-            const parallelResult = this.getStepOutput(stepResults, entry);
+            const parallelResult = this.getStepOutput(stepResults, entry)?.output;
             acc = { ...acc, ...parallelResult };
           }
           return acc;
@@ -64,13 +72,18 @@ export class DefaultExecutionEngine extends ExecutionEngine {
 
     if (entry.type === 'step') {
       const { step } = entry;
-      const result = await step.execute({
-        inputData: prevOutput,
-        getStepResult: (step: any) => stepResults[step.id],
-      });
+      try {
+        const result = await step.execute({
+          inputData: prevOutput,
+          getStepResult: (step: any) => stepResults[step.id]?.output,
+        });
 
-      stepResults[step.id] = result;
-      return result;
+        stepResults[step.id] = { status: 'success', output: result };
+        return result;
+      } catch (e) {
+        stepResults[step.id] = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
+        throw e;
+      }
     } else if (entry.type === 'parallel') {
       const results: any[] = await Promise.all(
         entry.steps.map(step => this.executeEntry({ entry: step, prevStep, stepResults })),

@@ -39,7 +39,7 @@ describe('Workflow', () => {
       console.log('alt', alt);
       console.log('Step 2 Input Data:', inputData);
       return {
-        result: `Step 2 ${inputData.resultz}`,
+        result: `Step 2 ${inputData.resultz}, alt: ${alt?.resultz}`,
       };
     },
   });
