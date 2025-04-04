@@ -79,7 +79,7 @@ describe('Workflow', () => {
   });
 
   const step5 = createStep({
-    id: 'test-step4',
+    id: 'test-step5',
     description: 'Test step 4',
     inputSchema: z.object({
       'test-step2': z.object({
