@@ -21,45 +21,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       throw new Error('Workflow must have at least one step');
     }
 
-    const actors = steps.reduce(
-      (acc, entry, index) => {
-        if (entry.type !== 'step') {
-          return acc;
-        }
-        const { step } = entry;
-
-        acc[step.id] = fromPromise(async ({ input }) => {
-          console.log('Running step', step.id);
-          const inputArg = input as any;
-
-          let inputData = {};
-          const stepsFromContext = inputArg.context.steps;
-
-          if (index === 0) {
-            inputData = inputArg.context.inputData;
-          } else {
-            const prevStep = steps?.[index - 1];
-            if (prevStep?.type !== 'step') {
-              throw new Error('Previous step is not a step');
-            }
-            inputData = stepsFromContext?.[prevStep.step.id]?.output;
-          }
-
-          //TODO
-          const stepOutput = await step.execute({
-            inputData,
-            getStepResult: step => {
-              return stepsFromContext[step.id]?.output;
-            },
-          });
-
-          return { stepId: step.id, result: stepOutput };
-        });
-        return acc;
-      },
-      {} as Record<string, any>,
-    );
-
+    const actors = this.buildActors(steps);
     const initialStep = steps[0];
     if (initialStep?.type !== 'step') {
       throw new Error('Initial step is not a step');
@@ -187,6 +149,49 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     );
 
     return states;
+  }
+
+  buildActors(steps: StepFlowEntry[]) {
+    const actors = steps.reduce(
+      (acc, entry, index) => {
+        if (entry.type !== 'step') {
+          return acc;
+        }
+        const { step } = entry;
+
+        acc[step.id] = fromPromise(async ({ input }) => {
+          console.log('Running step', step.id);
+          const inputArg = input as any;
+
+          let inputData = {};
+          const stepsFromContext = inputArg.context.steps;
+
+          if (index === 0) {
+            inputData = inputArg.context.inputData;
+          } else {
+            const prevStep = steps?.[index - 1];
+            if (prevStep?.type !== 'step') {
+              throw new Error('Previous step is not a step');
+            }
+            inputData = stepsFromContext?.[prevStep.step.id]?.output;
+          }
+
+          //TODO
+          const stepOutput = await step.execute({
+            inputData,
+            getStepResult: step => {
+              return stepsFromContext[step.id]?.output;
+            },
+          });
+
+          return { stepId: step.id, result: stepOutput };
+        });
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
+
+    return actors;
   }
 
   /**
