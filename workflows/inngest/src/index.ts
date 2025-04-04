@@ -56,9 +56,18 @@ class InngestExecutionEngine extends ExecutionEngine {
           name: step.description || step.id,
           handler: async ({ step: inngestStep, event }) => {
             // Get input data from previous step or initial input
-            // For steps in a workflow, input comes from the workflow input
-            // For steps in a parallel block, input comes from the parent step's input
-            const inputData = this.stepResults['input'];
+            let inputData = this.stepResults['input'];
+
+            // Find the previous step in the workflow
+            const stepIndex = parentSteps.findIndex(s => s.type === 'step' && s.step.id === step.id);
+
+            if (stepIndex > 0) {
+              const prevStep = parentSteps[stepIndex - 1];
+              // Check if previous step is a regular step (not parallel)
+              if (prevStep?.type === 'step' && prevStep.step) {
+                inputData = this.stepResults[prevStep.step.id];
+              }
+            }
 
             const result = await step.execute({
               inputData,

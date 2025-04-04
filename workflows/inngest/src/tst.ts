@@ -85,7 +85,7 @@ const workflow = new MastraInngestWorkflow(
 );
 
 // Add steps to workflow
-workflow.then(step1).commit();
+workflow.then(step1).then(step2).commit();
 
 async function test() {
   const run = workflow.createRun();
