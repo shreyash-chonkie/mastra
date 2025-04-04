@@ -65,14 +65,14 @@ describe('Workflow', () => {
     id: 'test-step4',
     description: 'Test step 4',
     inputSchema: z.object({
-      outputs: z.tuple([
-        z.object({
+      steps: z.object({
+        'test-step2': z.object({
           result: z.string(),
         }),
-        z.object({
+        'test-step3': z.object({
           thing: z.string(),
         }),
-      ]),
+      }),
     }),
     outputSchema: z.object({
       other: z.string(),

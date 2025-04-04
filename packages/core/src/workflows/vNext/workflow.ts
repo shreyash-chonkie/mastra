@@ -114,7 +114,19 @@ export class NewWorkflow<
       TWorkflowId,
       TInput,
       TOutput,
-      z.ZodObject<{ outputs: z.ZodTuple<TParallelSteps[number]['outputSchema']> }>
+      z.ZodObject<
+        {
+          steps: z.ZodObject<
+            {
+              [K in keyof StepsRecord<TParallelSteps>]: StepsRecord<TParallelSteps>[K]['outputSchema'];
+            },
+            'strip',
+            z.ZodTypeAny
+          >;
+        },
+        'strip',
+        z.ZodTypeAny
+      >
     >;
   }
 
