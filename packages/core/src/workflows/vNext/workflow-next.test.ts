@@ -16,11 +16,13 @@ describe('Workflow', () => {
     id: 'test-step',
     description: 'Test step',
     inputSchema,
-    outputSchema,
+    outputSchema: z.object({
+      resultz: z.string(),
+    }),
     execute: async ({ inputData }) => {
       console.log('Step 1 Input Data:', inputData);
       return {
-        result: 'Step 1',
+        resultz: 'Step 1',
       };
     },
   });
@@ -29,13 +31,13 @@ describe('Workflow', () => {
     id: 'test-step2',
     description: 'Test step 2',
     inputSchema: z.object({
-      result: z.string(),
+      resultz: z.string(),
     }),
     outputSchema,
     execute: async ({ inputData }) => {
       console.log('Step 2 Input Data:', inputData);
       return {
-        result: `Step 2 ${inputData.result}`,
+        result: `Step 2 ${inputData.resultz}`,
       };
     },
   });

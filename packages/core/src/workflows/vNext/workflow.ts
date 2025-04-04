@@ -57,6 +57,7 @@ export class NewWorkflow<
   TWorkflowId extends string = string,
   TInput extends z.ZodObject<any> = z.ZodObject<any>,
   TOutput extends z.ZodObject<any> = z.ZodObject<any>,
+  TPrevSchema extends z.ZodObject<any> = TInput,
 > extends MastraBase {
   protected inputSchema: TInput;
   protected outputSchema: TOutput;
@@ -89,11 +90,9 @@ export class NewWorkflow<
    * @param step The step to add to the workflow
    * @returns The workflow instance for chaining
    */
-  then<TStepId extends string, TSchemaIn extends z.ZodType, TSchemaOut extends z.ZodType>(
-    step: Step<TStepId, TSchemaIn, TSchemaOut>,
-  ): this {
+  then<TStepId extends string, TSchemaOut extends z.ZodObject<any>>(step: Step<TStepId, TPrevSchema, TSchemaOut>) {
     this.stepFlow.push(step as any); // Type assertion needed due to variance issues
-    return this;
+    return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
   }
 
   /**
