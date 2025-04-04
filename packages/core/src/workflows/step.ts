@@ -38,11 +38,11 @@ export class Step<
   }
 }
 
-export function createStep<
-  TId extends string,
-  TSchemaIn extends z.ZodSchema | undefined,
-  TSchemaOut extends z.ZodSchema | undefined,
-  TContext extends StepExecutionContext<TSchemaIn>,
->(opts: StepAction<TId, TSchemaIn, TSchemaOut, TContext>) {
-  return new Step(opts);
-}
+// export function createStep<
+//   TId extends string,
+//   TSchemaIn extends z.ZodSchema | undefined,
+//   TSchemaOut extends z.ZodSchema | undefined,
+//   TContext extends StepExecutionContext<TSchemaIn>,
+// >(opts: StepAction<TId, TSchemaIn, TSchemaOut, TContext>) {
+//   return new Step(opts);
+// }

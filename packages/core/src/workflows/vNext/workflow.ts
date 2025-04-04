@@ -64,6 +64,19 @@ export function createStep<
   };
 }
 
+export type NewWorkflowConfig<
+  TWorkflowId extends string = string,
+  TInput extends z.ZodObject<any> = z.ZodObject<any>,
+  TOutput extends z.ZodObject<any> = z.ZodObject<any>,
+  TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
+> = {
+  id: TWorkflowId;
+  inputSchema: TInput;
+  outputSchema: TOutput;
+  executionEngine?: ExecutionEngine;
+  steps?: TSteps;
+};
+
 export class NewWorkflow<
   TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
   TWorkflowId extends string = string,
@@ -82,13 +95,7 @@ export class NewWorkflow<
     inputSchema,
     outputSchema,
     executionEngine = new DefaultExecutionEngine(),
-  }: {
-    id: TWorkflowId;
-    inputSchema: TInput;
-    outputSchema: TOutput;
-    executionEngine?: ExecutionEngine;
-    steps?: TSteps;
-  }) {
+  }: NewWorkflowConfig<TWorkflowId, TInput, TOutput>) {
     super({ name: id, component: RegisteredLogger.WORKFLOW });
     this.inputSchema = inputSchema;
     this.outputSchema = outputSchema;

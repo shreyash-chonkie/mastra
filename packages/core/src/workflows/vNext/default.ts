@@ -1,8 +1,7 @@
 import { setup, createActor, fromPromise, assign } from 'xstate';
-
-import { ExecutionEngine } from './execution-engine';
 import type { ExecutionGraph } from './execution-engine';
-import type { StepFlowEntry } from '../workflow.warning';
+import { ExecutionEngine } from './execution-engine';
+import type { StepFlowEntry } from './workflow';
 
 /**
  * Default implementation of the ExecutionEngine using XState
@@ -123,30 +122,23 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             },
           };
         } else if (entry.type === 'parallel') {
-          const individualStates = entry.steps.reduce(
-            (acc, step) => {
-              const stepId = this.getStepId(step);
-              const built = this.buildSequentialStates([step]);
-              acc[stepId] = {
-                states: {
-                  initialStep: built[stepId],
-                  failed: {
-                    type: 'final',
-                  },
-                  completed: {
-                    type: 'final',
-                  },
-                },
-                initial: 'initialStep',
-              };
-
-              return acc;
+          const states = {
+            ...this.buildSequentialStates(entry.steps),
+            failed: {
+              type: 'final',
             },
-            {} as Record<string, any>,
-          );
+            completed: {
+              type: 'final',
+            },
+          };
           acc[stepId] = {
             type: 'parallel',
-            states: individualStates,
+            states: {
+              [stepId]: {
+                states,
+                initial: this.getStepId(entry.steps[0]!),
+              },
+            },
             onDone: {
               target: nextStepId ? nextStepId : 'completed',
               actions: [{ type: 'updateStepResult', params: { stepId: stepId } }],
