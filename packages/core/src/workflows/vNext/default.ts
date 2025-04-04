@@ -36,7 +36,12 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           }
 
           //TODO
-          const stepOutput = await step.execute({ inputData });
+          const stepOutput = await step.execute({
+            inputData,
+            getStepResult: step => {
+              return stepsFromContext[step.id]?.output;
+            },
+          });
 
           return { stepId: step.id, result: stepOutput };
         });

@@ -34,7 +34,9 @@ describe('Workflow', () => {
       resultz: z.string(),
     }),
     outputSchema,
-    execute: async ({ inputData }) => {
+    execute: async ({ inputData, getStepResult }) => {
+      const alt = getStepResult(step);
+      console.log('alt', alt);
       console.log('Step 2 Input Data:', inputData);
       return {
         result: `Step 2 ${inputData.resultz}`,
