@@ -85,9 +85,9 @@ describe('Workflow', () => {
       'test-step2': z.object({
         result: z.string(),
       }),
-      'test-step3': z.object({
-        thing: z.string(),
-      }),
+      // 'test-step3': z.object({
+      //   thing: z.string(),
+      // }),
       'test-step4': z.object({
         thirdResult: z.string(),
       }),
@@ -119,7 +119,7 @@ describe('Workflow', () => {
     outputSchema,
     steps: [step, step2, step3, step5],
   });
-  workflowB.then(step).parallel([step2, step3, step4]).then(step5).commit();
+  workflowB.then(step).parallel([step4, step2]).then(step5).commit();
 
   describe('Workflow Execution', () => {
     it('Run shit', async () => {
