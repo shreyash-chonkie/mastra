@@ -65,20 +65,40 @@ describe('Workflow', () => {
     id: 'test-step4',
     description: 'Test step 4',
     inputSchema: z.object({
+      resultz: z.string(),
+    }),
+    outputSchema: z.object({
+      thirdResult: z.string(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('Step 4 Input Data:', inputData);
+      return {
+        thirdResult: `Step 4 ${inputData.resultz}`,
+      };
+    },
+  });
+
+  const step5 = createStep({
+    id: 'test-step4',
+    description: 'Test step 4',
+    inputSchema: z.object({
       'test-step2': z.object({
         result: z.string(),
       }),
       'test-step3': z.object({
         thing: z.string(),
       }),
+      'test-step4': z.object({
+        thirdResult: z.string(),
+      }),
     }),
     outputSchema: z.object({
       other: z.string(),
     }),
     execute: async ({ inputData }) => {
-      console.log('Step 4 Input Data:', inputData);
+      console.log('Step 5 Input Data:', inputData);
       return {
-        other: `Step 4 ${JSON.stringify(inputData)}`,
+        other: `Step 5 ${JSON.stringify(inputData)}`,
       };
     },
   });
@@ -88,10 +108,10 @@ describe('Workflow', () => {
     id: 'test-workflow',
     inputSchema,
     outputSchema,
-    steps: [step, step2, step3, step4],
+    steps: [step, step2, step3, step5],
   });
 
-  workflow.then(step).parallel([step2, step3]).then(step4).commit();
+  workflow.then(step).parallel([step2, step3, step4]).then(step5).commit();
 
   describe('Workflow Execution', () => {
     it('Run shit', async () => {
