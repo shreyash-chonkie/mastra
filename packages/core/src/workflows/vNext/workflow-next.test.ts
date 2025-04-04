@@ -44,15 +44,56 @@ describe('Workflow', () => {
     },
   });
 
+  const step3 = createStep({
+    id: 'test-step3',
+    description: 'Test step 3',
+    inputSchema: z.object({
+      resultz: z.string(),
+    }),
+    outputSchema: z.object({
+      thing: z.string(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('Step 3 Input Data:', inputData);
+      return {
+        thing: `Step 3 ${inputData.resultz}`,
+      };
+    },
+  });
+
+  const step4 = createStep({
+    id: 'test-step4',
+    description: 'Test step 4',
+    inputSchema: z.object({
+      outputs: z.tuple([
+        z.object({
+          result: z.string(),
+        }),
+        z.object({
+          thing: z.string(),
+        }),
+      ]),
+    }),
+    outputSchema: z.object({
+      other: z.string(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('Step 4 Input Data:', inputData);
+      return {
+        other: `Step 4 ${JSON.stringify(inputData)}`,
+      };
+    },
+  });
+
   // Create a new workflow instance for each test
   const workflow = new NewWorkflow({
     id: 'test-workflow',
     inputSchema,
     outputSchema,
-    steps: [step, step2],
+    steps: [step, step2, step3, step4],
   });
 
-  workflow.then(step).then(step2).commit();
+  workflow.then(step).parallel([step2, step3]).then(step4).commit();
 
   describe('Workflow Execution', () => {
     it('Run shit', async () => {

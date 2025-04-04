@@ -22,6 +22,18 @@ export type StepsRecord<T extends readonly Step<any, any, z.ZodType<any>>[]> = {
   [K in T[number]['id']]: Extract<T[number], { id: K }>;
 };
 
+export type StepFlowEntry =
+  | { type: 'step'; step: Step }
+  | {
+      type: 'parallel';
+      steps: StepFlowEntry[];
+    }
+  | {
+      type: 'conditional';
+      steps: StepFlowEntry[];
+      condition: ExecuteFunction<any, any>;
+    };
+
 /**
  * Creates a new workflow step
  * @param params Configuration parameters for the step
@@ -61,7 +73,7 @@ export class NewWorkflow<
 > extends MastraBase {
   protected inputSchema: TInput;
   protected outputSchema: TOutput;
-  protected stepFlow: Step[];
+  protected stepFlow: StepFlowEntry[];
   protected executionEngine: ExecutionEngine;
   protected executionGraph: ExecutionGraph;
 
@@ -91,8 +103,19 @@ export class NewWorkflow<
    * @returns The workflow instance for chaining
    */
   then<TStepId extends string, TSchemaOut extends z.ZodObject<any>>(step: Step<TStepId, TPrevSchema, TSchemaOut>) {
-    this.stepFlow.push(step as any); // Type assertion needed due to variance issues
+    this.stepFlow.push({ type: 'step', step: step as any });
     return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
+  }
+
+  parallel<TParallelSteps extends Step<string, TPrevSchema, any>[]>(steps: TParallelSteps) {
+    this.stepFlow.push({ type: 'parallel', steps: steps as any });
+    return this as unknown as NewWorkflow<
+      TSteps,
+      TWorkflowId,
+      TInput,
+      TOutput,
+      z.ZodObject<{ outputs: z.ZodTuple<TParallelSteps[number]['outputSchema']> }>
+    >;
   }
 
   /**

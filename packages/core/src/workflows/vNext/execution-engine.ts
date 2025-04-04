@@ -1,13 +1,13 @@
 import { MastraBase } from '../../base';
 import { RegisteredLogger } from '../../logger';
-import type { NewStep as Step } from './step';
+import type { StepFlowEntry } from '.';
 
 /**
  * Represents an execution graph for a workflow
  */
 export interface ExecutionGraph {
   id: string;
-  steps: Step[];
+  steps: StepFlowEntry[];
   // Additional properties will be added in future implementations
 }
 /**

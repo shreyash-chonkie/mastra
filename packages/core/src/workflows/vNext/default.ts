@@ -21,7 +21,12 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     }
 
     const actors = steps.reduce(
-      (acc, step, index) => {
+      (acc, entry, index) => {
+        if (entry.type !== 'step') {
+          throw new Error('Step is not a step');
+        }
+        const { step } = entry;
+
         acc[step.id] = fromPromise(async ({ input }) => {
           console.log('Running step', step.id);
           const inputArg = input as any;
@@ -31,8 +36,12 @@ export class DefaultExecutionEngine extends ExecutionEngine {
 
           if (index === 0) {
             inputData = inputArg.context.inputData;
-          } else if (steps?.[index - 1]?.id) {
-            inputData = stepsFromContext?.[steps?.[index - 1]?.id!]?.output;
+          } else {
+            const prevStep = steps?.[index - 1];
+            if (prevStep?.type !== 'step') {
+              throw new Error('Previous step is not a step');
+            }
+            inputData = stepsFromContext?.[prevStep.step.id]?.output;
           }
 
           //TODO
@@ -50,9 +59,23 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       {} as Record<string, any>,
     );
 
+    const initialStep = steps[0];
+    if (initialStep?.type !== 'step') {
+      throw new Error('Initial step is not a step');
+    }
+    const initialStepId = initialStep.step.id;
+
     const states = steps.reduce(
-      (acc, step, index) => {
-        const nextStepId = steps[index + 1]?.id;
+      (acc, entry, index) => {
+        if (entry.type !== 'step') {
+          throw new Error('Step is not a step');
+        }
+        const { step } = entry;
+        const nextStep = steps[index + 1];
+        if (nextStep?.type !== 'step') {
+          throw new Error('Next step is not a step');
+        }
+        const nextStepId = nextStep.step.id;
 
         acc[step.id] = {
           invoke: {
@@ -115,7 +138,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         inputData: input,
         steps: {},
       },
-      initial: steps?.[0]?.id,
+      initial: initialStepId,
       states: {
         ...states,
         failed: {
@@ -154,7 +177,12 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     return new Promise<TOutput>((resolve, reject) => {
       actor.subscribe(state => {
         if (state.value === 'completed') {
-          const lastStepId = steps[steps.length - 1]!.id;
+          const lastEntry = steps[steps.length - 1];
+          if (lastEntry?.type !== 'step') {
+            throw new Error('Last step is not a step');
+          }
+
+          const lastStepId = lastEntry.step.id;
 
           const stepsFromContext = state.context.steps?.[lastStepId];
 
