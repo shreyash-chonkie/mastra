@@ -143,7 +143,8 @@ describe('Workflow', () => {
         step4,
       ],
     ])
-    .then(step5);
+    .then(step5)
+    .commit();
 
   describe('Workflow Execution', () => {
     it('Run shit', async () => {
@@ -165,8 +166,18 @@ describe('Workflow', () => {
           name: 'Abhi',
         },
       });
+      console.dir({ resB }, { depth: null });
 
-      console.dir(resB, { depth: null });
+      const runC = workflowC.createRun();
+
+      const resC = await runC.start({
+        inputData: {
+          name: 'Abhi',
+        },
+      });
+      console.dir({ resC }, { depth: null });
+
+      console.dir(resC, { depth: null });
     }, 500000);
   });
 });
