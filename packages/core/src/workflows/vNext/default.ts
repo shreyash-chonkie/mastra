@@ -2,6 +2,7 @@ import { setup, createActor, fromPromise, assign } from 'xstate';
 
 import { ExecutionEngine } from './execution-engine';
 import type { ExecutionGraph } from './execution-engine';
+import type { StepFlowEntry } from '../workflow.warning';
 
 /**
  * Default implementation of the ExecutionEngine using XState
@@ -20,53 +21,15 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       throw new Error('Workflow must have at least one step');
     }
 
-    const actors = steps.reduce(
-      (acc, step, index) => {
-        acc[step.id] = fromPromise(async ({ input }) => {
-          console.log('Running step', step.id);
-          const inputArg = input as any;
+    const actors = this.buildActors(steps);
+    const initialStep = steps[0];
+    if (initialStep?.type !== 'step') {
+      throw new Error('Initial step is not a step');
+    }
+    const initialStepId = initialStep.step.id;
 
-          let inputData = {};
-          const stepsFromContext = inputArg.context.steps;
-
-          if (index === 0) {
-            inputData = inputArg.context.inputData;
-          } else if (steps?.[index - 1]?.id) {
-            inputData = stepsFromContext?.[steps?.[index - 1]?.id!]?.output;
-          }
-
-          //TODO
-          const stepOutput = await step.execute({ inputData });
-
-          return { stepId: step.id, result: stepOutput };
-        });
-        return acc;
-      },
-      {} as Record<string, any>,
-    );
-
-    const states = steps.reduce(
-      (acc, step, index) => {
-        const nextStepId = steps[index + 1]?.id;
-
-        acc[step.id] = {
-          invoke: {
-            src: step.id,
-            input: (props: any) => props,
-            onDone: {
-              target: nextStepId ? nextStepId : 'completed',
-              actions: [{ type: 'updateStepResult', params: { stepId: step.id } }],
-            },
-            onError: {
-              target: 'failed',
-              actions: [{ type: 'updateStepError', params: { stepId: step.id } }],
-            },
-          },
-        };
-        return acc;
-      },
-      {} as Record<string, any>,
-    );
+    const states = this.buildSequentialStates(steps);
+    console.dir(states, { depth: null });
 
     const machine = setup({
       types: {
@@ -110,7 +73,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         inputData: input,
         steps: {},
       },
-      initial: steps?.[0]?.id,
+      initial: initialStepId,
       states: {
         ...states,
         failed: {
@@ -123,6 +86,123 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     });
 
     return machine;
+  }
+
+  getStepId(entry: StepFlowEntry): string {
+    if (entry.type === 'step') {
+      return entry.step.id;
+    } else if (entry.type === 'parallel') {
+      return `parallel-${entry.steps.map(this.getStepId).join('-')}`;
+    } else if (entry.type === 'conditional') {
+      return `conditional-${entry.steps.map(this.getStepId).join('-')}`;
+    }
+
+    throw new Error(`Step type not supported ${(entry as any).type}`);
+  }
+
+  buildSequentialStates(steps: StepFlowEntry[]) {
+    const states = steps.reduce(
+      (acc, entry, index) => {
+        const stepId = this.getStepId(entry);
+        const nextStep = steps[index + 1];
+        const nextStepId = nextStep ? this.getStepId(nextStep) : undefined;
+
+        if (entry.type === 'step') {
+          acc[stepId] = {
+            invoke: {
+              src: stepId,
+              input: (props: any) => props,
+              onDone: {
+                target: nextStepId ? nextStepId : 'completed',
+                actions: [{ type: 'updateStepResult', params: { stepId: stepId } }],
+              },
+              onError: {
+                target: 'failed',
+                actions: [{ type: 'updateStepError', params: { stepId: stepId } }],
+              },
+            },
+          };
+        } else if (entry.type === 'parallel') {
+          const states = {
+            ...this.buildSequentialStates(entry.steps),
+            failed: {
+              type: 'final',
+            },
+            completed: {
+              type: 'final',
+            },
+          };
+          acc[stepId] = {
+            type: 'parallel',
+            states: {
+              [stepId]: {
+                states,
+                initial: this.getStepId(entry.steps[0]!),
+              },
+            },
+            onDone: {
+              target: nextStepId ? nextStepId : 'completed',
+              actions: [{ type: 'updateStepResult', params: { stepId: stepId } }],
+            },
+          };
+        } else {
+          throw new Error(`Step type not supported ${entry.type}`);
+        }
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
+
+    return states;
+  }
+
+  buildActors(steps: StepFlowEntry[]) {
+    const actors = steps.reduce(
+      (acc, entry, index) => {
+        let stepId = this.getStepId(entry);
+        if (entry.type !== 'step') {
+          const nestedActors = this.buildActors(entry.steps);
+          Object.entries(nestedActors).forEach(([nestedStepId, nestedActor]) => {
+            acc[nestedStepId] = nestedActor;
+          });
+          return acc;
+        }
+        const { step } = entry;
+
+        acc[stepId] = fromPromise(async ({ input }) => {
+          console.log('Running step', stepId);
+          const inputArg = input as any;
+
+          let inputData = {};
+          const stepsFromContext = inputArg.context.steps;
+
+          if (index === 0) {
+            inputData = inputArg.context.inputData;
+          } else {
+            const prevStep = steps?.[index - 1];
+            if (!prevStep) {
+              throw new Error('Previous step not found');
+            }
+            const prevStepId = this.getStepId(prevStep);
+            inputData = stepsFromContext?.[prevStepId]?.output;
+          }
+
+          //TODO
+          const stepOutput = await step.execute({
+            inputData,
+            getStepResult: step => {
+              return stepsFromContext[step.id]?.output;
+            },
+          });
+
+          return { stepId: step.id, result: stepOutput };
+        });
+        return acc;
+      },
+      {} as Record<string, any>,
+    );
+
+    return actors;
   }
 
   /**
@@ -149,8 +229,12 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     return new Promise<TOutput>((resolve, reject) => {
       actor.subscribe(state => {
         if (state.value === 'completed') {
-          const lastStepId = steps[steps.length - 1]!.id;
+          const lastEntry = steps[steps.length - 1];
+          if (!lastEntry) {
+            return undefined;
+          }
 
+          const lastStepId = this.getStepId(lastEntry);
           const stepsFromContext = state.context.steps?.[lastStepId];
 
           if (!stepsFromContext) {

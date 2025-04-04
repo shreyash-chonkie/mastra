@@ -34,7 +34,9 @@ describe('Workflow', () => {
       resultz: z.string(),
     }),
     outputSchema,
-    execute: async ({ inputData }) => {
+    execute: async ({ inputData, getStepResult }) => {
+      const alt = getStepResult(step);
+      console.log('alt', alt);
       console.log('Step 2 Input Data:', inputData);
       return {
         result: `Step 2 ${inputData.resultz}`,
@@ -42,19 +44,86 @@ describe('Workflow', () => {
     },
   });
 
-  // Create a new workflow instance for each test
-  const workflow = new NewWorkflow({
-    id: 'test-workflow',
-    inputSchema,
-    outputSchema,
-    steps: [step, step2],
+  const step3 = createStep({
+    id: 'test-step3',
+    description: 'Test step 3',
+    inputSchema: z.object({
+      resultz: z.string(),
+    }),
+    outputSchema: z.object({
+      thing: z.string(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('Step 3 Input Data:', inputData);
+      return {
+        thing: `Step 3 ${inputData.resultz}`,
+      };
+    },
   });
 
-  workflow.then(step).then(step2).commit();
+  const step4 = createStep({
+    id: 'test-step4',
+    description: 'Test step 4',
+    inputSchema: z.object({
+      resultz: z.string(),
+    }),
+    outputSchema: z.object({
+      thirdResult: z.string(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('Step 4 Input Data:', inputData);
+      return {
+        thirdResult: `Step 4 ${inputData.resultz}`,
+      };
+    },
+  });
+
+  const step5 = createStep({
+    id: 'test-step5',
+    description: 'Test step 4',
+    inputSchema: z.object({
+      'test-step2': z.object({
+        result: z.string(),
+      }),
+      'test-step3': z.object({
+        thing: z.string(),
+      }),
+      'test-step4': z.object({
+        thirdResult: z.string(),
+      }),
+    }),
+    outputSchema: z.object({
+      other: z.string(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('Step 5 Input Data:', inputData);
+      return {
+        other: `Step 5 ${JSON.stringify(inputData)}`,
+      };
+    },
+  });
+
+  // Create a new workflow instance for each test
+  const workflowA = new NewWorkflow({
+    id: 'test-workflow-a',
+    inputSchema,
+    outputSchema,
+    steps: [step, step2, step3, step5],
+  });
+
+  workflowA.then(step).then(step2).commit();
+
+  const workflowB = new NewWorkflow({
+    id: 'test-workflow-b',
+    inputSchema,
+    outputSchema,
+    steps: [step, step2, step3, step5],
+  });
+  workflowB.then(step).parallel([step2, step3, step4]).then(step5).commit();
 
   describe('Workflow Execution', () => {
     it('Run shit', async () => {
-      const run = workflow.createRun();
+      const run = workflowA.createRun();
 
       const res = await run.start({
         inputData: {
@@ -62,7 +131,18 @@ describe('Workflow', () => {
         },
       });
 
+      console.dir(res, { depth: null });
       console.log(res.steps['test-step'].status === 'success' ? res.steps['test-step'].output : 'Failed');
+
+      const runB = workflowB.createRun();
+
+      const resB = await runB.start({
+        inputData: {
+          name: 'Abhi',
+        },
+      });
+
+      console.dir(resB, { depth: null });
     }, 500000);
   });
 });
