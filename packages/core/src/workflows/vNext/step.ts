@@ -11,8 +11,8 @@ export type ExecuteFunction<TStepInput, TStepOutput> = (params: {
 // Define a Step interface
 export interface NewStep<
   TStepId extends string = string,
-  TSchemaIn extends z.ZodType = z.ZodType<any>,
-  TSchemaOut extends z.ZodType = z.ZodType<any>,
+  TSchemaIn extends z.ZodObject<any> = z.ZodObject<any>,
+  TSchemaOut extends z.ZodObject<any> = z.ZodObject<any>,
 > {
   id: TStepId;
   description?: string;
