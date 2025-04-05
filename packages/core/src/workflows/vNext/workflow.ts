@@ -64,6 +64,15 @@ export function createStep<
   };
 }
 
+export function createWorkflow<
+  TWorkflowId extends string = string,
+  TInput extends z.ZodObject<any> = z.ZodObject<any>,
+  TOutput extends z.ZodObject<any> = z.ZodObject<any>,
+  TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
+>(params: NewWorkflowConfig<TWorkflowId, TInput, TOutput, TSteps>) {
+  return new NewWorkflow(params);
+}
+
 export type NewWorkflowConfig<
   TWorkflowId extends string = string,
   TInput extends z.ZodObject<any> = z.ZodObject<any>,
