@@ -65,7 +65,7 @@ describe('Workflow', () => {
     id: 'test-step4',
     description: 'Test step 4',
     inputSchema: z.object({
-      resultz: z.string(),
+      result: z.string(),
     }),
     outputSchema: z.object({
       thirdResult: z.string(),
@@ -73,7 +73,7 @@ describe('Workflow', () => {
     execute: async ({ inputData }) => {
       console.log('Step 4 Input Data:', inputData);
       return {
-        thirdResult: `Step 4 ${inputData.resultz}`,
+        thirdResult: `Step 4 ${inputData.result}`,
       };
     },
   });
@@ -82,12 +82,9 @@ describe('Workflow', () => {
     id: 'test-step5',
     description: 'Test step 4',
     inputSchema: z.object({
-      'test-step2': z.object({
-        result: z.string(),
+      'test-step3': z.object({
+        thing: z.string(),
       }),
-      // 'test-step3': z.object({
-      //   thing: z.string(),
-      // }),
       'test-step4': z.object({
         thirdResult: z.string(),
       }),
@@ -129,21 +126,81 @@ describe('Workflow', () => {
   });
   workflowC
     .then(step)
+    .then(step2)
     .branch([
       [
         async ({ inputData }) => {
-          return inputData.resultz === 'Abhi';
+          return inputData.result === 'Abhi';
         },
-        step2,
+        step3,
       ],
       [
         async ({ inputData }) => {
-          return inputData.resultz !== 'Abhi';
+          return inputData.result !== 'Abhi';
         },
         step4,
       ],
     ])
     .then(step5)
+    .commit();
+
+  const stepDouble = createStep({
+    id: 'test-step-double',
+    description: 'Test step double',
+    inputSchema: z.object({
+      'test-step3': z.object({
+        thing: z.string(),
+      }),
+      'nested-workflow-b': z.object({
+        'test-step3': z.object({
+          thing: z.string(),
+        }),
+        'test-step4': z.object({
+          thirdResult: z.string(),
+        }),
+      }),
+    }),
+    outputSchema: z.object({
+      result: z.string(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('Step double', inputData);
+      return { result: `Step double ${inputData['test-step3'].thing}` };
+    },
+  });
+
+  const nestedWorkflowB = createWorkflow({
+    id: 'nested-workflow-b',
+    inputSchema: z.object({
+      result: z.string(),
+    }),
+    outputSchema: z.object({
+      'test-step3': z.object({
+        thing: z.string(),
+      }),
+      'test-step4': z.object({
+        thirdResult: z.string(),
+      }),
+    }),
+    steps: [step3, step4],
+  })
+    .parallel([step3, step4])
+    .commit();
+
+  const nestedWorkflowA = createWorkflow({
+    id: 'nested-workflow-a',
+    inputSchema: z.object({
+      name: z.string(),
+    }),
+    outputSchema: z.object({
+      result: z.string(),
+    }),
+    steps: [step, step2, step3, nestedWorkflowB, stepDouble],
+  })
+    .then(step)
+    .then(step2)
+    .parallel([step3, nestedWorkflowB])
+    .then(stepDouble)
     .commit();
 
   const workflowD = createWorkflow({
@@ -154,27 +211,10 @@ describe('Workflow', () => {
     outputSchema: z.object({
       thing: z.string(),
     }),
-    steps: [step, step2, step3, step5],
+    steps: [nestedWorkflowA, step3],
   });
 
-  workflowD
-    .then(
-      createWorkflow({
-        id: 'nested-workflow-a',
-        inputSchema: z.object({
-          name: z.string(),
-        }),
-        outputSchema: z.object({
-          result: z.string(),
-        }),
-        steps: [step, step2],
-      })
-        .then(step)
-        .then(step2)
-        .commit(),
-    )
-    .then(step3)
-    .commit();
+  workflowD.then(nestedWorkflowA).then(step3).commit();
 
   describe('Workflow Execution', () => {
     it('Run shit', async () => {

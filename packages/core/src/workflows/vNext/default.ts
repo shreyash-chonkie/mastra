@@ -27,6 +27,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       try {
         lastOutput = await this.executeEntry({ entry, prevStep: steps[i - 1]!, stepResults });
       } catch (e) {
+        console.log('Error', e);
         return {
           steps: stepResults,
           result: lastOutput,
