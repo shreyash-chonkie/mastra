@@ -4,7 +4,7 @@ import { MastraBase } from '../../base';
 import { RegisteredLogger } from '../../logger';
 import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
-import type { ExecuteFunction, NewStep as Step } from './step';
+import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
 
 type StepSuccess<T> = {
   status: 'success';
@@ -80,6 +80,7 @@ export type NewWorkflowConfig<
   TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
 > = {
   id: TWorkflowId;
+  description?: string | undefined;
   inputSchema: TInput;
   outputSchema: TOutput;
   executionEngine?: ExecutionEngine;
@@ -87,14 +88,19 @@ export type NewWorkflowConfig<
 };
 
 export class NewWorkflow<
-  TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
-  TWorkflowId extends string = string,
-  TInput extends z.ZodObject<any> = z.ZodObject<any>,
-  TOutput extends z.ZodObject<any> = z.ZodObject<any>,
-  TPrevSchema extends z.ZodObject<any> = TInput,
-> extends MastraBase {
-  protected inputSchema: TInput;
-  protected outputSchema: TOutput;
+    TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
+    TWorkflowId extends string = string,
+    TInput extends z.ZodObject<any> = z.ZodObject<any>,
+    TOutput extends z.ZodObject<any> = z.ZodObject<any>,
+    TPrevSchema extends z.ZodObject<any> = TInput,
+  >
+  extends MastraBase
+  implements NewStep<TWorkflowId, TInput, TOutput>
+{
+  public id: TWorkflowId;
+  public description?: string | undefined;
+  public inputSchema: TInput;
+  public outputSchema: TOutput;
   protected stepFlow: StepFlowEntry[];
   protected executionEngine: ExecutionEngine;
   protected executionGraph: ExecutionGraph;
@@ -103,9 +109,12 @@ export class NewWorkflow<
     id,
     inputSchema,
     outputSchema,
+    description,
     executionEngine = new DefaultExecutionEngine(),
   }: NewWorkflowConfig<TWorkflowId, TInput, TOutput>) {
     super({ name: id, component: RegisteredLogger.WORKFLOW });
+    this.id = id;
+    this.description = description;
     this.inputSchema = inputSchema;
     this.outputSchema = outputSchema;
     this.executionEngine = executionEngine;
@@ -189,7 +198,7 @@ export class NewWorkflow<
    */
   commit() {
     this.executionGraph = this.buildExecutionGraph();
-    return this;
+    return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TOutput>;
   }
 
   /**
@@ -206,6 +215,19 @@ export class NewWorkflow<
       executionEngine: this.executionEngine,
       executionGraph: this.executionGraph,
     });
+  }
+
+  async execute({
+    inputData,
+  }: {
+    inputData: z.infer<TInput>;
+    getStepResult<T extends NewStep<any, any, any>>(
+      stepId: T,
+    ): T['outputSchema'] extends undefined ? unknown : z.infer<NonNullable<T['outputSchema']>>;
+  }): Promise<z.infer<TOutput>> {
+    const run = this.createRun();
+    const res = await run.start({ inputData });
+    return res.result;
   }
 }
 

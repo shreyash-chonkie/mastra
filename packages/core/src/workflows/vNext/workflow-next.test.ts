@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest';
 import { z } from 'zod';
-import { createStep, NewWorkflow } from './workflow';
+import { createStep, createWorkflow, NewWorkflow } from './workflow';
 
 describe('Workflow', () => {
   // Input and output schemas for testing
@@ -48,7 +48,7 @@ describe('Workflow', () => {
     id: 'test-step3',
     description: 'Test step 3',
     inputSchema: z.object({
-      resultz: z.string(),
+      result: z.string(),
     }),
     outputSchema: z.object({
       thing: z.string(),
@@ -56,7 +56,7 @@ describe('Workflow', () => {
     execute: async ({ inputData }) => {
       console.log('Step 3 Input Data:', inputData);
       return {
-        thing: `Step 3 ${inputData.resultz}`,
+        thing: `Step 3 ${inputData.result}`,
       };
     },
   });
@@ -146,6 +146,36 @@ describe('Workflow', () => {
     .then(step5)
     .commit();
 
+  const workflowD = createWorkflow({
+    id: 'test-workflow-d',
+    inputSchema: z.object({
+      name: z.string(),
+    }),
+    outputSchema: z.object({
+      thing: z.string(),
+    }),
+    steps: [step, step2, step3, step5],
+  });
+
+  workflowD
+    .then(
+      createWorkflow({
+        id: 'nested-workflow-a',
+        inputSchema: z.object({
+          name: z.string(),
+        }),
+        outputSchema: z.object({
+          result: z.string(),
+        }),
+        steps: [step, step2],
+      })
+        .then(step)
+        .then(step2)
+        .commit(),
+    )
+    .then(step3)
+    .commit();
+
   describe('Workflow Execution', () => {
     it('Run shit', async () => {
       const run = workflowA.createRun();
@@ -175,6 +205,15 @@ describe('Workflow', () => {
         },
       });
       console.dir({ resC }, { depth: null });
+
+      const runD = workflowD.createRun();
+
+      const resD = await runD.start({
+        inputData: {
+          name: 'Abhi',
+        },
+      });
+      console.dir({ resD }, { depth: null });
     }, 500000);
   });
 });
