@@ -46,8 +46,8 @@ export type StepFlowEntry =
  */
 export function createStep<
   TStepId extends string,
-  TStepInput extends z.ZodType,
-  TStepOutput extends z.ZodType,
+  TStepInput extends z.ZodObject<any>,
+  TStepOutput extends z.ZodObject<any>,
 >(params: {
   id: TStepId;
   description?: string;
