@@ -18,7 +18,7 @@ type StepFailure = {
 
 export type StepResult<T> = StepSuccess<T> | StepFailure; /*| StepSuspended<T> | StepWaiting | StepSkipped;*/
 
-export type StepsRecord<T extends readonly Step<any, any, z.ZodType<any>>[]> = {
+export type StepsRecord<T extends readonly Step<any, any, z.ZodObject<any>>[]> = {
   [K in T[number]['id']]: Extract<T[number], { id: K }>;
 };
 
