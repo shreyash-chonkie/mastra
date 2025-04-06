@@ -1,13 +1,27 @@
 import { config } from 'dotenv';
 
 import { mastra } from './mastra/index.js';
-import { DiscordAnalysisSchema } from './mastra/agents/index.js';
+import { AnalysisSchema } from './mastra/agents/analysis-agent.js';
+import { CategorySchema } from './mastra/agents/category-agent.js';
 
 // Load environment variables
 config();
 
-// Get the Discord analysis agent
-const agent = mastra.getAgent('discordAnalysisAgent');
+const categoryAgent = mastra.getAgent('categoryAgent');
+const analysisAgent = mastra.getAgent('analysisAgent');
+
+// Get the categories first
+let categories;
+
+async function getCategories() {
+  if (!categories) {
+    const result = await categoryAgent.generate('Define categories based on Mastra documentation', {
+      experimental_output: CategorySchema,
+    });
+    categories = result.object.categories;
+  }
+  return categories;
+}
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -75,7 +89,11 @@ async function runAnalysis() {
       console.log(`\n📁 ${category.category}`);
       console.log(`   Messages: ${category.count}`);
       console.log(`   Sentiment: ${category.sentiment}`);
-      console.log(`   Top Issue: ${category.top_issue}`);
+      console.log('   Top Issues:');
+      for (const issue of category.top_issues) {
+        console.log(`   - ${issue.issue} (${issue.frequency} occurrences)`);
+        console.log(`     Example: ${issue.example_message}`);
+      }
 
       // Display representative message for this category
       if (category.representative_message) {
@@ -106,6 +124,10 @@ async function runAnalysis() {
   }
 }
 
+const cats = await getCategories();
+
+console.log('Categories:', cats);
+
 // Run the analysis
 runAnalysis();
 
@@ -116,10 +138,13 @@ async function analyzeSingleDay(mastraChannelId: string, helpChannelId: string, 
   - Mastra channel (${mastraChannelId})
   - Help channel (${helpChannelId})
   
-  Categorize messages from both channels to identify patterns and issues for this day.`;
+  Use these predefined categories:
+  ${cats.map(c => `- ${c.name}: ${c.description}`).join('\n  ')}
+  
+  Analyze and categorize messages from both channels using these categories to identify patterns and issues for this day.`;
 
-  return agent.generate(prompt, {
-    experimental_output: DiscordAnalysisSchema,
+  return analysisAgent.generate(prompt, {
+    experimental_output: AnalysisSchema,
   });
 }
 
@@ -135,7 +160,7 @@ async function combineAnalyses(dailyAnalyses: any[]) {
   Here are the daily analyses:
   ${dailyAnalyses.map(analysis => `Date: ${analysis.date}\n${analysis.analysis}`).join('\n\n')}`;
 
-  return agent.generate(summaryPrompt, {
-    experimental_output: DiscordAnalysisSchema,
+  return analysisAgent.generate(summaryPrompt, {
+    experimental_output: AnalysisSchema,
   });
 }

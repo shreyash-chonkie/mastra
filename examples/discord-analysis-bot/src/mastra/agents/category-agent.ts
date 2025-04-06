@@ -1,18 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
-import { MCPConfiguration } from '@mastra/mcp';
-
-const mcpConfig = new MCPConfiguration({
-  servers: {
-    mastra: {
-      command: 'npx',
-      args: ['-y', '@mastra/mcp-docs-server@latest'],
-    },
-  },
-});
-
-const tools = await mcpConfig.getTools();
+import { mcpTools } from '../tools';
 
 export const CategorySchema = z.object({
   categories: z.array(
@@ -51,5 +40,5 @@ export const categoryAgent = new Agent({
     Include an "Other" category for messages that don't fit elsewhere.
   `,
   model: openai('gpt-4'),
-  tools: tools,
+  tools: mcpTools,
 });

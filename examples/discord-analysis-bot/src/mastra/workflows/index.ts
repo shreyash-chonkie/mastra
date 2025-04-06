@@ -1,26 +1,12 @@
 import { Step, Workflow } from '@mastra/core/workflows';
 import { z } from 'zod';
 
-import { dateAgent, DateRangeSchema } from '../agents/date-agent.js';
 import { categoryAgent, CategorySchema } from '../agents/category-agent.js';
 import { analysisAgent, AnalysisSchema } from '../agents/analysis-agent.js';
-
-// Define individual steps
-const parseDates = new Step({
-  id: 'parseDates',
-  execute: async ({ context }) => {
-    const triggerData = context?.triggerData;
-    const timeRange = triggerData.timeRange || triggerData.specificDate || 'past 24 hours';
-    return await dateAgent.generate(`Parse the time range: ${timeRange}`);
-  },
-});
 
 const defineCategories = new Step({
   id: 'defineCategories',
   execute: async ({ context }) => {
-    if (context?.steps.parseDates.status !== 'success') {
-      throw new Error('Date parsing failed');
-    }
     return await categoryAgent.generate('Define categories based on Mastra documentation');
   },
 });
@@ -49,4 +35,4 @@ export const discordAnalysisWorkflow = new Workflow({
 });
 
 // Chain the steps
-discordAnalysisWorkflow.step(parseDates).then(defineCategories).then(analyzeMessages).commit();
+discordAnalysisWorkflow.step(defineCategories).then(analyzeMessages).commit();

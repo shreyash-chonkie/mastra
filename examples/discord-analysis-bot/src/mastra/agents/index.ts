@@ -2,19 +2,7 @@ import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
 import { z } from 'zod';
 
-import { discordScraperTool } from '../tools/index.js';
-import { MCPConfiguration } from '@mastra/mcp';
-
-const mcpConfig = new MCPConfiguration({
-  servers: {
-    mastra: {
-      command: 'npx',
-      args: ['-y', '@mastra/mcp-docs-server@latest'],
-    },
-  },
-});
-
-const tools = await mcpConfig.getTools();
+import { discordScraperTool, mcpTools } from '../tools';
 
 // Define the schema for categorized messages
 export const DiscordAnalysisSchema = z.object({
@@ -108,6 +96,6 @@ export const discordAnalysisAgent = new Agent({
   model: openai('gpt-4o'),
   tools: {
     discordScraperTool,
-    ...tools,
+    ...mcpTools,
   },
 });
