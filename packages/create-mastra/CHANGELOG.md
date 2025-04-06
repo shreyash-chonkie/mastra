@@ -1,5 +1,37 @@
 # create-mastra
 
+## 0.2.4-alpha.2
+
+### Patch Changes
+
+- 9d13790: update playground-ui dynamic form, cleanups
+- 40dca45: Fix expanding workflow sidebar not expanding the output section
+- d16ed18: Make playground-ui dynamic forms better
+
+## 0.2.4-alpha.1
+
+### Patch Changes
+
+- 789bef3: Make runId optional for workflow startAsync api
+- 8393832: Handle nested workflow view on workflow graph
+
+## 0.2.4-alpha.0
+
+### Patch Changes
+
+- 8076ecf: Unify workflow watch/start response
+
+## 0.2.3
+
+### Patch Changes
+
+- 6d5d9c6: Show tool calls in playground chat
+- 2447900: Show No input for steps without input on traces UI
+- c30787b: Stop automatically scrolling to bottom in agent chat if user has scrolled up
+- 214e7ce: Only mark required fields as required on the playground
+- 0b496ff: Load env vars on mastra deploy
+- 2134786: Fix traces navigation not working in playground
+
 ## 0.2.3-alpha.2
 
 ### Patch Changes

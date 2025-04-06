@@ -118,11 +118,16 @@ export const SubscribeForm = ({
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
         className={cn(
           "mt-8 items-end flex flex-col md:flex-row w-full gap-2 ",
           className,
         )}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            form.handleSubmit(onSubmit)();
+          }
+        }}
       >
         <FormField
           control={form.control}
@@ -133,9 +138,7 @@ export const SubscribeForm = ({
 
               <FormControl>
                 <input
-                  placeholder={
-                    placeholder || "Follow along with the weekly changelog"
-                  }
+                  placeholder={placeholder || "you@example.com"}
                   {...field}
                   className={cn(
                     "bg-transparent placeholder:text-text-3 text-sm placeholder:text-sm md:min-w-[400px] flex-1 focus:outline-none focus:ring-1 h-[35px] focus:ring-[#3359BC] w-full py-[0.56rem] px-4 dark:border-neutral-700  border rounded-md",
@@ -157,6 +160,10 @@ export const SubscribeForm = ({
             "dark:bg-white bg-[#2a2a2a] w-full md:w-[110px] rounded-md hover:opacity-90 h-[35px] justify-center flex items-center px-4 py-[0.56rem] font-semibold text-[0.9rem] text-white dark:text-black",
             buttonClassName,
           )}
+          onClick={(e) => {
+            e.preventDefault();
+            form.handleSubmit(onSubmit)();
+          }}
           disabled={buttonState === "loading"}
         >
           <AnimatePresence mode="popLayout" initial={false}>

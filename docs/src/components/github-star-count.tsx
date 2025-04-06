@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 const localStorageKey = `MASTRA_AI_STAR_COUNT`;
 
@@ -63,11 +64,7 @@ export const GithubStarCount = () => {
       {isClient ? (
         <ul className="-mr-8">
           <li>
-            <a
-              target="_blank"
-              href="https://github.com/mastra-ai/mastra"
-              className="font-medium w-fit rounded-md opacity-90 transition-colors hover:opacity-100 flex items-center gap-2 justify-start pl-[7px] pr-2.5 py-2 h-[2.125rem] dark:text-white text-sm"
-            >
+            <div className="font-medium w-fit rounded-md opacity-90 transition-colors hover:opacity-100 flex items-center gap-2 justify-start pl-[7px] pr-2.5 py-2 h-[2.125rem] dark:text-white text-sm">
               <svg
                 width="37"
                 height="37"
@@ -102,7 +99,7 @@ export const GithubStarCount = () => {
                   />
                 </svg>
               </div>
-            </a>
+            </div>
           </li>
         </ul>
       ) : null}
