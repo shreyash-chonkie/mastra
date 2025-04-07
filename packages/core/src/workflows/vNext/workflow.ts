@@ -350,7 +350,7 @@ export class Run<
       runId: this.runId,
     });
 
-    console.log({ snapshot });
+    console.dir({ snapshot }, { depth: null });
 
     return this.executionEngine.execute<
       z.infer<TInput>,
@@ -371,7 +371,7 @@ export class Run<
         stepId: params.step.id,
         stepResults: snapshot?.context as any,
         resumePayload: params.inputData,
-        resumePath: snapshot?.activePaths as any,
+        resumePath: snapshot?.suspendedPaths[params.step.id] as any,
       },
     });
   }

@@ -247,7 +247,7 @@ describe('Workflow', () => {
     steps: [step, stepSuspend],
   })
     .then(step)
-    .then(stepSuspend)
+    .parallel([stepSuspend])
     .commit();
 
   describe('Workflow Execution', () => {

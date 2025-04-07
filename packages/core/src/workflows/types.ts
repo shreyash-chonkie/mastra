@@ -451,6 +451,8 @@ export interface WorkflowRunState {
     status: string;
   }>;
 
+  suspendedPaths: Record<string, number[]>;
+
   // Metadata
   runId: string;
   timestamp: number;

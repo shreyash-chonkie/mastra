@@ -2,6 +2,11 @@ import type { ExecutionGraph } from './execution-engine';
 import { ExecutionEngine } from './execution-engine';
 import type { StepFlowEntry, StepResult } from './workflow';
 
+type ExecutionContext = {
+  executionPath: number[];
+  suspendedPaths: Record<string, number[]>;
+};
+
 /**
  * Default implementation of the ExecutionEngine using XState
  */
@@ -53,7 +58,10 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           prevStep: steps[i - 1]!,
           stepResults,
           resume,
-          executePath: [i],
+          executionContext: {
+            executionPath: [i],
+            suspendedPaths: {},
+          },
         });
         if (lastOutput.status !== 'success') {
           return {
@@ -103,7 +111,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     prevStep,
     stepResults,
     resume,
-    executePath,
+    executionContext,
   }: {
     workflowId: string;
     runId: string;
@@ -116,7 +124,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       resumePayload: any;
       resumePath: number[];
     };
-    executePath: number[];
+    executionContext: ExecutionContext;
   }): Promise<StepResult<any>> {
     const prevOutput = this.getStepOutput(stepResults, prevStep);
     let execResults: any;
@@ -136,6 +144,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             return null;
           },
           suspend: async (suspendPayload: any) => {
+            console.log('Suspending', executionContext, suspendPayload);
+            executionContext.suspendedPaths[step.id] = executionContext.executionPath;
             suspended = { payload: suspendPayload };
           },
         });
@@ -151,6 +161,20 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         stepResults[step.id] = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
         execResults = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
       }
+    } else if (resume?.resumePath?.length) {
+      const idx = resume.resumePath.pop();
+      return this.executeEntry({
+        workflowId,
+        runId,
+        entry: entry.steps[idx!]!,
+        prevStep,
+        stepResults,
+        resume,
+        executionContext: {
+          executionPath: [...executionContext.executionPath, idx!],
+          suspendedPaths: executionContext.suspendedPaths,
+        },
+      });
     } else if (entry.type === 'parallel') {
       const results: StepResult<any>[] = await Promise.all(
         entry.steps.map((step, i) =>
@@ -160,7 +184,10 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             entry: step,
             prevStep,
             stepResults,
-            executePath: [...executePath, i],
+            executionContext: {
+              executionPath: [...executionContext.executionPath, i],
+              suspendedPaths: executionContext.suspendedPaths,
+            },
           }),
         ),
       );
@@ -219,7 +246,10 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             entry: step,
             prevStep,
             stepResults,
-            executePath: [...executePath, index],
+            executionContext: {
+              executionPath: [...executionContext.executionPath, index],
+              suspendedPaths: executionContext.suspendedPaths,
+            },
           }),
         ),
       );
@@ -244,6 +274,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       }
     }
 
+    console.log('Persisting snapshot', executionContext);
     await this.storage.persistWorkflowSnapshot({
       workflowName: workflowId,
       runId,
@@ -251,8 +282,9 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         runId,
         value: {},
         context: stepResults as any,
+        activePaths: [],
+        suspendedPaths: executionContext.suspendedPaths,
         // @ts-ignore
-        activePaths: executePath,
         timestamp: Date.now(),
       },
     });
