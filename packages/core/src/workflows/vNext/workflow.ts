@@ -334,7 +334,6 @@ export class Run<
     });
   }
 
-  // TODO: fix typing
   async resume<TInput extends z.ZodObject<any>>(params: {
     inputData?: z.infer<TInput>;
     step: Step<string, TInput, any>;
