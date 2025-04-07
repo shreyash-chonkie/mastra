@@ -135,7 +135,7 @@ export const discordScraperTool = createTool({
   id: 'discord-scraper-tool',
   description: 'Scrapes messages from a Discord help forum',
   inputSchema: z.object({
-    channelIds: z.array(z.string()).describe('Array of Discord channel IDs to scrape'),
+    channelId: z.string().describe('Discord channel ID to scrape'),
     limit: z.number().optional().default(100).describe('Maximum number of messages to retrieve'),
     startDate: z.string().optional().describe('Start date for message retrieval (ISO format)'),
     endDate: z.string().optional().describe('End date for message retrieval (ISO format)'),
@@ -144,7 +144,7 @@ export const discordScraperTool = createTool({
   execute: async ({ context }) => {
     console.log('Scraping Discord messages...');
 
-    let { channelIds, limit, startDate, endDate, timeRange } = context;
+    let { channelId, limit, startDate, endDate, timeRange } = context;
 
     // Handle relative time ranges
     if (timeRange && (!startDate || !endDate)) {
@@ -184,10 +184,7 @@ export const discordScraperTool = createTool({
     const discordClient = await getDiscordClient();
 
     // Use Discord API to fetch messages
-    const messagePromises = channelIds.map(channelId =>
-      fetchMessages(discordClient, channelId, limit, startDate, endDate),
-    );
-    const channelMessages = await Promise.all(messagePromises);
+    const channelMessages = await fetchMessages(discordClient, channelId, limit, startDate, endDate);
 
     // Combine and sort all messages by timestamp
     const allMessages = channelMessages

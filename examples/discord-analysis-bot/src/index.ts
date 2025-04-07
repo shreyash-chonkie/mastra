@@ -1,4 +1,6 @@
 import { config } from 'dotenv';
+import fs from 'fs/promises';
+import path from 'path';
 
 import { mastra } from './mastra/index.js';
 import { AnalysisSchema } from './mastra/agents/analysis-agent.js';
@@ -10,31 +12,74 @@ config();
 const categoryAgent = mastra.getAgent('categoryAgent');
 const analysisAgent = mastra.getAgent('analysisAgent');
 
-// Get the categories first
-let categories;
-
 async function getCategories() {
-  if (!categories) {
-    const result = await categoryAgent.generate('Define categories based on Mastra documentation', {
-      experimental_output: CategorySchema,
-    });
-    categories = result.object.categories;
+  const result = await categoryAgent.stream('Define categories based on Mastra documentation', {
+    experimental_output: CategorySchema,
+  });
+  let response: Record<string, any> = {};
+  for await (const chunk of result.partialObjectStream) {
+    response = { ...response, ...chunk };
   }
-  return categories;
+  return response;
 }
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function runAnalysis() {
-  console.log('🤖 Discord Analysis Bot');
-  console.log('------------------------');
+const channels = {
+  Mastra: process.env.MASTRA_CHANNEL!,
+  Help: process.env.HELP_CHANNEL!,
+};
 
-  // Get channel ID from environment variables
-  const mastraChannelId = process.env.MASTRA_CHANNEL;
-  const helpChannelId = process.env.HELP_CHANNEL;
+function formatAnalysis(analysis: any): string {
+  let output = '';
 
-  if (!mastraChannelId || !helpChannelId) {
-    throw new Error('Missing required channel IDs in environment variables');
+  output += '\nCategories:\n';
+  for (const category of analysis.categories) {
+    output += `\n📁 ${category.category}\n`;
+    output += `   Messages: ${category.count}\n`;
+    output += `   Sentiment: ${category.sentiment}\n`;
+    output += '   Top Issues:\n';
+    for (const issue of category.top_issues) {
+      output += `   - ${issue.issue} (${issue.frequency} occurrences)\n`;
+      output += `     Example: ${issue.example_message}\n`;
+    }
+
+    // Format representative message for this category
+    if (category.representative_message) {
+      const message = category.representative_message;
+      output += '\n   💬 Representative Message:\n';
+      output += `   From: ${message.author} at ${new Date(message.timestamp).toLocaleString()}\n`;
+      output += `   ${message.content.replace(/\n/g, '\n   ')}\n`;
+      output += '\n   Why this represents the sentiment:\n';
+      output += `   ${message.sentiment_reason}\n`;
+      output += '\n   Why this message is relevant to the category:\n';
+      output += `   ${message.relevance_reason || 'No relevance explanation provided.'}\n`;
+    } else {
+      output += '\n   No representative message available for this category.\n';
+    }
+  }
+
+  output += '\n📝 Summary:\n';
+  output += `${analysis.summary}\n`;
+
+  output += '\n📅 Analysis Period:\n';
+  output += `From: ${analysis.date_range.start}\n`;
+  output += `To: ${analysis.date_range.end}\n`;
+  output += `Total Messages: ${analysis.total_messages}\n`;
+
+  return output;
+}
+
+async function runAnalysis(channelName: string, channelId: string) {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const outputFile = path.join('analysis_output', `${channelName}_analysis_${timestamp}.txt`);
+  let output = '🤖 Discord Analysis Bot\n------------------------\n';
+
+  output += `\n${channelName} Analysis\n`;
+  output += '------------------------\n';
+
+  if (!channelId) {
+    throw new Error('Missing required channel ID');
   }
 
   if (!process.env.DISCORD_BOT_TOKEN) {
@@ -43,7 +88,7 @@ async function runAnalysis() {
     return;
   }
 
-  console.log('Analyzing Discord channels...');
+  console.log('Analyzing Discord channel...');
 
   try {
     // Calculate date range for the last 7 days
@@ -55,7 +100,7 @@ async function runAnalysis() {
     const dailyAnalyses: { date: string; analysis: any }[] = [];
 
     console.log(`Using date range: ${startDateStr} to ${endDate}`);
-    console.log(`Analyzing Discord channels: Mastra (${mastraChannelId}) and Help (${helpChannelId})`);
+    console.log(`Analyzing Discord channel: ${channelName} (${channelId})`);
 
     // Analyze each day
     for (let i = 0; i < days; i++) {
@@ -64,10 +109,10 @@ async function runAnalysis() {
       const dateStr = currentDate.toISOString().split('T')[0];
 
       console.log(`\nAnalyzing messages for ${dateStr}...`);
-      const dailyAnalysis = await analyzeSingleDay(mastraChannelId, helpChannelId, dateStr);
+      const dailyAnalysis = await analyzeSingleDay(channelId, dateStr);
       dailyAnalyses.push({
         date: dateStr,
-        analysis: dailyAnalysis.object,
+        analysis: dailyAnalysis,
       });
       if (i < days - 1) {
         console.log('Waiting before next analysis...');
@@ -75,81 +120,83 @@ async function runAnalysis() {
       }
     }
 
-    // Combine all daily analyses
-    console.log('\nCombining daily analyses...');
-    const analysisResponse = await combineAnalyses(dailyAnalyses);
-
-    // Display the analysis results
-    console.log('\n📊 Analysis Results:');
-    console.log('------------------------');
-
-    // Print the categories
-    console.log('\nCategories:');
-    for (const category of analysisResponse.object.categories) {
-      console.log(`\n📁 ${category.category}`);
-      console.log(`   Messages: ${category.count}`);
-      console.log(`   Sentiment: ${category.sentiment}`);
-      console.log('   Top Issues:');
-      for (const issue of category.top_issues) {
-        console.log(`   - ${issue.issue} (${issue.frequency} occurrences)`);
-        console.log(`     Example: ${issue.example_message}`);
-      }
-
-      // Display representative message for this category
-      if (category.representative_message) {
-        const message = category.representative_message;
-        console.log('\n   💬 Representative Message:');
-        console.log(`   From: ${message.author} at ${new Date(message.timestamp).toLocaleString()}`);
-        console.log(`   ${message.content.replace(/\n/g, '\n   ')}`);
-        console.log('\n   Why this represents the sentiment:');
-        console.log(`   ${message.sentiment_reason}`);
-        console.log('\n   Why this message is relevant to the category:');
-        console.log(`   ${message.relevance_reason || 'No relevance explanation provided.'}`);
-      } else {
-        console.log('\n   No representative message available for this category.');
-      }
+    // Add daily analyses section
+    output += '\n📊 Daily Analyses:\n';
+    for (const daily of dailyAnalyses) {
+      output += `\n=== ${daily.date} ===\n`;
+      output += formatAnalysis(daily.analysis);
     }
 
-    // Print the summary
-    console.log('\n📝 Summary:');
-    console.log(analysisResponse.object.summary);
+    // Write the complete analysis to file
+    await writeAnalysisToFile(output, outputFile);
 
-    // Print the metadata
-    console.log('\n📅 Analysis Period:');
-    console.log(`From: ${analysisResponse.object.date_range.start}`);
-    console.log(`To: ${analysisResponse.object.date_range.end}`);
-    console.log(`Total Messages: ${analysisResponse.object.total_messages}`);
+    const combinedOutputFile = path.join('analysis_output', `${channelName}_analysis_${timestamp}.txt`);
+    let combinedOutput = '🤖 Discord Analysis Bot\n------------------------\n';
+
+    combinedOutput += `\n${channelName} Analysis\n`;
+    combinedOutput += '------------------------\n';
+
+    // Combine all daily analyses
+    console.log('\nCombining daily analyses...');
+    const dailyOutput = output;
+    const analysisResponse = await combineAnalyses(dailyOutput);
+
+    // Format the combined analysis
+    combinedOutput += formatAnalysis(analysisResponse);
+
+    // Write the complete analysis to file
+    await writeAnalysisToFile(combinedOutput, combinedOutputFile);
   } catch (error) {
-    console.error('Error running Discord analysis:', error);
+    const errorMsg = `Error running Discord analysis: ${error}`;
+    console.error(errorMsg);
+    output += `\n❌ ${errorMsg}\n`;
   }
 }
 
-const cats = await getCategories();
+async function writeAnalysisToFile(output: string, filePath: string) {
+  try {
+    await fs.writeFile(filePath, output, 'utf8');
+    console.log(`Analysis written to: ${filePath}`);
+  } catch (error) {
+    console.error('Error writing analysis to file:', error);
+  }
+}
 
-console.log('Categories:', cats);
+const { categories } = await getCategories();
 
 // Run the analysis
-runAnalysis();
+runAnalysis('Mastra', channels.Mastra).then(() => {
+  console.log('Analysis complete!');
+});
+
+runAnalysis('Help', channels.Help).then(() => {
+  console.log('Analysis complete!');
+});
 
 // Function to analyze a single day
-async function analyzeSingleDay(mastraChannelId: string, helpChannelId: string, date: string) {
+async function analyzeSingleDay(channelId: string, date: string) {
   const prompt = `Analyze the messages from our Discord channels for ${date}.
-  Include messages from both:
-  - Mastra channel (${mastraChannelId})
-  - Help channel (${helpChannelId})
+  Include messages from the ${channelId} channel
   
   Use these predefined categories:
-  ${cats.map(c => `- ${c.name}: ${c.description}`).join('\n  ')}
+  ${categories.map(c => `- ${c.name}: ${c.description}`).join('\n  ')}
   
   Analyze and categorize messages from both channels using these categories to identify patterns and issues for this day.`;
 
-  return analysisAgent.generate(prompt, {
+  const result = await analysisAgent.stream(prompt, {
     experimental_output: AnalysisSchema,
   });
+
+  let response = {};
+  for await (const chunk of result.partialObjectStream) {
+    response = { ...response, ...chunk };
+  }
+
+  return response;
 }
 
 // Function to combine daily analyses
-async function combineAnalyses(dailyAnalyses: any[]) {
+async function combineAnalyses(dailyAnalyses: any) {
   const summaryPrompt = `Review and combine these daily analyses to provide an overall summary.
   Focus on:
   - Trends across days
@@ -158,9 +205,16 @@ async function combineAnalyses(dailyAnalyses: any[]) {
   - Changes in patterns over time
   
   Here are the daily analyses:
-  ${dailyAnalyses.map(analysis => `Date: ${analysis.date}\n${analysis.analysis}`).join('\n\n')}`;
+  ${dailyAnalyses}`;
 
-  return analysisAgent.generate(summaryPrompt, {
+  const result = await analysisAgent.stream(summaryPrompt, {
     experimental_output: AnalysisSchema,
   });
+
+  let response = {};
+  for await (const chunk of result.partialObjectStream) {
+    response = { ...response, ...chunk };
+  }
+
+  return response;
 }

@@ -72,19 +72,22 @@ export const analysisAgent = new Agent({
     For each category, you should:
     1. Count the number of messages
     2. Determine the overall sentiment (positive, neutral, negative)
-    3. Identify the top 3-5 issues or questions, including:
-       - Clear description of each issue
-       - How frequently it appears
-       - An example message showing the issue
+    3. Identify the top 3-5 SUBSTANTIVE issues or questions, including:
+       - Focus on specific technical problems, feature requests, or user needs
+       - Avoid generic categories like "general inquiries" or "clarification requests"
+       - Each issue should represent a concrete, actionable item
+       - Include frequency of occurrence
+       - Use example messages that clearly demonstrate the technical issue
     4. Select a representative message that best demonstrates the sentiment of the category
     
     IMPORTANT: Simply mentioning a category keyword is not enough - the message's primary purpose must be about implementing, troubleshooting, or understanding that specific functionality.
     
     For the representative message:
     - Choose a message that is SELF-CONTAINED and does not require additional context to understand
-    - Select messages that clearly articulate a specific question, problem, or feedback related to the category
+    - Select messages that clearly articulate a specific technical question, problem, or feedback related to the category
     - Prioritize longer, more detailed messages over short, vague responses
     - Avoid messages that are just reactions or replies without context (e.g., "Thanks!", "Glad to hear it!", etc.)
+    - Avoid messages that are just reactions, redirections, or replies without context
     - When a message contains code blocks (surrounded by triple backticks), replace them with a simple description like "[CODE BLOCK: brief description]"
     - The message should have a clear sentiment (positive, negative, or neutral) that represents the category
     - Include the full message content, author, and timestamp
@@ -113,7 +116,7 @@ export const analysisAgent = new Agent({
     4. Recognize successful features and approaches
     5. Track sentiment trends across different aspects of Mastra
   `,
-  model: openai('gpt-4'),
+  model: openai('gpt-4o'),
   tools: {
     discordScraperTool,
     ...mcpTools,
