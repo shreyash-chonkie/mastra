@@ -1,5 +1,6 @@
 import type { ExecutionGraph } from './execution-engine';
 import { ExecutionEngine } from './execution-engine';
+import type { NewStep } from './step';
 import type { StepFlowEntry, StepResult } from './workflow';
 
 type ExecutionContext = {
@@ -24,7 +25,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     input?: TInput;
     resume?: {
       // TODO: add execute path
-      stepId: string;
+      steps: NewStep<string, any, any>[];
       stepResults: Record<string, StepResult<any>>;
       resumePayload: any;
       resumePath: number[];
@@ -117,7 +118,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     prevStep: StepFlowEntry;
     stepResults: Record<string, StepResult<any>>;
     resume?: {
-      stepId: string;
+      steps: NewStep<string, any, any>[];
       stepResults: Record<string, StepResult<any>>;
       resumePayload: any;
       resumePath: number[];
@@ -132,7 +133,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       try {
         let suspended: { payload: any } | undefined;
         const result = await step.execute({
-          inputData: resume?.stepId === step.id ? resume.resumePayload : prevOutput,
+          inputData: resume?.steps[0]!.id === step.id ? resume?.resumePayload : prevOutput,
           getStepResult: (step: any) => {
             const result = stepResults[step.id];
             if (result?.status === 'success') {
@@ -145,6 +146,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             executionContext.suspendedPaths[step.id] = executionContext.executionPath;
             suspended = { payload: suspendPayload };
           },
+          resume: resume,
         });
 
         if (suspended) {

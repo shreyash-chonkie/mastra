@@ -244,13 +244,25 @@ export class NewWorkflow<
   async execute({
     inputData,
     suspend,
+    resume,
   }: {
     inputData: z.infer<TInput>;
     getStepResult<T extends NewStep<any, any, any>>(
       stepId: T,
     ): T['outputSchema'] extends undefined ? unknown : z.infer<NonNullable<T['outputSchema']>>;
     suspend: (suspendPayload: any) => Promise<void>;
+    resume?: {
+      steps: NewStep<string, any, any>[];
+      resumePayload: any;
+    };
   }): Promise<z.infer<TOutput>> {
+    if (resume) {
+      //TODO: pass in runId
+      const run = this.createRun();
+      const res = await run.resume({ inputData, step: resume.steps });
+      return res.result;
+    }
+
     const run = this.createRun();
     const res = await run.start({ inputData });
     const suspendedSteps = Object.entries(res.steps).filter(([stepName, stepResult]) => {
@@ -354,7 +366,7 @@ export class Run<
 
   async resume<TInput extends z.ZodObject<any>>(params: {
     inputData?: z.infer<TInput>;
-    step: Step<string, TInput, any>;
+    step: Step<string, TInput, any> | Step<string, TInput, any>[];
   }): Promise<{
     result: TOutput;
     steps: {
@@ -363,6 +375,7 @@ export class Run<
         : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
     };
   }> {
+    const steps = Array.isArray(params.step) ? params.step : [params.step];
     const snapshot = await this.storage.loadWorkflowSnapshot({
       workflowName: this.workflowId,
       runId: this.runId,
@@ -386,10 +399,10 @@ export class Run<
       graph: this.executionGraph,
       input: params.inputData,
       resume: {
-        stepId: params.step.id,
+        steps,
         stepResults: snapshot?.context as any,
         resumePayload: params.inputData,
-        resumePath: snapshot?.suspendedPaths?.[params.step.id] as any,
+        resumePath: snapshot?.suspendedPaths?.[steps?.[0]?.id!] as any,
       },
     });
   }

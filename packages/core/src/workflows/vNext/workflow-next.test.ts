@@ -286,19 +286,22 @@ describe('Workflow', () => {
     .then(step)
     .then(stepSuspend)
     .parallel([nestedWorkflowSuspend])
-    .then({
-      id: 'test-step-final',
-      description: 'Test step final',
-      inputSchema: z.object({
-        'nested-workflow-hmm': z.object({
-          result: z.string(),
+    // TODO: replace with mapper function
+    .then(
+      createStep({
+        id: 'test-step-final',
+        description: 'Test step final',
+        inputSchema: z.object({
+          'nested-workflow-hmm': z.object({
+            result: z.string(),
+          }),
         }),
+        outputSchema: z.object({ result: z.string() }),
+        execute: async ({ inputData }) => {
+          return { result: `Step final ${inputData['nested-workflow-hmm'].result}` };
+        },
       }),
-      outputSchema: z.object({ result: z.string() }),
-      execute: async ({ inputData }) => {
-        return { result: `Step final ${inputData['nested-workflow-hmm'].result}` };
-      },
-    })
+    )
     .commit();
 
   describe('Workflow Execution', () => {
@@ -354,7 +357,7 @@ describe('Workflow', () => {
 
       const resumeE2 = await runE.resume({
         inputData: { thing: 'Coming from resume2' },
-        step: stepSuspend2,
+        step: [nestedWorkflowSuspend, stepSuspend2],
       });
       console.dir({ resumeE2 }, { depth: null });
     }, 500000);

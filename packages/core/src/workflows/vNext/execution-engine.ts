@@ -1,7 +1,7 @@
 import { MastraBase } from '../../base';
 import { RegisteredLogger } from '../../logger';
 import type { MastraStorage } from '../../storage';
-import type { StepFlowEntry, StepResult } from '.';
+import type { NewStep, StepFlowEntry, StepResult } from '.';
 
 /**
  * Represents an execution graph for a workflow
@@ -33,7 +33,7 @@ export abstract class ExecutionEngine extends MastraBase {
     graph: ExecutionGraph;
     input?: TInput;
     resume?: {
-      stepId: string;
+      steps: NewStep<string, any, any>[];
       stepResults: Record<string, StepResult<any>>;
       resumePayload: any;
       resumePath: number[];
