@@ -1,0 +1,15 @@
+{
+  "defaultLocale": "en",
+  "files": {
+    "mdx": {
+      "include": ["src/pages/[locale]/**/*.mdx"]
+    },
+    "ts": {
+      "include": ["src/pages/[locale]/**/_meta.ts"]
+    }
+  },
+  "locales": ["ja"],
+  "projectId": "87a3e295-8ed3-43c1-9ddf-2f8a434b79e7",
+  "description": "Mastra is a typescript agentic AI framework for building agents and workflows with AI.",
+  "_versionId": "99168292f54d13551102f5cfd707dcbfcf8c0a7556e43f8d327d3f7cb60c6934"
+}
