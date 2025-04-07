@@ -21,6 +21,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       // TODO: add execute path
       stepId: string;
       stepResults: Record<string, StepResult<any>>;
+      resumePayload: any;
+      resumePath: number[];
     };
   }): Promise<TOutput> {
     const { workflowId, runId, graph, input, resume } = params;
@@ -33,12 +35,25 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     await this.storage.init();
     console.log('Storage initialized');
 
+    let startIdx = 0;
+    if (resume?.resumePath) {
+      startIdx = resume.resumePath[0]!;
+      resume.resumePath.shift();
+    }
+
     const stepResults: Record<string, any> = resume?.stepResults || { input };
     let lastOutput: any;
-    for (let i = 0; i < steps.length; i++) {
+    for (let i = startIdx; i < steps.length; i++) {
       const entry = steps[i]!;
       try {
-        lastOutput = await this.executeEntry({ workflowId, runId, entry, prevStep: steps[i - 1]!, stepResults });
+        lastOutput = await this.executeEntry({
+          workflowId,
+          runId,
+          entry,
+          prevStep: steps[i - 1]!,
+          stepResults,
+          resume,
+        });
         if (lastOutput.status !== 'success') {
           return {
             steps: stepResults,
@@ -86,12 +101,19 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     entry,
     prevStep,
     stepResults,
+    resume,
   }: {
     workflowId: string;
     runId: string;
     entry: StepFlowEntry;
     prevStep: StepFlowEntry;
     stepResults: Record<string, StepResult<any>>;
+    resume?: {
+      stepId: string;
+      stepResults: Record<string, StepResult<any>>;
+      resumePayload: any;
+      resumePath: number[];
+    };
   }): Promise<StepResult<any>> {
     const prevOutput = this.getStepOutput(stepResults, prevStep);
     let execResults: any;
@@ -101,7 +123,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       try {
         let suspended: { payload: any } | undefined;
         const result = await step.execute({
-          inputData: prevOutput,
+          inputData: resume?.stepId === step.id ? resume.resumePayload : prevOutput,
           getStepResult: (step: any) => {
             const result = stepResults[step.id];
             if (result?.status === 'success') {

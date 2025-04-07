@@ -366,6 +366,9 @@ export class Run<
       resume: {
         stepId,
         stepResults: snapshot?.context as any,
+        resumePayload: inputData,
+        // TODO: add execute path
+        resumePath: [0],
       },
     });
   }

@@ -35,6 +35,8 @@ export abstract class ExecutionEngine extends MastraBase {
     resume?: {
       stepId: string;
       stepResults: Record<string, StepResult<any>>;
+      resumePayload: any;
+      resumePath: number[];
     };
   }): Promise<TOutput>;
 }
