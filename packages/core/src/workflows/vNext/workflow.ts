@@ -260,7 +260,7 @@ export class NewWorkflow<
       console.log('Resuming', { inputData, step: resume.steps.map(step => step.id) });
       //TODO: pass in runId
       const run = this.createRun();
-      const res = await run.resume({ inputData, step: resume.steps });
+      const res = await run.resume({ inputData, step: resume.steps as any });
       return res.result;
     }
 
