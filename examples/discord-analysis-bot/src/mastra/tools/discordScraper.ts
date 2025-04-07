@@ -22,7 +22,6 @@ async function fetchMessagesWithPagination(
   endDate?: string,
   label: string = 'messages',
 ): Promise<Collection<string, Message>> {
-  console.log(`Fetching ${label} from ${startDate || 'the beginning'} to ${endDate || 'now'}...`);
   const messages = new Collection<string, Message>();
   let lastMessage: Message | undefined;
   let batchCount = 0;
@@ -37,8 +36,6 @@ async function fetchMessagesWithPagination(
     batchCount++;
     // If we got no messages, we're done
     if (!batch || batch.size === 0) break;
-
-    console.log(`Batch ${batchCount}: Retrieved ${batch.size} messages...`);
 
     // Process each message
     batch.forEach(msg => {
@@ -61,7 +58,9 @@ async function fetchMessagesWithPagination(
     }
   }
 
-  console.log(`Finished fetching ${label}: Found ${messages.size} messages in range across ${batchCount} batches`);
+  if (messages.size > 0) {
+    console.log(`Found ${messages.size} messages in ${label}`);
+  }
   return messages;
 }
 
@@ -141,7 +140,6 @@ async function fetchMessages(
 
     // Handle forum channels differently
     if (channel.type === ChannelType.GuildForum) {
-      console.log('Fetching forum posts...');
       const threads = await (channel as ForumChannel).threads.fetch();
 
       // Fetch all messages from each active thread
@@ -160,7 +158,10 @@ async function fetchMessages(
       // Regular channel - fetch all messages in range
       messages = await fetchMessagesWithPagination(channel.messages, startDate, endDate, 'messages in channel');
     }
-    console.log(`Retrieved ${messages.size} messages`);
+    // Log total message count at the end
+    if (messages.size > 0) {
+      console.log(`Total messages found: ${messages.size}`);
+    }
 
     // Convert to our format and filter out team members
     const formattedMessages = await Promise.all(
