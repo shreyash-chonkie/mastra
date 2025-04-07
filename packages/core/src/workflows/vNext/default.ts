@@ -34,6 +34,13 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       const entry = steps[i]!;
       try {
         lastOutput = await this.executeEntry({ workflowId, runId, entry, prevStep: steps[i - 1]!, stepResults });
+        if (lastOutput.status !== 'success') {
+          return {
+            steps: stepResults,
+            result: null,
+            error: lastOutput.error,
+          } as TOutput;
+        }
       } catch (e) {
         console.log('Error', e);
         return {
@@ -87,6 +94,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     if (entry.type === 'step') {
       const { step } = entry;
       try {
+        let suspended: { payload: any } | undefined;
         const result = await step.execute({
           inputData: prevOutput,
           getStepResult: (step: any) => {
@@ -98,12 +106,17 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             return null;
           },
           suspend: async (suspendPayload: any) => {
-            // TODO: suspend the workflow
+            suspended = { payload: suspendPayload };
           },
         });
 
-        stepResults[step.id] = { status: 'success', output: result };
-        execResults = { status: 'success', output: result };
+        if (suspended) {
+          stepResults[step.id] = { status: 'suspended', payload: suspended.payload };
+          execResults = { status: 'suspended', output: suspended.payload };
+        } else {
+          stepResults[step.id] = { status: 'success', output: result };
+          execResults = { status: 'success', output: result };
+        }
       } catch (e) {
         stepResults[step.id] = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
         execResults = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
@@ -147,9 +160,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
                   return null;
                 },
 
-                suspend: async (suspendPayload: any) => {
-                  // TODO: suspend the workflow
-                },
+                // TODO: this function shouldn't have suspend probably?
+                suspend: async (_suspendPayload: any) => {},
               });
               return result ? index : null;
             } catch (e: unknown) {

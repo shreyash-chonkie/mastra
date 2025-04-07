@@ -169,6 +169,28 @@ describe('Workflow', () => {
     },
   });
 
+  let isSuspended = false;
+  const stepSuspend = createStep({
+    id: 'test-step-suspend',
+    description: 'Test step suspend',
+    inputSchema: z.object({
+      resultz: z.string(),
+    }),
+    outputSchema: z.object({
+      result: z.string(),
+    }),
+    execute: async ({ inputData, suspend }) => {
+      if (isSuspended) {
+        return { result: `Step suspend ${inputData}` };
+      } else {
+        isSuspended = true;
+        await suspend({ suspendPayloadTest: 'hello' });
+        // TODO: this is annoying to have to return
+        return { result: 'SUSPENDED' };
+      }
+    },
+  });
+
   const nestedWorkflowB = createWorkflow({
     id: 'nested-workflow-b',
     inputSchema: z.object({
@@ -216,6 +238,18 @@ describe('Workflow', () => {
 
   workflowD.then(nestedWorkflowA).then(step3).commit();
 
+  const workflowE = createWorkflow({
+    id: 'test-workflow-e',
+    inputSchema: z.object({
+      name: z.string(),
+    }),
+    outputSchema: z.object({ result: z.string() }),
+    steps: [step, stepSuspend],
+  })
+    .then(step)
+    .then(stepSuspend)
+    .commit();
+
   describe('Workflow Execution', () => {
     it('Run shit', async () => {
       const run = workflowA.createRun();
@@ -254,6 +288,12 @@ describe('Workflow', () => {
         },
       });
       console.dir({ resD }, { depth: null });
+
+      const runE = workflowE.createRun();
+      const resE = await runE.start({
+        inputData: { name: 'Abhi' },
+      });
+      console.dir({ resE }, { depth: null });
     }, 500000);
   });
 });
