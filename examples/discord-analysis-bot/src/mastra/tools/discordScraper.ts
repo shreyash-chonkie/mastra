@@ -9,7 +9,61 @@ import {
   Message,
   ChannelType,
   ForumChannel,
+  GuildMember,
+  ThreadChannel,
 } from 'discord.js';
+
+// When fetching messages with options, it returns a Collection
+
+// Helper function to fetch all messages with pagination
+async function fetchMessagesWithPagination(
+  messageManager: TextChannel['messages'] | ThreadChannel['messages'],
+  startDate?: string,
+  endDate?: string,
+  label: string = 'messages',
+): Promise<Collection<string, Message>> {
+  console.log(`Fetching ${label} from ${startDate || 'the beginning'} to ${endDate || 'now'}...`);
+  const messages = new Collection<string, Message>();
+  let lastMessage: Message | undefined;
+  let batchCount = 0;
+
+  while (true) {
+    const options = {
+      limit: 100,
+      before: lastMessage?.id,
+    };
+
+    const batch = (await messageManager.fetch(options)) as unknown as Collection<string, Message>;
+    batchCount++;
+    // If we got no messages, we're done
+    if (!batch || batch.size === 0) break;
+
+    console.log(`Batch ${batchCount}: Retrieved ${batch.size} messages...`);
+
+    // Process each message
+    batch.forEach(msg => {
+      const timestamp = msg.createdAt.getTime();
+      const isInRange =
+        (!startDate || timestamp >= new Date(startDate).getTime()) &&
+        (!endDate || timestamp <= new Date(endDate).getTime());
+      if (isInRange) {
+        messages.set(msg.id, msg);
+      }
+    });
+
+    // Get the last message for pagination
+    lastMessage = batch.last() || undefined;
+    if (!lastMessage) break;
+
+    // Check if we need to fetch more
+    if (batch.size < 100 || (startDate && lastMessage.createdAt.getTime() < new Date(startDate).getTime())) {
+      break;
+    }
+  }
+
+  console.log(`Finished fetching ${label}: Found ${messages.size} messages in range across ${batchCount} batches`);
+  return messages;
+}
 
 // Create a Discord client instance
 let client: Client | null = null;
@@ -53,11 +107,24 @@ async function getDiscordClient(): Promise<Client> {
   });
 }
 
+// Function to check if a member has Core Team or Admin role
+function isTeamMember(member: GuildMember | null): boolean {
+  if (!member) return false;
+  // Check if the member has either Core Team or Admin role
+  const hasTeamRole = member.roles.cache.some(role => role.name === 'Core Team');
+  const hasAdminRole = member.roles.cache.some(role => role.name === 'Admin');
+  //   const roles = Array.from(member.roles.cache.values()).map(r => r.name);
+  //   console.log(
+  //     `User ${member.user.username} (${member.user.id}) roles: ${roles.join(', ')}. ` +
+  //     `Is team member: ${hasTeamRole || hasAdminRole} (Core Team: ${hasTeamRole}, Admin: ${hasAdminRole})`,
+  //   );
+  return hasTeamRole || hasAdminRole;
+}
+
 // Function to fetch messages from a Discord channel
 async function fetchMessages(
   discordClient: Client,
   channelId: string,
-  limit: number,
   startDate?: string,
   endDate?: string,
 ): Promise<any[]> {
@@ -70,21 +137,17 @@ async function fetchMessages(
       throw new Error(`Channel with ID ${channelId} not found`);
     }
 
-    // Fetch messages
-    console.log(`Fetching up to ${limit} messages...`);
-
     let messages: Collection<string, Message>;
 
     // Handle forum channels differently
     if (channel.type === ChannelType.GuildForum) {
       console.log('Fetching forum posts...');
-      const threads = await channel.threads.fetch();
+      const threads = await (channel as ForumChannel).threads.fetch();
 
-      // Fetch messages from each active thread
+      // Fetch all messages from each active thread
       const threadMessages = await Promise.all(
         threads.threads.map(async thread => {
-          const msgs = await thread.messages.fetch({ limit });
-          return msgs;
+          return fetchMessagesWithPagination(thread.messages, startDate, endDate, `messages in thread ${thread.name}`);
         }),
       );
 
@@ -94,34 +157,52 @@ async function fetchMessages(
         return acc;
       }, new Collection<string, Message>());
     } else {
-      // Regular channel
-      messages = await channel.messages.fetch({ limit });
+      // Regular channel - fetch all messages in range
+      messages = await fetchMessagesWithPagination(channel.messages, startDate, endDate, 'messages in channel');
     }
     console.log(`Retrieved ${messages.size} messages`);
 
-    // Convert to our format and apply date filters
-    const formattedMessages = messages.map(msg => ({
-      id: msg.id,
-      content: msg.content,
-      author: msg.author.username,
-      timestamp: msg.createdAt.toISOString(),
-      channelId: msg.channelId,
-    }));
+    // Convert to our format and filter out team members
+    const formattedMessages = await Promise.all(
+      messages.map(async msg => {
+        // For forum messages, we need to fetch member directly since msg.member is null
+        let isTeam = false;
+        if (channel.guild) {
+          try {
+            const member = await channel.guild.members.fetch(msg.author.id);
+            isTeam = isTeamMember(member);
+          } catch {
+            console.log(
+              `Could not fetch member info for user ${msg.author.username} (${msg.author.id}). This can happen if the user left the server or the bot lacks permissions.`,
+            );
+            // If we can't fetch the member, assume they're not team to avoid excluding potentially relevant messages
+            isTeam = false;
+          }
+        }
 
-    // Apply date filters if provided
-    let filteredMessages = [...formattedMessages];
+        // Skip messages from team members
+        if (isTeam) {
+          return null;
+        }
 
-    if (startDate) {
-      const startTimestamp = new Date(startDate).getTime();
-      filteredMessages = filteredMessages.filter(msg => new Date(msg.timestamp).getTime() >= startTimestamp);
-    }
+        return {
+          id: msg.id,
+          content: msg.content,
+          author: msg.author.username,
+          timestamp: msg.createdAt.toISOString(),
+          channelId: msg.channelId,
+        };
+      }),
+    );
 
-    if (endDate) {
-      const endTimestamp = new Date(endDate).getTime();
-      filteredMessages = filteredMessages.filter(msg => new Date(msg.timestamp).getTime() <= endTimestamp);
-    }
+    // Filter out null values and apply date filters
+    let filteredMessages = formattedMessages.filter(msg => msg !== null) as any[];
 
-    console.log(`Filtered ${filteredMessages.length} messages`);
+    console.log({
+      startDate,
+      endDate,
+      filteredMessagesCount: filteredMessages.length,
+    });
 
     return filteredMessages;
   } catch (error) {
@@ -136,7 +217,6 @@ export const discordScraperTool = createTool({
   description: 'Scrapes messages from a Discord help forum',
   inputSchema: z.object({
     channelId: z.string().describe('Discord channel ID to scrape'),
-    limit: z.number().optional().default(100).describe('Maximum number of messages to retrieve'),
     startDate: z.string().optional().describe('Start date for message retrieval (ISO format)'),
     endDate: z.string().optional().describe('End date for message retrieval (ISO format)'),
     timeRange: z.string().optional().describe('Relative time range like "past 24 hours", "past week", "past month"'),
@@ -144,7 +224,7 @@ export const discordScraperTool = createTool({
   execute: async ({ context }) => {
     console.log('Scraping Discord messages...');
 
-    let { channelId, limit, startDate, endDate, timeRange } = context;
+    let { channelId, startDate, endDate, timeRange } = context;
 
     // Handle relative time ranges
     if (timeRange && (!startDate || !endDate)) {
@@ -184,7 +264,7 @@ export const discordScraperTool = createTool({
     const discordClient = await getDiscordClient();
 
     // Use Discord API to fetch messages
-    const channelMessages = await fetchMessages(discordClient, channelId, limit, startDate, endDate);
+    const channelMessages = await fetchMessages(discordClient, channelId, startDate, endDate);
 
     // Combine and sort all messages by timestamp
     const allMessages = channelMessages

@@ -5,12 +5,14 @@ import path from 'path';
 import { mastra } from './mastra/index.js';
 import { AnalysisSchema } from './mastra/agents/analysis-agent.js';
 import { CategorySchema } from './mastra/agents/category-agent.js';
+import { SummarySchema } from './mastra/agents/summary-agent.js';
 
 // Load environment variables
 config();
 
 const categoryAgent = mastra.getAgent('categoryAgent');
 const analysisAgent = mastra.getAgent('analysisAgent');
+const summaryAgent = mastra.getAgent('summaryAgent');
 
 async function getCategories() {
   const result = await categoryAgent.stream('Define categories based on Mastra documentation', {
@@ -27,35 +29,37 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const channels = {
   Mastra: process.env.MASTRA_CHANNEL!,
-  Help: process.env.HELP_CHANNEL!,
+  HelpBugsProblems: process.env.HELP_CHANNEL!,
 };
 
 function formatAnalysis(analysis: any): string {
   let output = '';
 
-  output += '\nCategories:\n';
-  for (const category of analysis.categories) {
-    output += `\n📁 ${category.category}\n`;
-    output += `   Messages: ${category.count}\n`;
-    output += `   Sentiment: ${category.sentiment}\n`;
-    output += '   Top Issues:\n';
-    for (const issue of category.top_issues) {
-      output += `   - ${issue.issue} (${issue.frequency} occurrences)\n`;
-      output += `     Example: ${issue.example_message}\n`;
-    }
+  if (analysis.total_messages > 0) {
+    output += '\nCategories:\n';
+    for (const category of analysis.categories) {
+      output += `\n📁 ${category.category}\n`;
+      output += `   Messages: ${category.count}\n`;
+      output += `   Sentiment: ${category.sentiment}\n`;
+      output += '   Top Issues:\n';
+      for (const issue of category.top_issues) {
+        output += `   - ${issue.issue} (${issue.frequency} occurrences)\n`;
+        output += `     Example: ${issue.example_message}\n`;
+      }
 
-    // Format representative message for this category
-    if (category.representative_message) {
-      const message = category.representative_message;
-      output += '\n   💬 Representative Message:\n';
-      output += `   From: ${message.author} at ${new Date(message.timestamp).toLocaleString()}\n`;
-      output += `   ${message.content.replace(/\n/g, '\n   ')}\n`;
-      output += '\n   Why this represents the sentiment:\n';
-      output += `   ${message.sentiment_reason}\n`;
-      output += '\n   Why this message is relevant to the category:\n';
-      output += `   ${message.relevance_reason || 'No relevance explanation provided.'}\n`;
-    } else {
-      output += '\n   No representative message available for this category.\n';
+      // Format representative message for this category
+      if (category.representative_message) {
+        const message = category.representative_message;
+        output += '\n   💬 Representative Message:\n';
+        output += `   From: ${message.author} at ${new Date(message.timestamp).toLocaleString()}\n`;
+        output += `   ${message.content.replace(/\n/g, '\n   ')}\n`;
+        output += '\n   Why this represents the sentiment:\n';
+        output += `   ${message.sentiment_reason}\n`;
+        output += '\n   Why this message is relevant to the category:\n';
+        output += `   ${message.relevance_reason || 'No relevance explanation provided.'}\n`;
+      } else {
+        output += '\n   No representative message available for this category.\n';
+      }
     }
   }
 
@@ -91,12 +95,10 @@ async function runAnalysis(channelName: string, channelId: string) {
   console.log('Analyzing Discord channel...');
 
   try {
-    // Calculate date range for the last 7 days
-    const days = 7;
+    // Use date range from March 15th to today
     const endDate = new Date().toISOString().split('T')[0]; // Today
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-    const startDateStr = startDate.toISOString().split('T')[0];
+    const startDateStr = '2025-03-15';
+    const days = Math.ceil((new Date(endDate).getTime() - new Date(startDateStr).getTime()) / (1000 * 60 * 60 * 24));
     const dailyAnalyses: { date: string; analysis: any }[] = [];
 
     console.log(`Using date range: ${startDateStr} to ${endDate}`);
@@ -130,7 +132,7 @@ async function runAnalysis(channelName: string, channelId: string) {
     // Write the complete analysis to file
     await writeAnalysisToFile(output, outputFile);
 
-    const combinedOutputFile = path.join('analysis_output', `${channelName}_analysis_${timestamp}.txt`);
+    const combinedOutputFile = path.join('analysis_output', `${channelName}_combined_analysis_${timestamp}.txt`);
     let combinedOutput = '🤖 Discord Analysis Bot\n------------------------\n';
 
     combinedOutput += `\n${channelName} Analysis\n`;
@@ -169,7 +171,7 @@ runAnalysis('Mastra', channels.Mastra).then(() => {
   console.log('Analysis complete!');
 });
 
-runAnalysis('Help', channels.Help).then(() => {
+runAnalysis('HelpBugsProblems', channels.HelpBugsProblems).then(() => {
   console.log('Analysis complete!');
 });
 
@@ -197,18 +199,19 @@ async function analyzeSingleDay(channelId: string, date: string) {
 
 // Function to combine daily analyses
 async function combineAnalyses(dailyAnalyses: any) {
-  const summaryPrompt = `Review and combine these daily analyses to provide an overall summary.
-  Focus on:
-  - Trends across days
-  - Most common categories
-  - Recurring issues
-  - Changes in patterns over time
+  const summaryPrompt = `Review these daily Discord channel analyses and create a comprehensive weekly summary.
+  Pay special attention to:
+  - Technical issues that appear across multiple days
+  - Patterns in user questions and problems
+  - Changes in sentiment over time
+  - Feature requests and enhancement suggestions
+  - Documentation gaps and unclear areas
   
   Here are the daily analyses:
   ${dailyAnalyses}`;
 
-  const result = await analysisAgent.stream(summaryPrompt, {
-    experimental_output: AnalysisSchema,
+  const result = await summaryAgent.stream(summaryPrompt, {
+    experimental_output: SummarySchema,
   });
 
   let response = {};
