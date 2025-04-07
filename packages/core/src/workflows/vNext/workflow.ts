@@ -6,6 +6,7 @@ import { DefaultStorage } from '../../storage/libsql';
 import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
+import path from 'path';
 
 type StepSuccess<T> = {
   status: 'success';
@@ -115,7 +116,7 @@ export class NewWorkflow<
     executionEngine = new DefaultExecutionEngine({
       storage: new DefaultStorage({
         config: {
-          url: 'file:/Users/tonykovanen/mastra/mastra/packages/core/src/workflows/vNext/mastra.db',
+          url: `file:${path.join(__dirname, 'mastra.db')}`,
         },
       }),
     }),
