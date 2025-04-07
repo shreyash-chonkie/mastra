@@ -33,13 +33,11 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     const { workflowId, runId, graph, input, resume } = params;
     const steps = graph.steps;
 
-    console.log('running engine', workflowId, runId, steps);
     if (steps.length === 0) {
       throw new Error('Workflow must have at least one step');
     }
 
     await this.storage.init();
-    console.log('Storage initialized');
 
     let startIdx = 0;
     if (resume?.resumePath) {
@@ -144,7 +142,6 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             return null;
           },
           suspend: async (suspendPayload: any) => {
-            console.log('Suspending', executionContext, suspendPayload);
             executionContext.suspendedPaths[step.id] = executionContext.executionPath;
             suspended = { payload: suspendPayload };
           },
@@ -274,7 +271,6 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       }
     }
 
-    console.log('Persisting snapshot', executionContext);
     await this.storage.persistWorkflowSnapshot({
       workflowName: workflowId,
       runId,
@@ -288,7 +284,6 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         timestamp: Date.now(),
       },
     });
-    console.log('Persisted snapshot', executionContext);
 
     return execResults;
   }
