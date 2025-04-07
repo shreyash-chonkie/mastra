@@ -351,6 +351,8 @@ export class Run<
       runId: this.runId,
     });
 
+    console.log({ snapshot });
+
     return this.executionEngine.execute<
       z.infer<TInput>,
       {
@@ -370,8 +372,7 @@ export class Run<
         stepId: params.step.id,
         stepResults: snapshot?.context as any,
         resumePayload: params.inputData,
-        // TODO: add execute path
-        resumePath: [0],
+        resumePath: snapshot?.activePaths as any,
       },
     });
   }

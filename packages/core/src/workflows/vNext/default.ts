@@ -53,6 +53,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           prevStep: steps[i - 1]!,
           stepResults,
           resume,
+          executePath: [i],
         });
         if (lastOutput.status !== 'success') {
           return {
@@ -102,6 +103,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     prevStep,
     stepResults,
     resume,
+    executePath,
   }: {
     workflowId: string;
     runId: string;
@@ -114,6 +116,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       resumePayload: any;
       resumePath: number[];
     };
+    executePath: number[];
   }): Promise<StepResult<any>> {
     const prevOutput = this.getStepOutput(stepResults, prevStep);
     let execResults: any;
@@ -150,7 +153,16 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       }
     } else if (entry.type === 'parallel') {
       const results: StepResult<any>[] = await Promise.all(
-        entry.steps.map(step => this.executeEntry({ workflowId, runId, entry: step, prevStep, stepResults })),
+        entry.steps.map((step, i) =>
+          this.executeEntry({
+            workflowId,
+            runId,
+            entry: step,
+            prevStep,
+            stepResults,
+            executePath: [...executePath, i],
+          }),
+        ),
       );
       const hasFailed = results.find(result => result.status === 'failed');
       if (hasFailed) {
@@ -200,7 +212,16 @@ export class DefaultExecutionEngine extends ExecutionEngine {
 
       const stepsToRun = entry.steps.filter((_, index) => truthyIndexes.includes(index));
       const results: StepResult<any>[] = await Promise.all(
-        stepsToRun.map(step => this.executeEntry({ workflowId, runId, entry: step, prevStep, stepResults })),
+        stepsToRun.map((step, index) =>
+          this.executeEntry({
+            workflowId,
+            runId,
+            entry: step,
+            prevStep,
+            stepResults,
+            executePath: [...executePath, index],
+          }),
+        ),
       );
       const hasFailed = results.find(result => result.status === 'failed');
       if (hasFailed) {
@@ -228,9 +249,10 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       runId,
       snapshot: {
         runId,
-        value: execResults,
+        value: {},
         context: stepResults as any,
-        activePaths: [],
+        // @ts-ignore
+        activePaths: executePath,
         timestamp: Date.now(),
       },
     });
