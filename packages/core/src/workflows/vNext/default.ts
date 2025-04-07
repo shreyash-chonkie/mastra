@@ -33,6 +33,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     const { workflowId, runId, graph, input, resume } = params;
     const steps = graph.steps;
 
+    console.log('running engine', workflowId, runId, steps);
     if (steps.length === 0) {
       throw new Error('Workflow must have at least one step');
     }
@@ -71,7 +72,6 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           } as TOutput;
         }
       } catch (e) {
-        console.log('Error', e);
         return {
           steps: stepResults,
           result: null,
@@ -288,6 +288,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         timestamp: Date.now(),
       },
     });
+    console.log('Persisted snapshot', executionContext);
 
     return execResults;
   }

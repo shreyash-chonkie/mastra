@@ -243,14 +243,32 @@ export class NewWorkflow<
 
   async execute({
     inputData,
+    suspend,
   }: {
     inputData: z.infer<TInput>;
     getStepResult<T extends NewStep<any, any, any>>(
       stepId: T,
     ): T['outputSchema'] extends undefined ? unknown : z.infer<NonNullable<T['outputSchema']>>;
+    suspend: (suspendPayload: any) => Promise<void>;
   }): Promise<z.infer<TOutput>> {
     const run = this.createRun();
     const res = await run.start({ inputData });
+    const suspendedSteps = Object.entries(res.steps).filter(([stepName, stepResult]) => {
+      const stepRes: StepResult<any> = stepResult as StepResult<any>;
+      if (stepRes?.status === 'suspended') {
+        return stepName;
+      }
+
+      return false;
+    });
+
+    if (suspendedSteps?.length) {
+      console.log('Suspending', suspendedSteps);
+      const _stepName = suspendedSteps![0]?.[0];
+      const stepResult = suspendedSteps![0]?.[1] as any;
+      await suspend(stepResult?.payload);
+    }
+
     return res.result;
   }
 }
@@ -312,7 +330,7 @@ export class Run<
     result: TOutput;
     steps: {
       [K in keyof StepsRecord<TSteps>]: StepsRecord<TSteps>[K]['outputSchema'] extends undefined
-        ? StepResult<unknown>
+        ? StepResult<unknow>
         : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
     };
   }> {
@@ -371,7 +389,7 @@ export class Run<
         stepId: params.step.id,
         stepResults: snapshot?.context as any,
         resumePayload: params.inputData,
-        resumePath: snapshot?.suspendedPaths[params.step.id] as any,
+        resumePath: snapshot?.suspendedPaths?.[params.step.id] as any,
       },
     });
   }

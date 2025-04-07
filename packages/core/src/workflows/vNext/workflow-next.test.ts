@@ -197,17 +197,17 @@ describe('Workflow', () => {
     id: 'test-step-suspend2',
     description: 'Test step suspend',
     inputSchema: z.object({
-      result: z.string(),
+      thing: z.string(),
     }),
     outputSchema: z.object({
       result: z.string(),
     }),
     execute: async ({ inputData, suspend }) => {
-      if (isSuspended) {
+      if (isSuspended2) {
         return { result: `Step suspend ${JSON.stringify(inputData)}` };
       } else {
-        isSuspended = true;
-        await suspend({ suspendPayloadTest: 'hello' });
+        isSuspended2 = true;
+        await suspend({ suspendPayloadTest: 'hello2' });
         // TODO: this is annoying to have to return
         return { result: 'SUSPENDED' };
       }
@@ -281,7 +281,10 @@ describe('Workflow', () => {
           result: z.string(),
         }),
         steps: [stepSuspend2],
-      }).then(stepSuspend2),
+      })
+        .then(step3)
+        .then(stepSuspend2)
+        .commit(),
     ])
     .commit();
 
@@ -330,11 +333,17 @@ describe('Workflow', () => {
       });
       console.dir({ resE }, { depth: null });
 
-      const resumeE = await runE.resume({
+      const resumeE1 = await runE.resume({
         inputData: { resultz: 'Coming from resume' },
         step: stepSuspend,
       });
-      console.dir({ resumeE }, { depth: null });
+      console.dir({ resumeE1 }, { depth: null });
+
+      const resumeE2 = await runE.resume({
+        inputData: { thing: 'Coming from resume2' },
+        step: stepSuspend2,
+      });
+      console.dir({ resumeE2 }, { depth: null });
     }, 500000);
   });
 });
