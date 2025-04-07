@@ -257,6 +257,7 @@ export class NewWorkflow<
     };
   }): Promise<z.infer<TOutput>> {
     if (resume) {
+      console.log('Resuming', { inputData, step: resume.steps.map(step => step.id) });
       //TODO: pass in runId
       const run = this.createRun();
       const res = await run.resume({ inputData, step: resume.steps });
@@ -342,7 +343,7 @@ export class Run<
     result: TOutput;
     steps: {
       [K in keyof StepsRecord<TSteps>]: StepsRecord<TSteps>[K]['outputSchema'] extends undefined
-        ? StepResult<unknow>
+        ? StepResult<unknown>
         : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
     };
   }> {
@@ -366,7 +367,7 @@ export class Run<
 
   async resume<TInput extends z.ZodObject<any>>(params: {
     inputData?: z.infer<TInput>;
-    step: Step<string, TInput, any> | Step<string, TInput, any>[];
+    step: Step<string, TInput, any> | [...Step<string, any, any>[], Step<string, TInput, any>];
   }): Promise<{
     result: TOutput;
     steps: {

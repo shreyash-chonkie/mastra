@@ -146,7 +146,10 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             executionContext.suspendedPaths[step.id] = executionContext.executionPath;
             suspended = { payload: suspendPayload };
           },
-          resume: resume,
+          resume: {
+            steps: resume?.steps?.slice(1) || [],
+            resumePayload: resume?.resumePayload,
+          },
         });
 
         if (suspended) {
@@ -183,6 +186,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             entry: step,
             prevStep,
             stepResults,
+            resume,
             executionContext: {
               executionPath: [...executionContext.executionPath, i],
               suspendedPaths: executionContext.suspendedPaths,
