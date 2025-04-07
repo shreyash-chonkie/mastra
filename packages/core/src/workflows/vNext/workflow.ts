@@ -254,18 +254,20 @@ export class NewWorkflow<
     resume?: {
       steps: NewStep<string, any, any>[];
       resumePayload: any;
+      runId?: string;
     };
   }): Promise<z.infer<TOutput>> {
-    if (resume) {
-      console.log('Resuming', { inputData, step: resume.steps.map(step => step.id) });
+    if (resume?.steps?.length) {
+      console.log('Resuming', { inputData, step: resume.steps.map(step => step.id), runId: resume.runId });
       //TODO: pass in runId
-      const run = this.createRun();
+      const run = this.createRun({ runId: resume.runId });
       const res = await run.resume({ inputData, step: resume.steps as any });
       return res.result;
     }
 
     const run = this.createRun();
     const res = await run.start({ inputData });
+    console.log('nested res', { res });
     const suspendedSteps = Object.entries(res.steps).filter(([stepName, stepResult]) => {
       const stepRes: StepResult<any> = stepResult as StepResult<any>;
       if (stepRes?.status === 'suspended') {
@@ -279,7 +281,7 @@ export class NewWorkflow<
       console.log('Suspending', suspendedSteps);
       const _stepName = suspendedSteps![0]?.[0];
       const stepResult = suspendedSteps![0]?.[1] as any;
-      await suspend(stepResult?.payload);
+      await suspend({ __workflow_meta: { runId: run.runId }, ...stepResult?.payload });
     }
 
     return res.result;

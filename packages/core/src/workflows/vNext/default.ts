@@ -149,6 +149,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           resume: {
             steps: resume?.steps?.slice(1) || [],
             resumePayload: resume?.resumePayload,
+            // @ts-ignore
+            runId: stepResults[step.id]?.payload?.__workflow_meta?.runId,
           },
         });
 
