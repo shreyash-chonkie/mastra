@@ -6,6 +6,8 @@ export type ExecuteFunction<TStepInput, TStepOutput> = (params: {
   getStepResult<T extends NewStep<any, any, any>>(
     stepId: T,
   ): T['outputSchema'] extends undefined ? unknown : z.infer<NonNullable<T['outputSchema']>>;
+  // TODO: should this be a schema you can define on the step?
+  suspend(suspendPayload: any): Promise<void>;
 }) => Promise<TStepOutput>;
 
 // Define a Step interface

@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import path from 'path';
 import type { z } from 'zod';
 import { MastraBase } from '../../base';
 import { RegisteredLogger } from '../../logger';
@@ -6,7 +7,6 @@ import { DefaultStorage } from '../../storage/libsql';
 import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
-import path from 'path';
 
 type StepSuccess<T> = {
   status: 'success';

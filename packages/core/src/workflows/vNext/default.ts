@@ -1,6 +1,6 @@
 import type { ExecutionGraph } from './execution-engine';
 import { ExecutionEngine } from './execution-engine';
-import type { StepFlowEntry } from './workflow';
+import type { StepFlowEntry, StepResult } from './workflow';
 
 /**
  * Default implementation of the ExecutionEngine using XState
@@ -38,13 +38,13 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         console.log('Error', e);
         return {
           steps: stepResults,
-          result: lastOutput,
+          result: null,
           error: e instanceof Error ? e.message : 'Unknown error',
         } as TOutput;
       }
     }
 
-    return { steps: stepResults, result: lastOutput } as TOutput;
+    return { steps: stepResults, result: lastOutput.output } as TOutput;
   }
 
   getStepOutput(stepResults: Record<string, any>, step?: StepFlowEntry): any {
@@ -79,8 +79,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     runId: string;
     entry: StepFlowEntry;
     prevStep: StepFlowEntry;
-    stepResults: Record<string, any>;
-  }) {
+    stepResults: Record<string, StepResult<any>>;
+  }): Promise<StepResult<any>> {
     const prevOutput = this.getStepOutput(stepResults, prevStep);
     let execResults: any;
 
@@ -89,20 +89,48 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       try {
         const result = await step.execute({
           inputData: prevOutput,
-          getStepResult: (step: any) => stepResults[step.id]?.output,
+          getStepResult: (step: any) => {
+            const result = stepResults[step.id];
+            if (result?.status === 'success') {
+              return result.output;
+            }
+
+            return null;
+          },
+          suspend: async (suspendPayload: any) => {
+            // TODO: suspend the workflow
+          },
         });
 
         stepResults[step.id] = { status: 'success', output: result };
-        execResults = result;
+        execResults = { status: 'success', output: result };
       } catch (e) {
         stepResults[step.id] = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
-        throw e;
+        execResults = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
       }
     } else if (entry.type === 'parallel') {
-      const results: any[] = await Promise.all(
+      const results: StepResult<any>[] = await Promise.all(
         entry.steps.map(step => this.executeEntry({ workflowId, runId, entry: step, prevStep, stepResults })),
       );
-      execResults = results.reduce((acc, result) => ({ ...acc, ...result }), {});
+      const hasFailed = results.find(result => result.status === 'failed');
+      if (hasFailed) {
+        execResults = { status: 'failed', error: hasFailed.error };
+      } else {
+        execResults = {
+          status: 'success',
+          output: results.reduce((acc: Record<string, any>, result) => {
+            if (result.status === 'success') {
+              Object.entries(result).forEach(([key, value]) => {
+                if (value.status === 'success') {
+                  acc[key] = value.output;
+                }
+              });
+            }
+
+            return acc;
+          }, {}),
+        };
+      }
     } else if (entry.type === 'conditional') {
       const truthyIndexes = (
         await Promise.all(
@@ -110,7 +138,18 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             try {
               const result = await cond({
                 inputData: prevOutput,
-                getStepResult: (step: any) => stepResults[step.id]?.output,
+                getStepResult: (step: any) => {
+                  const result = stepResults[step.id];
+                  if (result?.status === 'success') {
+                    return result.output;
+                  }
+
+                  return null;
+                },
+
+                suspend: async (suspendPayload: any) => {
+                  // TODO: suspend the workflow
+                },
               });
               return result ? index : null;
             } catch (e: unknown) {
@@ -121,11 +160,28 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       ).filter((index): index is number => index !== null);
 
       const stepsToRun = entry.steps.filter((_, index) => truthyIndexes.includes(index));
-      const results: any[] = await Promise.all(
+      const results: StepResult<any>[] = await Promise.all(
         stepsToRun.map(step => this.executeEntry({ workflowId, runId, entry: step, prevStep, stepResults })),
       );
-      execResults = results.reduce((acc, result) => ({ ...acc, ...result }), {});
-      return execResults;
+      const hasFailed = results.find(result => result.status === 'failed');
+      if (hasFailed) {
+        execResults = { status: 'failed', error: hasFailed.error };
+      } else {
+        execResults = {
+          status: 'success',
+          output: results.reduce((acc: Record<string, any>, result) => {
+            if (result.status === 'success') {
+              Object.entries(result).forEach(([key, value]) => {
+                if (value.status === 'success') {
+                  acc[key] = value.output;
+                }
+              });
+            }
+
+            return acc;
+          }, {}),
+        };
+      }
     }
 
     await this.storage.persistWorkflowSnapshot({
