@@ -296,8 +296,8 @@ describe('Workflow', () => {
       console.dir({ resE }, { depth: null });
 
       const resumeE = await runE.resume({
-        inputData: { result: 'Coming from resume' },
-        stepId: 'test-step-suspend',
+        inputData: { resultz: 'Coming from resume' },
+        step: stepSuspend,
       });
       console.dir({ resumeE }, { depth: null });
     }, 500000);

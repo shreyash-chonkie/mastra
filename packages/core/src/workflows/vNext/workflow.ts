@@ -335,7 +335,10 @@ export class Run<
   }
 
   // TODO: fix typing
-  async resume({ inputData, stepId }: { inputData?: any; stepId: string }): Promise<{
+  async resume<TInput extends z.ZodObject<any>>(params: {
+    inputData?: z.infer<TInput>;
+    step: Step<string, TInput, any>;
+  }): Promise<{
     result: TOutput;
     steps: {
       [K in keyof StepsRecord<TSteps>]: StepsRecord<TSteps>[K]['outputSchema'] extends undefined
@@ -362,11 +365,11 @@ export class Run<
       workflowId: this.workflowId,
       runId: this.runId,
       graph: this.executionGraph,
-      input: inputData,
+      input: params.inputData,
       resume: {
-        stepId,
+        stepId: params.step.id,
         stepResults: snapshot?.context as any,
-        resumePayload: inputData,
+        resumePayload: params.inputData,
         // TODO: add execute path
         resumePath: [0],
       },
