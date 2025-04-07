@@ -25,6 +25,9 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       throw new Error('Workflow must have at least one step');
     }
 
+    await this.storage.init();
+    console.log('Storage initialized');
+
     const stepResults: Record<string, any> = { input };
     let lastOutput: any;
     for (let i = 0; i < steps.length; i++) {
@@ -129,6 +132,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       workflowName: workflowId,
       runId,
       snapshot: {
+        runId,
         value: execResults,
         context: stepResults as any,
         activePaths: [],

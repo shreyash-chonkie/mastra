@@ -115,7 +115,7 @@ export class NewWorkflow<
     executionEngine = new DefaultExecutionEngine({
       storage: new DefaultStorage({
         config: {
-          url: ':memory:',
+          url: 'file:/Users/tonykovanen/mastra/mastra/packages/core/src/workflows/vNext/mastra.db',
         },
       }),
     }),
