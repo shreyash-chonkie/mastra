@@ -1,6 +1,7 @@
 import { describe, it } from 'vitest';
 import { z } from 'zod';
 import { createStep, createWorkflow, NewWorkflow } from './workflow';
+import { subscribe } from 'diagnostics_channel';
 
 describe('Workflow', () => {
   // Input and output schemas for testing
@@ -191,6 +192,28 @@ describe('Workflow', () => {
     },
   });
 
+  let isSuspended2 = false;
+  const stepSuspend2 = createStep({
+    id: 'test-step-suspend2',
+    description: 'Test step suspend',
+    inputSchema: z.object({
+      result: z.string(),
+    }),
+    outputSchema: z.object({
+      result: z.string(),
+    }),
+    execute: async ({ inputData, suspend }) => {
+      if (isSuspended) {
+        return { result: `Step suspend ${JSON.stringify(inputData)}` };
+      } else {
+        isSuspended = true;
+        await suspend({ suspendPayloadTest: 'hello' });
+        // TODO: this is annoying to have to return
+        return { result: 'SUSPENDED' };
+      }
+    },
+  });
+
   const nestedWorkflowB = createWorkflow({
     id: 'nested-workflow-b',
     inputSchema: z.object({
@@ -247,7 +270,19 @@ describe('Workflow', () => {
     steps: [step, stepSuspend],
   })
     .then(step)
-    .parallel([stepSuspend])
+    .then(stepSuspend)
+    .parallel([
+      createWorkflow({
+        id: 'nested-workflow-hmm',
+        inputSchema: z.object({
+          result: z.string(),
+        }),
+        outputSchema: z.object({
+          result: z.string(),
+        }),
+        steps: [stepSuspend2],
+      }).then(stepSuspend2),
+    ])
     .commit();
 
   describe('Workflow Execution', () => {
