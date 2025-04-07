@@ -4,9 +4,9 @@ import type { Metadata } from "next";
 import { Layout, Navbar } from "nextra-theme-docs";
 import { Head } from "nextra/components";
 import { getPageMap } from "nextra/page-map";
-import "./globals.css";
+import "../globals.css";
 import "nextra-theme-docs/style.css";
-import { fonts } from "./font/setup";
+import { fonts } from "../font/setup";
 import { cn } from "@/lib/utils";
 import { logo } from "@/components/logo";
 import { GithubStarCount } from "@/components/github-star-count";
@@ -45,12 +45,15 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({
   children,
+  params,
 }: Readonly<{
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }>) {
+  const { locale } = await params;
   return (
     <html
-      lang="en"
+      lang={locale}
       dir="ltr"
       className={cn(
         "antialiased",
@@ -66,9 +69,13 @@ export default async function RootLayout({
         <PostHogProvider>
           <Layout
             navbar={navbar}
-            pageMap={await getPageMap()}
+            pageMap={await getPageMap(`/${locale || 'en'}`)}
             docsRepositoryBase="https://github.com/mastra-ai/mastra/blob/main/docs"
             footer={footer}
+            i18n={[
+              { locale: "en", name: "English" },
+              { locale: "ja", name: "日本語" },
+            ]}
             // ... Your additional layout options
           >
             {children}

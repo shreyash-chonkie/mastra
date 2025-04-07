@@ -2,10 +2,10 @@
   "defaultLocale": "en",
   "files": {
     "mdx": {
-      "include": ["src/pages/[locale]/**/*.mdx"]
+      "include": ["src/content/[locale]/**/*.mdx"]
     },
     "ts": {
-      "include": ["src/pages/[locale]/**/_meta.ts"]
+      "include": ["src/content/[locale]/**/_meta.ts"]
     }
   },
   "locales": ["ja"],
