@@ -261,6 +261,20 @@ describe('Workflow', () => {
 
   workflowD.then(nestedWorkflowA).then(step3).commit();
 
+  const nestedWorkflowSuspend = createWorkflow({
+    id: 'nested-workflow-hmm',
+    inputSchema: z.object({
+      result: z.string(),
+    }),
+    outputSchema: z.object({
+      result: z.string(),
+    }),
+    steps: [stepSuspend2],
+  })
+    .then(step3)
+    .then(stepSuspend2)
+    .commit();
+
   const workflowE = createWorkflow({
     id: 'test-workflow-e',
     inputSchema: z.object({
@@ -271,21 +285,20 @@ describe('Workflow', () => {
   })
     .then(step)
     .then(stepSuspend)
-    .parallel([
-      createWorkflow({
-        id: 'nested-workflow-hmm',
-        inputSchema: z.object({
+    .parallel([nestedWorkflowSuspend])
+    .then({
+      id: 'test-step-final',
+      description: 'Test step final',
+      inputSchema: z.object({
+        'nested-workflow-hmm': z.object({
           result: z.string(),
         }),
-        outputSchema: z.object({
-          result: z.string(),
-        }),
-        steps: [stepSuspend2],
-      })
-        .then(step3)
-        .then(stepSuspend2)
-        .commit(),
-    ])
+      }),
+      outputSchema: z.object({ result: z.string() }),
+      execute: async ({ inputData }) => {
+        return { result: `Step final ${inputData['nested-workflow-hmm'].result}` };
+      },
+    })
     .commit();
 
   describe('Workflow Execution', () => {
