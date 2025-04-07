@@ -7,6 +7,7 @@ import { DefaultStorage } from '../../storage/libsql';
 import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
+import type { MastraStorage } from '../../storage';
 
 type StepSuccess<T> = {
   status: 'success';
@@ -110,6 +111,7 @@ export class NewWorkflow<
   public outputSchema: TOutput;
   protected stepFlow: StepFlowEntry[];
   protected executionEngine: ExecutionEngine;
+  protected storage: MastraStorage;
   protected executionGraph: ExecutionGraph;
 
   constructor({
@@ -117,23 +119,29 @@ export class NewWorkflow<
     inputSchema,
     outputSchema,
     description,
-    // TODO: this should be configured using the Mastra class instance that's passed in
-    executionEngine = new DefaultExecutionEngine({
-      storage: new DefaultStorage({
-        config: {
-          url: `file:${path.join(__dirname, 'mastra.db')}`,
-        },
-      }),
-    }),
+    executionEngine,
   }: NewWorkflowConfig<TWorkflowId, TInput, TOutput>) {
     super({ name: id, component: RegisteredLogger.WORKFLOW });
     this.id = id;
     this.description = description;
     this.inputSchema = inputSchema;
     this.outputSchema = outputSchema;
-    this.executionEngine = executionEngine;
     this.executionGraph = this.buildExecutionGraph();
     this.stepFlow = [];
+
+    // TODO: ability to pass this from mastra intsance
+    this.storage = new DefaultStorage({
+      config: {
+        url: `file:${path.join(__dirname, 'mastra.db')}`,
+      },
+    });
+
+    if (!executionEngine) {
+      // TODO: this should be configured using the Mastra class instance that's passed in
+      this.executionEngine = new DefaultExecutionEngine({ storage: this.storage });
+    } else {
+      this.executionEngine = executionEngine;
+    }
   }
 
   /**
@@ -229,6 +237,7 @@ export class NewWorkflow<
       runId: runIdToUse,
       executionEngine: this.executionEngine,
       executionGraph: this.executionGraph,
+      storage: this.storage,
     });
   }
 
@@ -275,16 +284,23 @@ export class Run<
    */
   public executionGraph: ExecutionGraph;
 
+  /**
+   * The storage for this run
+   */
+  public storage: MastraStorage;
+
   constructor(params: {
     workflowId: string;
     runId: string;
     executionEngine: ExecutionEngine;
     executionGraph: ExecutionGraph;
+    storage: MastraStorage;
   }) {
     this.workflowId = params.workflowId;
     this.runId = params.runId;
     this.executionEngine = params.executionEngine;
     this.executionGraph = params.executionGraph;
+    this.storage = params.storage;
   }
 
   /**
@@ -315,6 +331,42 @@ export class Run<
       runId: this.runId,
       graph: this.executionGraph,
       input: inputData,
+    });
+  }
+
+  // TODO: fix typing
+  async resume({ inputData, stepId }: { inputData?: any; stepId: string }): Promise<{
+    result: TOutput;
+    steps: {
+      [K in keyof StepsRecord<TSteps>]: StepsRecord<TSteps>[K]['outputSchema'] extends undefined
+        ? StepResult<unknown>
+        : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
+    };
+  }> {
+    const snapshot = await this.storage.loadWorkflowSnapshot({
+      workflowName: this.workflowId,
+      runId: this.runId,
+    });
+
+    return this.executionEngine.execute<
+      z.infer<TInput>,
+      {
+        result: TOutput;
+        steps: {
+          [K in keyof StepsRecord<TSteps>]: StepsRecord<TSteps>[K]['outputSchema'] extends undefined
+            ? StepResult<unknown>
+            : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
+        };
+      }
+    >({
+      workflowId: this.workflowId,
+      runId: this.runId,
+      graph: this.executionGraph,
+      input: inputData,
+      resume: {
+        stepId,
+        stepResults: snapshot?.context as any,
+      },
     });
   }
 

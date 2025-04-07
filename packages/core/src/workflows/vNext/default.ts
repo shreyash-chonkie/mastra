@@ -17,8 +17,13 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     runId: string;
     graph: ExecutionGraph;
     input?: TInput;
+    resume?: {
+      // TODO: add execute path
+      stepId: string;
+      stepResults: Record<string, StepResult<any>>;
+    };
   }): Promise<TOutput> {
-    const { workflowId, runId, graph, input } = params;
+    const { workflowId, runId, graph, input, resume } = params;
     const steps = graph.steps;
 
     if (steps.length === 0) {
@@ -28,7 +33,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     await this.storage.init();
     console.log('Storage initialized');
 
-    const stepResults: Record<string, any> = { input };
+    const stepResults: Record<string, any> = resume?.stepResults || { input };
     let lastOutput: any;
     for (let i = 0; i < steps.length; i++) {
       const entry = steps[i]!;

@@ -1,7 +1,7 @@
 import { MastraBase } from '../../base';
 import { RegisteredLogger } from '../../logger';
 import type { MastraStorage } from '../../storage';
-import type { StepFlowEntry } from '.';
+import type { StepFlowEntry, StepResult } from '.';
 
 /**
  * Represents an execution graph for a workflow
@@ -32,5 +32,9 @@ export abstract class ExecutionEngine extends MastraBase {
     runId: string;
     graph: ExecutionGraph;
     input?: TInput;
+    resume?: {
+      stepId: string;
+      stepResults: Record<string, StepResult<any>>;
+    };
   }): Promise<TOutput>;
 }

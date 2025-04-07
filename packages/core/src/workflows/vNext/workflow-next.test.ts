@@ -181,7 +181,7 @@ describe('Workflow', () => {
     }),
     execute: async ({ inputData, suspend }) => {
       if (isSuspended) {
-        return { result: `Step suspend ${inputData}` };
+        return { result: `Step suspend ${JSON.stringify(inputData)}` };
       } else {
         isSuspended = true;
         await suspend({ suspendPayloadTest: 'hello' });
@@ -294,6 +294,12 @@ describe('Workflow', () => {
         inputData: { name: 'Abhi' },
       });
       console.dir({ resE }, { depth: null });
+
+      const resumeE = await runE.resume({
+        inputData: { result: 'Coming from resume' },
+        stepId: 'test-step-suspend',
+      });
+      console.dir({ resumeE }, { depth: null });
     }, 500000);
   });
 });
