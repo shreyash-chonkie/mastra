@@ -38,6 +38,7 @@ function formatAnalysis(analysis: any): string {
   if (analysis.total_messages > 0) {
     output += '\nCategories:\n';
     for (const category of analysis.categories) {
+      if (category.count === 0) continue;
       output += `\n📁 ${category.category}\n`;
       output += `   Messages: ${category.count}\n`;
       output += `   Sentiment: ${category.sentiment}\n`;
