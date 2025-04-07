@@ -12,8 +12,13 @@ export class DefaultExecutionEngine extends ExecutionEngine {
    * @param input The input data for the workflow
    * @returns A promise that resolves to the workflow output
    */
-  async execute<TInput, TOutput>(params: { graph: ExecutionGraph; input?: TInput }): Promise<TOutput> {
-    const { graph, input } = params;
+  async execute<TInput, TOutput>(params: {
+    workflowId: string;
+    runId: string;
+    graph: ExecutionGraph;
+    input?: TInput;
+  }): Promise<TOutput> {
+    const { workflowId, runId, graph, input } = params;
     const steps = graph.steps;
 
     if (steps.length === 0) {
@@ -25,7 +30,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     for (let i = 0; i < steps.length; i++) {
       const entry = steps[i]!;
       try {
-        lastOutput = await this.executeEntry({ entry, prevStep: steps[i - 1]!, stepResults });
+        lastOutput = await this.executeEntry({ workflowId, runId, entry, prevStep: steps[i - 1]!, stepResults });
       } catch (e) {
         console.log('Error', e);
         return {
@@ -61,15 +66,20 @@ export class DefaultExecutionEngine extends ExecutionEngine {
   }
 
   async executeEntry({
+    workflowId,
+    runId,
     entry,
     prevStep,
     stepResults,
   }: {
+    workflowId: string;
+    runId: string;
     entry: StepFlowEntry;
     prevStep: StepFlowEntry;
     stepResults: Record<string, any>;
   }) {
     const prevOutput = this.getStepOutput(stepResults, prevStep);
+    let execResults: any;
 
     if (entry.type === 'step') {
       const { step } = entry;
@@ -80,16 +90,16 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         });
 
         stepResults[step.id] = { status: 'success', output: result };
-        return result;
+        execResults = result;
       } catch (e) {
         stepResults[step.id] = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
         throw e;
       }
     } else if (entry.type === 'parallel') {
       const results: any[] = await Promise.all(
-        entry.steps.map(step => this.executeEntry({ entry: step, prevStep, stepResults })),
+        entry.steps.map(step => this.executeEntry({ workflowId, runId, entry: step, prevStep, stepResults })),
       );
-      return results.reduce((acc, result) => ({ ...acc, ...result }), {});
+      execResults = results.reduce((acc, result) => ({ ...acc, ...result }), {});
     } else if (entry.type === 'conditional') {
       const truthyIndexes = (
         await Promise.all(
@@ -109,9 +119,23 @@ export class DefaultExecutionEngine extends ExecutionEngine {
 
       const stepsToRun = entry.steps.filter((_, index) => truthyIndexes.includes(index));
       const results: any[] = await Promise.all(
-        stepsToRun.map(step => this.executeEntry({ entry: step, prevStep, stepResults })),
+        stepsToRun.map(step => this.executeEntry({ workflowId, runId, entry: step, prevStep, stepResults })),
       );
-      return results.reduce((acc, result) => ({ ...acc, ...result }), {});
+      execResults = results.reduce((acc, result) => ({ ...acc, ...result }), {});
+      return execResults;
     }
+
+    await this.storage.persistWorkflowSnapshot({
+      workflowName: workflowId,
+      runId,
+      snapshot: {
+        value: execResults,
+        context: stepResults as any,
+        activePaths: [],
+        timestamp: Date.now(),
+      },
+    });
+
+    return execResults;
   }
 }

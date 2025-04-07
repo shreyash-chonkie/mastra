@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import type { z } from 'zod';
 import { MastraBase } from '../../base';
 import { RegisteredLogger } from '../../logger';
+import { DefaultStorage } from '../../storage/libsql';
 import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
@@ -110,7 +111,14 @@ export class NewWorkflow<
     inputSchema,
     outputSchema,
     description,
-    executionEngine = new DefaultExecutionEngine(),
+    // TODO: this should be configured using the Mastra class instance that's passed in
+    executionEngine = new DefaultExecutionEngine({
+      storage: new DefaultStorage({
+        config: {
+          url: ':memory:',
+        },
+      }),
+    }),
   }: NewWorkflowConfig<TWorkflowId, TInput, TOutput>) {
     super({ name: id, component: RegisteredLogger.WORKFLOW });
     this.id = id;
@@ -211,6 +219,7 @@ export class NewWorkflow<
 
     // Return a new Run instance with object parameters
     return new Run({
+      workflowId: this.id,
       runId: runIdToUse,
       executionEngine: this.executionEngine,
       executionGraph: this.executionGraph,
@@ -239,6 +248,7 @@ export class Run<
   TInput extends z.ZodObject<any> = z.ZodObject<any>,
   TOutput extends z.ZodObject<any> = z.ZodObject<any>,
 > {
+  readonly workflowId: string;
   /**
    * Unique identifier for this run
    */
@@ -259,7 +269,13 @@ export class Run<
    */
   public executionGraph: ExecutionGraph;
 
-  constructor(params: { runId: string; executionEngine: ExecutionEngine; executionGraph: ExecutionGraph }) {
+  constructor(params: {
+    workflowId: string;
+    runId: string;
+    executionEngine: ExecutionEngine;
+    executionGraph: ExecutionGraph;
+  }) {
+    this.workflowId = params.workflowId;
     this.runId = params.runId;
     this.executionEngine = params.executionEngine;
     this.executionGraph = params.executionGraph;
@@ -289,6 +305,8 @@ export class Run<
         };
       }
     >({
+      workflowId: this.workflowId,
+      runId: this.runId,
       graph: this.executionGraph,
       input: inputData,
     });

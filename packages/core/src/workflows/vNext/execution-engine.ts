@@ -1,5 +1,6 @@
 import { MastraBase } from '../../base';
 import { RegisteredLogger } from '../../logger';
+import type { MastraStorage } from '../../storage';
 import type { StepFlowEntry } from '.';
 
 /**
@@ -15,8 +16,10 @@ export interface ExecutionGraph {
  * Providers will implement this class to provide their own execution logic
  */
 export abstract class ExecutionEngine extends MastraBase {
-  constructor() {
+  protected storage: MastraStorage;
+  constructor({ storage }: { storage: MastraStorage }) {
     super({ name: 'ExecutionEngine', component: RegisteredLogger.WORKFLOW });
+    this.storage = storage;
   }
   /**
    * Executes a workflow run with the provided execution graph and input
@@ -24,5 +27,10 @@ export abstract class ExecutionEngine extends MastraBase {
    * @param input The input data for the workflow
    * @returns A promise that resolves to the workflow output
    */
-  abstract execute<TInput, TOutput>(params: { graph: ExecutionGraph; input?: TInput }): Promise<TOutput>;
+  abstract execute<TInput, TOutput>(params: {
+    workflowId: string;
+    runId: string;
+    graph: ExecutionGraph;
+    input?: TInput;
+  }): Promise<TOutput>;
 }
