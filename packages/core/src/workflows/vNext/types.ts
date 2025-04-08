@@ -1,6 +1,27 @@
 import type { z } from 'zod';
 import type { NewStep } from './step';
 
+export type StepSuccess<T> = {
+  status: 'success';
+  output: T;
+};
+
+export type StepFailure = {
+  status: 'failed';
+  error: string;
+};
+
+export type StepSuspended<T> = {
+  status: 'suspended';
+  payload: T;
+};
+
+export type StepResult<T> = StepSuccess<T> | StepFailure | StepSuspended<T>;
+
+export type StepsRecord<T extends readonly Step<any, any, z.ZodObject<any>>[]> = {
+  [K in T[number]['id']]: Extract<T[number], { id: K }>;
+};
+
 export type PathsToStringProps<T> = T extends object
   ? {
       [K in keyof T]: T[K] extends object

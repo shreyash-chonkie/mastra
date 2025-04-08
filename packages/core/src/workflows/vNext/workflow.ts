@@ -3,33 +3,12 @@ import path from 'path';
 import { z } from 'zod';
 import { MastraBase } from '../../base';
 import { RegisteredLogger } from '../../logger';
+import type { MastraStorage } from '../../storage';
 import { DefaultStorage } from '../../storage/libsql';
 import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
-import type { MastraStorage } from '../../storage';
-import type { VariableReference } from './types';
-
-type StepSuccess<T> = {
-  status: 'success';
-  output: T;
-};
-
-type StepFailure = {
-  status: 'failed';
-  error: string;
-};
-
-type StepSuspended<T> = {
-  status: 'suspended';
-  payload: T;
-};
-
-export type StepResult<T> = StepSuccess<T> | StepFailure | StepSuspended<T>;
-
-export type StepsRecord<T extends readonly Step<any, any, z.ZodObject<any>>[]> = {
-  [K in T[number]['id']]: Extract<T[number], { id: K }>;
-};
+import type { StepsRecord, StepResult } from './types';
 
 export type StepFlowEntry =
   | { type: 'step'; step: Step }
