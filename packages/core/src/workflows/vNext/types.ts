@@ -68,6 +68,6 @@ export type WatchEvent = {
       output?: Record<string, any>;
       payload?: Record<string, any>;
     };
-    eventTimestamp: Date;
   };
+  eventTimestamp: Date;
 };

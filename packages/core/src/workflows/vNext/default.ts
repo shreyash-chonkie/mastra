@@ -83,6 +83,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
                   error: lastOutput.error,
                 },
               },
+              eventTimestamp: Date.now(),
             });
           }
           return {
@@ -107,6 +108,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
                 error: lastOutput.error,
               },
             },
+            eventTimestamp: Date.now(),
           });
         }
 
@@ -134,6 +136,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           error: lastOutput.error,
         },
       },
+      eventTimestamp: Date.now(),
     });
 
     return res as TOutput;
@@ -412,6 +415,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             status: 'running',
           },
         },
+        eventTimestamp: Date.now(),
       });
     }
     return execResults;
