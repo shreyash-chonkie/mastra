@@ -121,40 +121,44 @@ export class DefaultExecutionEngine extends ExecutionEngine {
   }): Promise<StepResult<any>> {
     let execResults: any;
 
-    try {
-      let suspended: { payload: any } | undefined;
-      const result = await step.execute({
-        inputData: resume?.steps[0]!.id === step.id ? resume?.resumePayload : prevOutput,
-        getStepResult: (step: any) => {
-          const result = stepResults[step.id];
-          if (result?.status === 'success') {
-            return result.output;
-          }
+    for (let i = 0; i < (step.retries ?? 1); i++) {
+      try {
+        let suspended: { payload: any } | undefined;
+        const result = await step.execute({
+          inputData: resume?.steps[0]!.id === step.id ? resume?.resumePayload : prevOutput,
+          getStepResult: (step: any) => {
+            const result = stepResults[step.id];
+            if (result?.status === 'success') {
+              return result.output;
+            }
 
-          return null;
-        },
-        suspend: async (suspendPayload: any) => {
-          executionContext.suspendedPaths[step.id] = executionContext.executionPath;
-          suspended = { payload: suspendPayload };
-        },
-        resume: {
-          steps: resume?.steps?.slice(1) || [],
-          resumePayload: resume?.resumePayload,
-          // @ts-ignore
-          runId: stepResults[step.id]?.payload?.__workflow_meta?.runId,
-        },
-      });
+            return null;
+          },
+          suspend: async (suspendPayload: any) => {
+            executionContext.suspendedPaths[step.id] = executionContext.executionPath;
+            suspended = { payload: suspendPayload };
+          },
+          resume: {
+            steps: resume?.steps?.slice(1) || [],
+            resumePayload: resume?.resumePayload,
+            // @ts-ignore
+            runId: stepResults[step.id]?.payload?.__workflow_meta?.runId,
+          },
+        });
 
-      if (suspended) {
-        stepResults[step.id] = { status: 'suspended', payload: suspended.payload };
-        execResults = { status: 'suspended', output: suspended.payload };
-      } else {
-        stepResults[step.id] = { status: 'success', output: result };
-        execResults = { status: 'success', output: result };
+        if (suspended) {
+          stepResults[step.id] = { status: 'suspended', payload: suspended.payload };
+          execResults = { status: 'suspended', output: suspended.payload };
+        } else {
+          stepResults[step.id] = { status: 'success', output: result };
+          execResults = { status: 'success', output: result };
+        }
+
+        break;
+      } catch (e) {
+        stepResults[step.id] = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
+        execResults = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
       }
-    } catch (e) {
-      stepResults[step.id] = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
-      execResults = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
     }
 
     return execResults;

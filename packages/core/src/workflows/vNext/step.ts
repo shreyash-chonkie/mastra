@@ -25,5 +25,5 @@ export interface NewStep<
   inputSchema: TSchemaIn;
   outputSchema: TSchemaOut;
   execute: ExecuteFunction<z.infer<TSchemaIn>, z.infer<TSchemaOut>>;
-  attempts?: number;
+  retries?: number;
 }
