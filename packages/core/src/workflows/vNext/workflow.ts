@@ -8,7 +8,8 @@ import { DefaultStorage } from '../../storage/libsql';
 import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
-import type { StepsRecord, StepResult } from './types';
+import type { StepsRecord, StepResult, WatchEvent } from './types';
+import EventEmitter from 'events';
 
 export type StepFlowEntry =
   | { type: 'step'; step: Step }
@@ -321,7 +322,12 @@ export class Run<
   TInput extends z.ZodObject<any> = z.ZodObject<any>,
   TOutput extends z.ZodObject<any> = z.ZodObject<any>,
 > {
+  protected emitter: EventEmitter;
+  /**
+   * Unique identifier for this workflow
+   */
   readonly workflowId: string;
+
   /**
    * Unique identifier for this run
    */
@@ -359,6 +365,7 @@ export class Run<
     this.executionEngine = params.executionEngine;
     this.executionGraph = params.executionGraph;
     this.storage = params.storage;
+    this.emitter = new EventEmitter();
   }
 
   /**
@@ -389,7 +396,15 @@ export class Run<
       runId: this.runId,
       graph: this.executionGraph,
       input: inputData,
+      emitter: this.emitter,
     });
+  }
+
+  watch(cb: (event: WatchEvent) => void): () => void {
+    this.emitter.on('watch', cb);
+    return () => {
+      this.emitter.off('watch', cb);
+    };
   }
 
   async resume<TInput extends z.ZodObject<any>>(params: {
@@ -408,8 +423,6 @@ export class Run<
       workflowName: this.workflowId,
       runId: this.runId,
     });
-
-    console.dir({ snapshot }, { depth: null });
 
     return this.executionEngine.execute<
       z.infer<TInput>,
@@ -432,6 +445,7 @@ export class Run<
         resumePayload: params.inputData,
         resumePath: snapshot?.suspendedPaths?.[steps?.[0]?.id!] as any,
       },
+      emitter: this.emitter,
     });
   }
 

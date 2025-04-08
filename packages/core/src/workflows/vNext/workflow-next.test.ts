@@ -368,6 +368,9 @@ describe('Workflow', () => {
       console.dir({ resD }, { depth: null });
 
       const runE = workflowE.createRun();
+      runE.watch(event => {
+        console.log('event', event);
+      });
       const resE = await runE.start({
         inputData: { name: 'Abhi' },
       });

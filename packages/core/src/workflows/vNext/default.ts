@@ -1,7 +1,9 @@
+import type EventEmitter from 'events';
 import type { ExecutionGraph } from './execution-engine';
 import { ExecutionEngine } from './execution-engine';
 import type { NewStep } from './step';
-import type { StepFlowEntry, StepResult } from './workflow';
+import type { StepResult } from './types';
+import type { StepFlowEntry } from './workflow';
 
 type ExecutionContext = {
   executionPath: number[];
@@ -30,6 +32,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       resumePayload: any;
       resumePath: number[];
     };
+    emitter: EventEmitter;
   }): Promise<TOutput> {
     const { workflowId, runId, graph, input, resume } = params;
     const steps = graph.steps;
@@ -62,8 +65,21 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             executionPath: [i],
             suspendedPaths: {},
           },
+          emitter: params.emitter,
         });
         if (lastOutput.status !== 'success') {
+          params.emitter.emit('watch', {
+            type: 'watch',
+            payload: {
+              currentStep: lastOutput,
+              workflowState: {
+                status: lastOutput.status,
+                steps: stepResults,
+                result: null,
+                error: lastOutput.error,
+              },
+            },
+          });
           return {
             steps: stepResults,
             result: null,
@@ -71,6 +87,19 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           } as TOutput;
         }
       } catch (e) {
+        params.emitter.emit('watch', {
+          type: 'watch',
+          payload: {
+            currentStep: lastOutput,
+            workflowState: {
+              status: lastOutput.status,
+              steps: stepResults,
+              result: null,
+              error: lastOutput.error,
+            },
+          },
+        });
+
         return {
           steps: stepResults,
           result: null,
@@ -79,7 +108,18 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       }
     }
 
-    return { steps: stepResults, result: lastOutput.output } as TOutput;
+    const res = { steps: stepResults, result: lastOutput.output };
+    params.emitter.emit('watch', {
+      type: 'watch',
+      payload: {
+        currentStep: lastOutput,
+        workflowState: {
+          status: lastOutput.status,
+          ...res,
+        },
+      },
+    });
+    return res as TOutput;
   }
 
   getStepOutput(stepResults: Record<string, any>, step?: StepFlowEntry): any {
@@ -109,6 +149,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     executionContext,
     resume,
     prevOutput,
+    emitter,
   }: {
     step: NewStep<string, any, any>;
     stepResults: Record<string, StepResult<any>>;
@@ -118,6 +159,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       resumePayload: any;
     };
     prevOutput: any;
+    emitter: EventEmitter;
   }): Promise<StepResult<any>> {
     let execResults: any;
 
@@ -172,6 +214,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     stepResults,
     resume,
     executionContext,
+    emitter,
   }: {
     workflowId: string;
     runId: string;
@@ -185,6 +228,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       resumePath: number[];
     };
     executionContext: ExecutionContext;
+    emitter: EventEmitter;
   }): Promise<StepResult<any>> {
     const prevOutput = this.getStepOutput(stepResults, prevStep);
     let execResults: any;
@@ -197,6 +241,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         executionContext,
         resume,
         prevOutput,
+        emitter,
       });
     } else if (resume?.resumePath?.length) {
       const idx = resume.resumePath.pop();
@@ -211,6 +256,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           executionPath: [...executionContext.executionPath, idx!],
           suspendedPaths: executionContext.suspendedPaths,
         },
+        emitter,
       });
     } else if (entry.type === 'parallel') {
       const results: StepResult<any>[] = await Promise.all(
@@ -226,6 +272,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
               executionPath: [...executionContext.executionPath, i],
               suspendedPaths: executionContext.suspendedPaths,
             },
+            emitter,
           }),
         ),
       );
@@ -291,6 +338,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
               executionPath: [...executionContext.executionPath, index],
               suspendedPaths: executionContext.suspendedPaths,
             },
+            emitter,
           }),
         ),
       );
@@ -332,6 +380,21 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       },
     });
 
+    if (entry.type === 'step') {
+      emitter.emit('watch', {
+        type: 'watch',
+        payload: {
+          currentStep: {
+            id: entry.step.id,
+            status: execResults.status,
+            output: execResults.output,
+          },
+          workflowState: {
+            status: 'running',
+          },
+        },
+      });
+    }
     return execResults;
   }
 }

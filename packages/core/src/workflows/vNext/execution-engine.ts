@@ -2,6 +2,7 @@ import { MastraBase } from '../../base';
 import { RegisteredLogger } from '../../logger';
 import type { MastraStorage } from '../../storage';
 import type { NewStep, StepFlowEntry, StepResult } from '.';
+import type EventEmitter from 'events';
 
 /**
  * Represents an execution graph for a workflow
@@ -38,5 +39,6 @@ export abstract class ExecutionEngine extends MastraBase {
       resumePayload: any;
       resumePath: number[];
     };
+    emitter: EventEmitter;
   }): Promise<TOutput>;
 }
