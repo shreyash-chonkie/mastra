@@ -24,3 +24,27 @@ export type VariableReference<TStep extends NewStep<string, any, any>> = {
   step: TStep;
   path: PathsToStringProps<ExtractSchemaType<ExtractSchemaFromStep<TStep, 'outputSchema'>>> | '' | '.';
 };
+
+export type WatchEvent = {
+  type: 'watch';
+  payload: {
+    currentStep: {
+      id: string;
+      status: 'running' | 'completed' | 'failed' | 'suspended';
+    };
+    workflowState: {
+      status: 'running' | 'completed' | 'failed' | 'suspended';
+      steps: Record<
+        string,
+        {
+          status: 'running' | 'completed' | 'failed' | 'suspended';
+          output?: Record<string, any>;
+          payload?: Record<string, any>;
+        }
+      >;
+      output?: Record<string, any>;
+      payload?: Record<string, any>;
+    };
+    eventTimestamp: Date;
+  };
+};
