@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Layout, Navbar } from "nextra-theme-docs";
-import { Head } from "nextra/components";
+import { Head, Search } from "nextra/components";
 import { getPageMap } from "nextra/page-map";
 import "../globals.css";
 import "nextra-theme-docs/style.css";
@@ -15,7 +15,7 @@ import { PostHogProvider } from "@/analytics/posthog-provider";
 import { CookieConsent } from "@/components/cookie-consent";
 import { GTProvider } from "gt-next";
 import { T } from "gt-next/client";
-import { TranslatedSearch } from "@/components/translated-search";
+import { getSearchPlaceholder } from "@/components/search-placeholder";
 
 const navbar = (
   <Navbar
@@ -87,8 +87,7 @@ export default async function RootLayout({
                 content: <T id="_locale_.layout.feedback">Question? Give us feedback</T>,
               }}
               editLink={<T id="_locale_.layout.edit_link">Edit this page</T>}
-              search={<TranslatedSearch />}
-              // ... Your additional layout options
+              search={<Search placeholder={getSearchPlaceholder(locale)} />}
             >
                 {children}
             </Layout>
