@@ -10,7 +10,7 @@ import {
   BorderWidth,
   Spacings,
   Sizes,
-} from '@mastra/playground-ui/tokens';
+} from '@mastra/playground-ui';
 export default {
   darkMode: ['class'],
   content: [
