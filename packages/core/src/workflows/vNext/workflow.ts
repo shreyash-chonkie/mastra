@@ -285,22 +285,13 @@ export class NewWorkflow<
     };
     emitter: EventEmitter;
   }): Promise<z.infer<TOutput>> {
-    if (resume?.steps?.length) {
-      console.log('Resuming', { inputData, step: resume.steps.map(step => step.id), runId: resume.runId });
-      const run = this.createRun({ runId: resume.runId });
-      const unwatch = run.watch(event => {
-        console.log('nested event', event);
-      });
-      const res = await run.resume({ inputData, step: resume.steps as any });
-      unwatch();
-      return res.result;
-    }
-
-    const run = this.createRun();
+    const run = resume?.steps?.length ? this.createRun({ runId: resume.runId }) : this.createRun();
     const unwatch = run.watch(event => {
       console.log('nested event', event);
     });
-    const res = await run.start({ inputData });
+    const res = resume?.steps?.length
+      ? await run.resume({ inputData, step: resume.steps as any })
+      : await run.start({ inputData });
     unwatch();
     console.dir({ res }, { depth: null });
     const suspendedSteps = Object.entries(res.steps).filter(([stepName, stepResult]) => {
