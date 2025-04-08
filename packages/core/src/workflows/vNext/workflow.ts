@@ -241,6 +241,15 @@ export class NewWorkflow<
     return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
   }
 
+  clone<TStepId extends string>({ id }: { id: TStepId }): NewWorkflow<TSteps, TStepId, TInput, TOutput, TPrevSchema> {
+    return new NewWorkflow({
+      id,
+      inputSchema: this.inputSchema,
+      outputSchema: this.outputSchema,
+      executionEngine: this.executionEngine,
+    });
+  }
+
   /**
    * Builds the execution graph for this workflow
    * @returns The execution graph that can be used to execute the workflow
