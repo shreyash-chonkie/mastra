@@ -16,11 +16,7 @@
         "default": "./dist/index.es.js"
       }
     },
-    "./style.css": "./dist/style.css",
-    "./tokens": "./src/ds/tokens/index.ts",
-    "./fonts/*": "./src/ds/fonts/*.woff2",
-    "./components/*": "./src/ds/components/*/index.ts",
-    "./icons/*": "./src/ds/icons/*.tsx"
+    "./style.css": "./dist/style.css"
   },
   "scripts": {
     "dev": "vite",
