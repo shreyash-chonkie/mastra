@@ -114,10 +114,37 @@ describe('Workflow', () => {
   const workflowB = new NewWorkflow({
     id: 'test-workflow-b',
     inputSchema,
-    outputSchema,
+    outputSchema: z.object({
+      'test-step2': z.object({
+        result: z.string(),
+      }),
+    }),
     steps: [step, step2, step3, step5],
   });
-  workflowB.then(step).parallel([step4, step2]).then(step5).commit();
+  workflowB
+    .then(step)
+    .parallel([step2])
+    .then(
+      createStep({
+        id: 'test-step-final',
+        description: 'Test step final',
+        inputSchema: z.object({
+          'test-step2': z.object({
+            result: z.string(),
+          }),
+        }),
+        outputSchema: z.object({
+          thingy: z.string(),
+        }),
+        execute: async ({ inputData }) => {
+          console.log('test-step-final');
+          return {
+            thingy: `Step final ${inputData['test-step2'].result}`,
+          };
+        },
+      }),
+    )
+    .commit();
 
   const workflowC = new NewWorkflow({
     id: 'test-workflow-c',

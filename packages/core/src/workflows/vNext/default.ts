@@ -105,14 +105,12 @@ export class DefaultExecutionEngine extends ExecutionEngine {
 
   async executeStep({
     step,
-    inputData,
     stepResults,
     executionContext,
     resume,
     prevOutput,
   }: {
     step: NewStep<string, any, any>;
-    inputData: any;
     stepResults: Record<string, StepResult<any>>;
     executionContext: ExecutionContext;
     resume?: {
@@ -191,7 +189,6 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       const { step } = entry;
       execResults = await this.executeStep({
         step,
-        inputData: resume?.steps[0]!.id === step.id ? resume?.resumePayload : prevOutput,
         stepResults,
         executionContext,
         resume,
@@ -228,7 +225,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           }),
         ),
       );
-      const hasFailed = results.find(result => result.status !== 'failed');
+      const hasFailed = results.find(result => result.status === 'failed');
       const hasSuspended = results.find(result => result.status === 'suspended');
       if (hasFailed) {
         execResults = { status: 'failed', error: hasFailed.error };

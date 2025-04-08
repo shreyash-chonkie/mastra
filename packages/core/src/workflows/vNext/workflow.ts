@@ -267,7 +267,7 @@ export class NewWorkflow<
 
     const run = this.createRun();
     const res = await run.start({ inputData });
-    console.log('nested res', { res });
+    console.dir({ res }, { depth: null });
     const suspendedSteps = Object.entries(res.steps).filter(([stepName, stepResult]) => {
       const stepRes: StepResult<any> = stepResult as StepResult<any>;
       if (stepRes?.status === 'suspended') {
