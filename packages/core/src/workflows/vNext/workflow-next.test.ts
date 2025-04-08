@@ -328,6 +328,31 @@ describe('Workflow', () => {
     })
     .commit();
 
+  const repeatStep = createStep({
+    id: 'repeat-step',
+    description: 'Repeat step',
+    inputSchema: z.object({
+      result: z.number(),
+    }),
+    outputSchema: z.object({
+      result: z.number(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('repeat step', inputData);
+      return { result: inputData.result + 1 };
+    },
+  });
+  const workflowF = createWorkflow({
+    id: 'test-workflow-f',
+    inputSchema: z.object({
+      result: z.number(),
+    }),
+    outputSchema: z.object({ result: z.string() }),
+    steps: [],
+  })
+    .dowhile(repeatStep, ({ inputData }) => Promise.resolve(inputData.result < 10))
+    .commit();
+
   describe('Workflow Execution', () => {
     it('Run shit', async () => {
       const run = workflowA.createRun();
@@ -387,6 +412,12 @@ describe('Workflow', () => {
         step: [nestedWorkflowSuspend, stepSuspend2],
       });
       console.dir({ resumeE2 }, { depth: null });
+
+      const runF = workflowF.createRun();
+      const resF = await runF.start({
+        inputData: { result: 0 },
+      });
+      console.dir({ resF }, { depth: null });
     }, 500000);
   });
 });

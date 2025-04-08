@@ -157,6 +157,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         },
         {} as Record<string, any>,
       );
+    } else if (step.type === 'dowhile') {
+      return stepResults[step.step.id]?.output;
     }
   }
 
@@ -383,6 +385,33 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           }, {}),
         };
       }
+    } else if (entry.type === 'dowhile') {
+      const { step, condition } = entry;
+      let isTrue = true;
+      let result: StepResult<any> | undefined = undefined;
+      do {
+        const inputData = result?.status === 'success' ? result.output : prevOutput;
+        result = await this.executeStep({
+          step,
+          stepResults,
+          executionContext,
+          resume,
+          prevOutput: inputData,
+          emitter,
+        });
+
+        isTrue = await condition({
+          inputData,
+          getStepResult: (step: any) => {
+            const result = stepResults[step.id];
+            return result?.status === 'success' ? result.output : null;
+          },
+          suspend: async (_suspendPayload: any) => {},
+          emitter,
+        });
+      } while (isTrue);
+
+      execResults = result;
     }
 
     await this.storage.persistWorkflowSnapshot({
