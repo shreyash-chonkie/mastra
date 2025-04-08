@@ -8,6 +8,7 @@ import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
 import type { MastraStorage } from '../../storage';
+import type { VariableReference } from './types';
 
 type StepSuccess<T> = {
   status: 'success';
@@ -160,12 +161,17 @@ export class NewWorkflow<
       string,
       {
         step: TStepRef;
-        path: keyof z.infer<TStepRef['outputSchema']> & string;
+        path: keyof z.infer<TStepRef['outputSchema']>;
       }
     >,
-    TSchemaOut extends z.ZodObject<any> = z.ZodObject<{
-      [K in keyof TMapping]: z.infer<TStepRef['outputSchema']>[TMapping[K]['path']];
-    }>,
+    // Extract the actual Zod types from the referenced steps
+    TSchemaOut extends z.ZodObject<any> = z.ZodObject<
+      {
+        [K in keyof TMapping]: TMapping[K]['step']['outputSchema']['shape'][TMapping[K]['path']];
+      },
+      'strip',
+      z.ZodTypeAny
+    >,
   >(mappingConfig: TMapping) {
     // Create an implicit step that handles the mapping
     const mappingStep = createStep({

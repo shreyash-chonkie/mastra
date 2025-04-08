@@ -1,0 +1,26 @@
+import type { z } from 'zod';
+import type { NewStep } from './step';
+
+export type PathsToStringProps<T> = T extends object
+  ? {
+      [K in keyof T]: T[K] extends object
+        ? K extends string
+          ? K | `${K}.${PathsToStringProps<T[K]>}`
+          : never
+        : K extends string
+          ? K
+          : never;
+    }[keyof T]
+  : never;
+
+export type ExtractSchemaType<T extends z.ZodObject<any>> = T extends z.ZodObject<infer V> ? V : never;
+
+export type ExtractSchemaFromStep<
+  TStep extends NewStep<any, any, any>,
+  TKey extends 'inputSchema' | 'outputSchema',
+> = TStep[TKey];
+
+export type VariableReference<TStep extends NewStep<string, any, any>> = {
+  step: TStep;
+  path: PathsToStringProps<ExtractSchemaType<ExtractSchemaFromStep<TStep, 'outputSchema'>>> | '' | '.';
+};
