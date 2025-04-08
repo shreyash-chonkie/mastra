@@ -295,8 +295,11 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         ),
       );
       const hasFailed = results.find(result => result.status === 'failed');
+      const hasSuspended = results.find(result => result.status === 'suspended');
       if (hasFailed) {
         execResults = { status: 'failed', error: hasFailed.error };
+      } else if (hasSuspended) {
+        execResults = { status: 'suspended', output: hasSuspended.payload };
       } else {
         execResults = {
           status: 'success',
