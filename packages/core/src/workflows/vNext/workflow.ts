@@ -293,7 +293,6 @@ export class NewWorkflow<
       ? await run.resume({ inputData, step: resume.steps as any })
       : await run.start({ inputData });
     unwatch();
-    console.dir({ res }, { depth: null });
     const suspendedSteps = Object.entries(res.steps).filter(([stepName, stepResult]) => {
       const stepRes: StepResult<any> = stepResult as StepResult<any>;
       if (stepRes?.status === 'suspended') {
@@ -304,8 +303,7 @@ export class NewWorkflow<
     });
 
     if (suspendedSteps?.length) {
-      for (const [stepName, stepResult] of suspendedSteps) {
-        console.log('Suspending', stepName);
+      for (const [_stepName, stepResult] of suspendedSteps) {
         await suspend({ __workflow_meta: { runId: run.runId }, ...(stepResult as any)?.payload });
       }
     }
