@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 import nextra from "nextra";
+import { initGT } from "gt-next/config";
 
 const withNextra = nextra({
   search: {
@@ -7,7 +8,9 @@ const withNextra = nextra({
   },
 });
 
-export default withNextra({
+const withGT = initGT();
+
+export default withGT(withNextra({
   assetPrefix: process.env.NODE_ENV === "production" ? "/docs" : "",
   i18n: {
     locales: ["en", "ja"],
@@ -115,4 +118,4 @@ export default withNextra({
     },
   ],
   trailingSlash: false,
-});
+}));

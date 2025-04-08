@@ -13,6 +13,9 @@ import { GithubStarCount } from "@/components/github-star-count";
 import { Footer } from "@/components/footer";
 import { PostHogProvider } from "@/analytics/posthog-provider";
 import { CookieConsent } from "@/components/cookie-consent";
+import { GTProvider } from "gt-next";
+import { T } from "gt-next/client";
+import { TranslatedSearch } from "@/components/translated-search";
 
 const navbar = (
   <Navbar
@@ -66,23 +69,33 @@ export default async function RootLayout({
         {/* Your additional tags should be passed as `children` of `<Head>` element */}
       </Head>
       <body>
-        <PostHogProvider>
-          <Layout
-            navbar={navbar}
-            pageMap={await getPageMap(`/${locale || 'en'}`)}
-            docsRepositoryBase="https://github.com/mastra-ai/mastra/blob/main/docs"
-            footer={footer}
-            i18n={[
-              { locale: "en", name: "English" },
-              { locale: "ja", name: "日本語" },
-            ]}
-            // ... Your additional layout options
-          >
-            {children}
-          </Layout>
-        </PostHogProvider>
-        <Toaster />
-        <CookieConsent />
+        <GTProvider locale={locale}>
+          <PostHogProvider>
+            <Layout
+              navbar={navbar}
+              pageMap={await getPageMap(`/${locale || 'en'}`)}
+              docsRepositoryBase="https://github.com/mastra-ai/mastra/blob/main/docs"
+              footer={footer}
+              i18n={[
+                { locale: "en", name: "English" },
+                { locale: "ja", name: "日本語" },
+              ]}
+              toc={{
+                title: <T id="_locale_.layout.toc">On This Page</T>,
+              }}
+              feedback={{
+                content: <T id="_locale_.layout.feedback">Question? Give us feedback</T>,
+              }}
+              editLink={<T id="_locale_.layout.edit_link">Edit this page</T>}
+              search={<TranslatedSearch />}
+              // ... Your additional layout options
+            >
+                {children}
+            </Layout>
+          </PostHogProvider>
+          <Toaster />
+          <CookieConsent />
+        </GTProvider>
       </body>
       <Analytics />
     </html>
