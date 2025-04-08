@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import path from 'path';
-import type { z } from 'zod';
+import { z } from 'zod';
 import { MastraBase } from '../../base';
 import { RegisteredLogger } from '../../logger';
 import { DefaultStorage } from '../../storage/libsql';
@@ -151,6 +151,46 @@ export class NewWorkflow<
    */
   then<TStepId extends string, TSchemaOut extends z.ZodObject<any>>(step: Step<TStepId, TPrevSchema, TSchemaOut>) {
     this.stepFlow.push({ type: 'step', step: step as any });
+    return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
+  }
+
+  map<
+    TStepRef extends Step<string, any, any>,
+    TMapping extends Record<
+      string,
+      {
+        step: TStepRef;
+        path: keyof z.infer<TStepRef['outputSchema']> & string;
+      }
+    >,
+    TSchemaOut extends z.ZodObject<any> = z.ZodObject<{
+      [K in keyof TMapping]: z.infer<TStepRef['outputSchema']>[TMapping[K]['path']];
+    }>,
+  >(mappingConfig: TMapping) {
+    // Create an implicit step that handles the mapping
+    const mappingStep = createStep({
+      id: `mapping_${randomUUID()}`,
+      inputSchema: this.inputSchema as any,
+      outputSchema: z.object(
+        Object.entries(mappingConfig).reduce(
+          (acc, [key, mapping]) => ({
+            ...acc,
+            [key]: mapping.step.outputSchema.shape[mapping.path as keyof typeof mapping.step.outputSchema.shape],
+          }),
+          {},
+        ),
+      ) as TSchemaOut,
+      execute: async ({ getStepResult }) => {
+        const result: Record<string, any> = {};
+        for (const [key, mapping] of Object.entries(mappingConfig)) {
+          const stepResult = getStepResult(mapping.step);
+          result[key] = stepResult[mapping.path];
+        }
+        return result;
+      },
+    });
+
+    this.stepFlow.push({ type: 'step', step: mappingStep as any });
     return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
   }
 
