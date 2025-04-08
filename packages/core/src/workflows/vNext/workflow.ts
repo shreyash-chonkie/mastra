@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import EventEmitter from 'events';
 import path from 'path';
 import { z } from 'zod';
 import { MastraBase } from '../../base';
@@ -9,7 +10,6 @@ import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
 import type { StepsRecord, StepResult, WatchEvent } from './types';
-import EventEmitter from 'events';
 
 export type StepFlowEntry =
   | { type: 'step'; step: Step }
@@ -271,6 +271,7 @@ export class NewWorkflow<
     inputData,
     suspend,
     resume,
+    emitter,
   }: {
     inputData: z.infer<TInput>;
     getStepResult<T extends NewStep<any, any, any>>(
@@ -282,17 +283,27 @@ export class NewWorkflow<
       resumePayload: any;
       runId?: string;
     };
+    emitter: EventEmitter;
   }): Promise<z.infer<TOutput>> {
     if (resume?.steps?.length) {
       console.log('Resuming', { inputData, step: resume.steps.map(step => step.id), runId: resume.runId });
-      //TODO: pass in runId
       const run = this.createRun({ runId: resume.runId });
+      const unwatch = run.watch(event => {
+        // TODO: prefix events with workflowId
+        emitter.emit('watch', event);
+      });
       const res = await run.resume({ inputData, step: resume.steps as any });
+      unwatch();
       return res.result;
     }
 
     const run = this.createRun();
+    const unwatch = run.watch(event => {
+      // TODO: prefix events with workflowId
+      emitter.emit('watch', event);
+    });
     const res = await run.start({ inputData });
+    unwatch();
     console.dir({ res }, { depth: null });
     const suspendedSteps = Object.entries(res.steps).filter(([stepName, stepResult]) => {
       const stepRes: StepResult<any> = stepResult as StepResult<any>;

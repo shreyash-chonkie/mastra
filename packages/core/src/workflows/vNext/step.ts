@@ -1,3 +1,4 @@
+import type EventEmitter from 'events';
 import type { z } from 'zod';
 
 // Define a type for the execute function
@@ -12,6 +13,7 @@ export type ExecuteFunction<TStepInput, TStepOutput> = (params: {
     steps: NewStep<string, any, any>[];
     resumePayload: any;
   };
+  emitter: EventEmitter;
 }) => Promise<TStepOutput>;
 
 // Define a Step interface

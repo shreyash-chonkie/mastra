@@ -18,7 +18,7 @@ export type StepSuspended<T> = {
 
 export type StepResult<T> = StepSuccess<T> | StepFailure | StepSuspended<T>;
 
-export type StepsRecord<T extends readonly Step<any, any, z.ZodObject<any>>[]> = {
+export type StepsRecord<T extends readonly NewStep<any, any, any>[]> = {
   [K in T[number]['id']]: Extract<T[number], { id: K }>;
 };
 
@@ -52,6 +52,8 @@ export type WatchEvent = {
     currentStep: {
       id: string;
       status: 'running' | 'completed' | 'failed' | 'suspended';
+      output?: Record<string, any>;
+      payload?: Record<string, any>;
     };
     workflowState: {
       status: 'running' | 'completed' | 'failed' | 'suspended';

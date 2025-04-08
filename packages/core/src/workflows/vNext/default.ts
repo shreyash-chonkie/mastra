@@ -68,10 +68,38 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           emitter: params.emitter,
         });
         if (lastOutput.status !== 'success') {
+          if (entry.type === 'step') {
+            params.emitter.emit('watch', {
+              type: 'watch',
+              payload: {
+                currentStep: {
+                  id: entry.step.id,
+                  ...lastOutput,
+                },
+                workflowState: {
+                  status: lastOutput.status,
+                  steps: stepResults,
+                  result: null,
+                  error: lastOutput.error,
+                },
+              },
+            });
+          }
+          return {
+            steps: stepResults,
+            result: null,
+            error: lastOutput.error,
+          } as TOutput;
+        }
+      } catch (e) {
+        if (entry.type === 'step') {
           params.emitter.emit('watch', {
             type: 'watch',
             payload: {
-              currentStep: lastOutput,
+              currentStep: {
+                id: entry.step.id,
+                ...lastOutput,
+              },
               workflowState: {
                 status: lastOutput.status,
                 steps: stepResults,
@@ -80,25 +108,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
               },
             },
           });
-          return {
-            steps: stepResults,
-            result: null,
-            error: lastOutput.error,
-          } as TOutput;
         }
-      } catch (e) {
-        params.emitter.emit('watch', {
-          type: 'watch',
-          payload: {
-            currentStep: lastOutput,
-            workflowState: {
-              status: lastOutput.status,
-              steps: stepResults,
-              result: null,
-              error: lastOutput.error,
-            },
-          },
-        });
 
         return {
           steps: stepResults,
@@ -112,13 +122,20 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     params.emitter.emit('watch', {
       type: 'watch',
       payload: {
-        currentStep: lastOutput,
+        currentStep: {
+          //@ts-ignore
+          id: steps[steps.length - 1]!.step.id,
+          ...lastOutput,
+        },
         workflowState: {
           status: lastOutput.status,
-          ...res,
+          steps: stepResults,
+          result: null,
+          error: lastOutput.error,
         },
       },
     });
+
     return res as TOutput;
   }
 
@@ -186,6 +203,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             // @ts-ignore
             runId: stepResults[step.id]?.payload?.__workflow_meta?.runId,
           },
+          emitter,
         });
 
         if (suspended) {
