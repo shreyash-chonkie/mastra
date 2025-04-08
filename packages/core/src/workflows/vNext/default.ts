@@ -334,6 +334,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
 
                 // TODO: this function shouldn't have suspend probably?
                 suspend: async (_suspendPayload: any) => {},
+                emitter,
               });
               return result ? index : null;
             } catch (e: unknown) {
