@@ -58,6 +58,19 @@ export function createStep<
   };
 }
 
+export function cloneStep<TStepId extends string>(
+  step: Step<TStepId, any, any>,
+  opts: { id: TStepId },
+): Step<string, any, any> {
+  return {
+    id: opts.id,
+    description: step.description,
+    inputSchema: step.inputSchema,
+    outputSchema: step.outputSchema,
+    execute: step.execute,
+  };
+}
+
 export function createWorkflow<
   TWorkflowId extends string = string,
   TInput extends z.ZodObject<any> = z.ZodObject<any>,
@@ -239,15 +252,6 @@ export class NewWorkflow<
   ) {
     this.stepFlow.push({ type: 'dowhile', step: step as any, condition });
     return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
-  }
-
-  clone<TStepId extends string>({ id }: { id: TStepId }): NewWorkflow<TSteps, TStepId, TInput, TOutput, TPrevSchema> {
-    return new NewWorkflow({
-      id,
-      inputSchema: this.inputSchema,
-      outputSchema: this.outputSchema,
-      executionEngine: this.executionEngine,
-    });
   }
 
   /**
