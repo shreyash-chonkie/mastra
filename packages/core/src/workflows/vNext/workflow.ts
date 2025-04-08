@@ -289,8 +289,7 @@ export class NewWorkflow<
       console.log('Resuming', { inputData, step: resume.steps.map(step => step.id), runId: resume.runId });
       const run = this.createRun({ runId: resume.runId });
       const unwatch = run.watch(event => {
-        // TODO: prefix events with workflowId
-        emitter.emit('watch', event);
+        console.log('nested event', event);
       });
       const res = await run.resume({ inputData, step: resume.steps as any });
       unwatch();
@@ -299,8 +298,7 @@ export class NewWorkflow<
 
     const run = this.createRun();
     const unwatch = run.watch(event => {
-      // TODO: prefix events with workflowId
-      emitter.emit('watch', event);
+      console.log('nested event', event);
     });
     const res = await run.start({ inputData });
     unwatch();
