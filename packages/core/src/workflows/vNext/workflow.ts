@@ -304,10 +304,10 @@ export class NewWorkflow<
     });
 
     if (suspendedSteps?.length) {
-      console.log('Suspending', suspendedSteps);
-      const _stepName = suspendedSteps![0]?.[0];
-      const stepResult = suspendedSteps![0]?.[1] as any;
-      await suspend({ __workflow_meta: { runId: run.runId }, ...stepResult?.payload });
+      for (const [stepName, stepResult] of suspendedSteps) {
+        console.log('Suspending', stepName);
+        await suspend({ __workflow_meta: { runId: run.runId }, ...(stepResult as any)?.payload });
+      }
     }
 
     return res.result;
