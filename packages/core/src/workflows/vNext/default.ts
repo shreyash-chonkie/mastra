@@ -1,7 +1,7 @@
 import type EventEmitter from 'events';
 import type { ExecutionGraph } from './execution-engine';
 import { ExecutionEngine } from './execution-engine';
-import type { NewStep } from './step';
+import type { ExecuteFunction, NewStep } from './step';
 import type { StepResult } from './types';
 import type { StepFlowEntry } from './workflow';
 
@@ -226,6 +226,171 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     return execResults;
   }
 
+  async executeParallel({
+    workflowId,
+    runId,
+    entry,
+    prevStep,
+    stepResults,
+    resume,
+    executionContext,
+    emitter,
+  }: {
+    workflowId: string;
+    runId: string;
+    entry: { type: 'parallel'; steps: StepFlowEntry[] };
+    prevStep: StepFlowEntry;
+    stepResults: Record<string, StepResult<any>>;
+    resume?: {
+      steps: NewStep<string, any, any>[];
+      stepResults: Record<string, StepResult<any>>;
+      resumePayload: any;
+      resumePath: number[];
+    };
+    executionContext: ExecutionContext;
+    emitter: EventEmitter;
+  }): Promise<StepResult<any>> {
+    let execResults: any;
+    const results: StepResult<any>[] = await Promise.all(
+      entry.steps.map((step, i) =>
+        this.executeEntry({
+          workflowId,
+          runId,
+          entry: step,
+          prevStep,
+          stepResults,
+          resume,
+          executionContext: {
+            executionPath: [...executionContext.executionPath, i],
+            suspendedPaths: executionContext.suspendedPaths,
+          },
+          emitter,
+        }),
+      ),
+    );
+    const hasFailed = results.find(result => result.status === 'failed');
+    const hasSuspended = results.find(result => result.status === 'suspended');
+    if (hasFailed) {
+      execResults = { status: 'failed', error: hasFailed.error };
+    } else if (hasSuspended) {
+      execResults = { status: 'suspended', output: hasSuspended.payload };
+    } else {
+      execResults = {
+        status: 'success',
+        output: results.reduce((acc: Record<string, any>, result) => {
+          if (result.status === 'success') {
+            Object.entries(result).forEach(([key, value]) => {
+              if (value.status === 'success') {
+                acc[key] = value.output;
+              }
+            });
+          }
+
+          return acc;
+        }, {}),
+      };
+    }
+
+    return execResults;
+  }
+
+  async executeConditional({
+    workflowId,
+    runId,
+    entry,
+    prevOutput,
+    prevStep,
+    stepResults,
+    resume,
+    executionContext,
+    emitter,
+  }: {
+    workflowId: string;
+    runId: string;
+    entry: { type: 'conditional'; steps: StepFlowEntry[]; conditions: ExecuteFunction<any, any>[] };
+    prevStep: StepFlowEntry;
+    prevOutput: any;
+    stepResults: Record<string, StepResult<any>>;
+    resume?: {
+      steps: NewStep<string, any, any>[];
+      stepResults: Record<string, StepResult<any>>;
+      resumePayload: any;
+      resumePath: number[];
+    };
+    executionContext: ExecutionContext;
+    emitter: EventEmitter;
+  }): Promise<StepResult<any>> {
+    let execResults: any;
+    const truthyIndexes = (
+      await Promise.all(
+        entry.conditions.map(async (cond, index) => {
+          try {
+            const result = await cond({
+              inputData: prevOutput,
+              getStepResult: (step: any) => {
+                const result = stepResults[step.id];
+                if (result?.status === 'success') {
+                  return result.output;
+                }
+
+                return null;
+              },
+
+              // TODO: this function shouldn't have suspend probably?
+              suspend: async (_suspendPayload: any) => {},
+              emitter,
+            });
+            return result ? index : null;
+          } catch (e: unknown) {
+            return null;
+          }
+        }),
+      )
+    ).filter((index): index is number => index !== null);
+
+    const stepsToRun = entry.steps.filter((_, index) => truthyIndexes.includes(index));
+    const results: StepResult<any>[] = await Promise.all(
+      stepsToRun.map((step, index) =>
+        this.executeEntry({
+          workflowId,
+          runId,
+          entry: step,
+          prevStep,
+          stepResults,
+          executionContext: {
+            executionPath: [...executionContext.executionPath, index],
+            suspendedPaths: executionContext.suspendedPaths,
+          },
+          emitter,
+        }),
+      ),
+    );
+    const hasFailed = results.find(result => result.status === 'failed');
+    const hasSuspended = results.find(result => result.status === 'suspended');
+    if (hasFailed) {
+      execResults = { status: 'failed', error: hasFailed.error };
+    } else if (hasSuspended) {
+      execResults = { status: 'suspended', output: hasSuspended.payload };
+    } else {
+      execResults = {
+        status: 'success',
+        output: results.reduce((acc: Record<string, any>, result) => {
+          if (result.status === 'success') {
+            Object.entries(result).forEach(([key, value]) => {
+              if (value.status === 'success') {
+                acc[key] = value.output;
+              }
+            });
+          }
+
+          return acc;
+        }, {}),
+      };
+    }
+
+    return execResults;
+  }
+
   async executeEntry({
     workflowId,
     runId,
@@ -279,112 +444,28 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         emitter,
       });
     } else if (entry.type === 'parallel') {
-      const results: StepResult<any>[] = await Promise.all(
-        entry.steps.map((step, i) =>
-          this.executeEntry({
-            workflowId,
-            runId,
-            entry: step,
-            prevStep,
-            stepResults,
-            resume,
-            executionContext: {
-              executionPath: [...executionContext.executionPath, i],
-              suspendedPaths: executionContext.suspendedPaths,
-            },
-            emitter,
-          }),
-        ),
-      );
-      const hasFailed = results.find(result => result.status === 'failed');
-      const hasSuspended = results.find(result => result.status === 'suspended');
-      if (hasFailed) {
-        execResults = { status: 'failed', error: hasFailed.error };
-      } else if (hasSuspended) {
-        execResults = { status: 'suspended', output: hasSuspended.payload };
-      } else {
-        execResults = {
-          status: 'success',
-          output: results.reduce((acc: Record<string, any>, result) => {
-            if (result.status === 'success') {
-              Object.entries(result).forEach(([key, value]) => {
-                if (value.status === 'success') {
-                  acc[key] = value.output;
-                }
-              });
-            }
-
-            return acc;
-          }, {}),
-        };
-      }
+      execResults = await this.executeParallel({
+        workflowId,
+        runId,
+        entry,
+        prevStep,
+        stepResults,
+        resume,
+        executionContext,
+        emitter,
+      });
     } else if (entry.type === 'conditional') {
-      const truthyIndexes = (
-        await Promise.all(
-          entry.conditions.map(async (cond, index) => {
-            try {
-              const result = await cond({
-                inputData: prevOutput,
-                getStepResult: (step: any) => {
-                  const result = stepResults[step.id];
-                  if (result?.status === 'success') {
-                    return result.output;
-                  }
-
-                  return null;
-                },
-
-                // TODO: this function shouldn't have suspend probably?
-                suspend: async (_suspendPayload: any) => {},
-                emitter,
-              });
-              return result ? index : null;
-            } catch (e: unknown) {
-              return null;
-            }
-          }),
-        )
-      ).filter((index): index is number => index !== null);
-
-      const stepsToRun = entry.steps.filter((_, index) => truthyIndexes.includes(index));
-      const results: StepResult<any>[] = await Promise.all(
-        stepsToRun.map((step, index) =>
-          this.executeEntry({
-            workflowId,
-            runId,
-            entry: step,
-            prevStep,
-            stepResults,
-            executionContext: {
-              executionPath: [...executionContext.executionPath, index],
-              suspendedPaths: executionContext.suspendedPaths,
-            },
-            emitter,
-          }),
-        ),
-      );
-      const hasFailed = results.find(result => result.status === 'failed');
-      const hasSuspended = results.find(result => result.status === 'suspended');
-      if (hasFailed) {
-        execResults = { status: 'failed', error: hasFailed.error };
-      } else if (hasSuspended) {
-        execResults = { status: 'suspended', output: hasSuspended.payload };
-      } else {
-        execResults = {
-          status: 'success',
-          output: results.reduce((acc: Record<string, any>, result) => {
-            if (result.status === 'success') {
-              Object.entries(result).forEach(([key, value]) => {
-                if (value.status === 'success') {
-                  acc[key] = value.output;
-                }
-              });
-            }
-
-            return acc;
-          }, {}),
-        };
-      }
+      execResults = await this.executeConditional({
+        workflowId,
+        runId,
+        entry,
+        prevStep,
+        prevOutput,
+        stepResults,
+        resume,
+        executionContext,
+        emitter,
+      });
     } else if (entry.type === 'dowhile') {
       const { step, condition } = entry;
       let isTrue = true;
