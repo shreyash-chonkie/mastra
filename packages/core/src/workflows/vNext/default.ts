@@ -391,6 +391,60 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     return execResults;
   }
 
+  async executeDowhile({
+    workflowId,
+    runId,
+    entry,
+    prevOutput,
+    prevStep,
+    stepResults,
+    resume,
+    executionContext,
+    emitter,
+  }: {
+    workflowId: string;
+    runId: string;
+    entry: { type: 'dowhile'; step: NewStep; condition: ExecuteFunction<any, any> };
+    prevStep: StepFlowEntry;
+    prevOutput: any;
+    stepResults: Record<string, StepResult<any>>;
+    resume?: {
+      steps: NewStep<string, any, any>[];
+      stepResults: Record<string, StepResult<any>>;
+      resumePayload: any;
+      resumePath: number[];
+    };
+    executionContext: ExecutionContext;
+    emitter: EventEmitter;
+  }): Promise<StepResult<any>> {
+    const { step, condition } = entry;
+    let isTrue = true;
+    let result: StepResult<any> | undefined = undefined;
+    do {
+      const inputData = result?.status === 'success' ? result.output : prevOutput;
+      result = await this.executeStep({
+        step,
+        stepResults,
+        executionContext,
+        resume,
+        prevOutput: inputData,
+        emitter,
+      });
+
+      isTrue = await condition({
+        inputData,
+        getStepResult: (step: any) => {
+          const result = stepResults[step.id];
+          return result?.status === 'success' ? result.output : null;
+        },
+        suspend: async (_suspendPayload: any) => {},
+        emitter,
+      });
+    } while (isTrue);
+
+    return result;
+  }
+
   async executeEntry({
     workflowId,
     runId,
@@ -467,32 +521,17 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         emitter,
       });
     } else if (entry.type === 'dowhile') {
-      const { step, condition } = entry;
-      let isTrue = true;
-      let result: StepResult<any> | undefined = undefined;
-      do {
-        const inputData = result?.status === 'success' ? result.output : prevOutput;
-        result = await this.executeStep({
-          step,
-          stepResults,
-          executionContext,
-          resume,
-          prevOutput: inputData,
-          emitter,
-        });
-
-        isTrue = await condition({
-          inputData,
-          getStepResult: (step: any) => {
-            const result = stepResults[step.id];
-            return result?.status === 'success' ? result.output : null;
-          },
-          suspend: async (_suspendPayload: any) => {},
-          emitter,
-        });
-      } while (isTrue);
-
-      execResults = result;
+      execResults = await this.executeDowhile({
+        workflowId,
+        runId,
+        entry,
+        prevStep,
+        prevOutput,
+        stepResults,
+        resume,
+        executionContext,
+        emitter,
+      });
     }
 
     await this.storage.persistWorkflowSnapshot({
