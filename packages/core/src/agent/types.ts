@@ -23,6 +23,7 @@ import type { MastraMemory } from '../memory/memory';
 import type { MemoryConfig } from '../memory/types';
 import type { ToolAction, VercelTool } from '../tools';
 import type { CompositeVoice } from '../voice';
+import type { MastraRealtime } from '../realtime';
 
 export type { Message as AiMessageType } from 'ai';
 
@@ -49,6 +50,7 @@ export interface AgentConfig<
   evals?: TMetrics;
   memory?: MastraMemory;
   voice?: CompositeVoice;
+  realtime?: MastraRealtime;
 }
 
 /**

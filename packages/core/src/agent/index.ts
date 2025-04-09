@@ -32,6 +32,7 @@ import type { CoreTool } from '../tools/types';
 import { makeCoreTool, createMastraProxy, ensureToolProperties, ensureAllMessagesAreCoreMessages } from '../utils';
 import type { CompositeVoice } from '../voice';
 import { DefaultVoice } from '../voice';
+import { MastraRealtime, DefaultRealtime } from '../realtime';
 import { agentToStep, Step } from '../workflows';
 import type {
   AgentConfig,
@@ -67,6 +68,7 @@ export class Agent<
   metrics: TMetrics;
   evals: TMetrics;
   voice: CompositeVoice;
+  realtime: MastraRealtime;
 
   constructor(config: AgentConfig<TAgentId, TTools, TMetrics>) {
     super({ component: RegisteredLogger.AGENT });
@@ -120,6 +122,14 @@ export class Agent<
       this.voice?.addInstructions(config.instructions);
     } else {
       this.voice = new DefaultVoice();
+    }
+
+    if (config.realtime) {
+      this.realtime = config.realtime;
+      this.realtime?.addTools(this.tools);
+      this.realtime?.addInstructions(config.instructions);
+    } else {
+      this.realtime = new DefaultRealtime();
     }
   }
 
