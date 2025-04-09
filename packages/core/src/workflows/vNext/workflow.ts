@@ -434,7 +434,10 @@ export class Run<
   }
 
   watch(cb: (event: WatchEvent) => void): () => void {
-    this.emitter.on('watch', cb);
+    this.emitter.on('watch', ({ type, payload, eventTimestamp }) => {
+      this.updateState(payload);
+      cb({ type, payload: this.getState() as any, eventTimestamp: eventTimestamp });
+    });
     this.emitter.on('nested-watch', ({ event, workflowId }) => {
       try {
         const { type, payload, eventTimestamp } = event;
@@ -447,20 +450,16 @@ export class Run<
         );
         const newPayload: any = {
           currentStep: {
+            ...payload?.currentStep,
             id: `${workflowId}.${payload?.currentStep?.id}`,
-            status: payload?.currentStep?.status,
-            payload: payload?.currentStep?.payload,
-            output: payload?.currentStep?.output,
           },
           workflowState: {
-            status: payload?.workflowState?.status,
-            payload: payload?.workflowState?.payload,
-            output: payload?.workflowState?.output,
+            ...payload?.workflowState,
             steps: prefixedSteps,
           },
         };
-
-        cb({ type, payload: newPayload, eventTimestamp: eventTimestamp });
+        this.updateState(newPayload);
+        cb({ type, payload: this.getState() as any, eventTimestamp: eventTimestamp });
       } catch (e) {
         console.error(e);
       }
@@ -519,4 +518,45 @@ export class Run<
   getState(): Record<string, any> {
     return this.state;
   }
+
+  updateState(state: Record<string, any>) {
+    if (state.currentStep) {
+      this.state.currentStep = state.currentStep;
+    }
+    if (state.workflowState) {
+      this.state.workflowState = deepMerge(this.state.workflowState ?? {}, state.workflowState ?? {});
+    }
+  }
+}
+
+function deepMerge(a: Record<string, any>, b: Record<string, any>): Record<string, any> {
+  if (!a || typeof a !== 'object') return b;
+  if (!b || typeof b !== 'object') return a;
+
+  const result = { ...a };
+
+  for (const key in b) {
+    if (b[key] === undefined) continue;
+
+    if (b[key] !== null && typeof b[key] === 'object') {
+      const aVal = result[key];
+      const bVal = b[key];
+
+      if (Array.isArray(bVal)) {
+        result[key] = Array.isArray(aVal)
+          ? [...aVal, ...bVal].filter(item => item !== undefined)
+          : bVal.filter(item => item !== undefined);
+      } else if (typeof aVal === 'object' && aVal !== null) {
+        // If both values are objects, merge them
+        result[key] = deepMerge(aVal, bVal);
+      } else {
+        // If the target isn't an object, use the source object
+        result[key] = bVal;
+      }
+    } else {
+      result[key] = b[key];
+    }
+  }
+
+  return result;
 }

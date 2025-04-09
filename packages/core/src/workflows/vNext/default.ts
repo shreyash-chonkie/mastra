@@ -121,20 +121,6 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     }
 
     const res = { steps: stepResults, result: lastOutput.output };
-    if (lastOutput) {
-      params.emitter.emit('watch', {
-        type: 'watch',
-        payload: {
-          workflowState: {
-            status: lastOutput.status,
-            steps: stepResults,
-            result: null,
-            error: lastOutput.error,
-          },
-        },
-        eventTimestamp: Date.now(),
-      });
-    }
 
     return res as TOutput;
   }
