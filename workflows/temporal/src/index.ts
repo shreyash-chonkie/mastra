@@ -1,5 +1,11 @@
 import { DefaultExecutionEngine, ExecutionEngine, NewWorkflow } from '@mastra/core/workflows/vNext';
-import type { ExecutionGraph, StepFlowEntry, NewStep, NewWorkflowConfig } from '@mastra/core/workflows/vNext';
+import type {
+  ExecutionGraph,
+  StepFlowEntry,
+  NewStep,
+  NewWorkflowConfig,
+  ExecuteFunction,
+} from '@mastra/core/workflows/vNext';
 import EventEmitter from 'events';
 import { Client, Connection } from '@temporalio/client';
 import { z } from 'zod';
@@ -26,9 +32,11 @@ class TemporalExecutionEngine extends DefaultExecutionEngine {
   private async executeWorkflow(workflowId: string, steps: StepFlowEntry[], input: any) {
     console.log('WE ARE IN THAT BITCH');
     // Register steps with the worker
-    const registeredSteps = this.collectSteps(steps);
+    // Default condition that always returns true
+    const defaultCondition = async () => true;
+    const registeredSteps = this.collectSteps(steps, defaultCondition);
     await workflowWorker.start({
-      steps: registeredSteps,
+      steps: registeredSteps as Record<string, { step: NewStep<string, any, any>; condition: any }>,
     });
 
     // Start workflow
@@ -60,29 +68,46 @@ class TemporalExecutionEngine extends DefaultExecutionEngine {
     }
   }
 
-  private collectSteps(entries: StepFlowEntry[]): Record<string, NewStep<string, any, any>> {
-    const steps: Record<string, NewStep<string, any, any>> = {};
+  private collectSteps(
+    entries: StepFlowEntry[],
+    defaultCondition: ExecuteFunction<any, any>,
+  ): Record<string, { step: NewStep<string, any, any>; condition: ExecuteFunction<any, any> }> {
+    const steps: Record<string, { step: NewStep<string, any, any>; condition: ExecuteFunction<any, any> }> = {};
 
     console.log({ entries });
 
     for (const entry of entries) {
       switch (entry.type) {
         case 'step':
-          steps[entry.step.id] = entry.step;
+          steps[entry.step.id] = { step: entry.step, condition: defaultCondition };
           // If it's a workflow, collect its steps too
           if (entry.step instanceof NewWorkflow) {
-            const subSteps = this.collectSteps(entry.step.buildExecutionGraph().steps);
+            const subSteps = this.collectSteps(entry.step.buildExecutionGraph().steps, defaultCondition);
             Object.assign(steps, subSteps);
           }
           break;
 
         case 'parallel':
-        case 'conditional':
           for (const step of entry.steps) {
             if (step.type === 'step') {
-              steps[step.step.id] = step.step;
+              steps[step.step.id] = { step: step.step, condition: defaultCondition };
               if (step.step instanceof NewWorkflow) {
-                const subSteps = this.collectSteps(step.step.buildExecutionGraph().steps);
+                const subSteps = this.collectSteps(step.step.buildExecutionGraph().steps, defaultCondition);
+                Object.assign(steps, subSteps);
+              }
+            }
+          }
+          break;
+
+        case 'conditional':
+          // For conditional steps, we need to collect both steps and conditions
+          for (let i = 0; i < entry.steps.length; i++) {
+            const step = entry.steps[i]!;
+            const conditionItem = entry.conditions[i]!;
+            if (step.type === 'step') {
+              steps[step.step.id] = { step: step.step, condition: defaultCondition };
+              if (step.step instanceof NewWorkflow) {
+                const subSteps = this.collectSteps(step.step.buildExecutionGraph().steps, conditionItem);
                 Object.assign(steps, subSteps);
               }
             }
@@ -90,9 +115,9 @@ class TemporalExecutionEngine extends DefaultExecutionEngine {
           break;
 
         case 'loop':
-          steps[entry.step.id] = entry.step;
+          steps[entry.step.id] = { step: entry.step, condition: entry.condition };
           if (entry.step instanceof NewWorkflow) {
-            const subSteps = this.collectSteps(entry.step.buildExecutionGraph().steps);
+            const subSteps = this.collectSteps(entry.step.buildExecutionGraph().steps, defaultCondition);
             Object.assign(steps, subSteps);
           }
           break;
@@ -180,7 +205,7 @@ export class MastraTemporalWorkflow<
       // Start the worker with empty steps
       await workflowWorker.start({
         address: config?.address,
-        steps: {},
+        steps: {} as Record<string, { step: NewStep<string, any, any>; condition: any }>,
       });
 
       this.initialized = true;

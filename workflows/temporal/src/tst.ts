@@ -378,7 +378,7 @@ async function main() {
     .commit();
 
   // Execute workflow
-  const run = workflowB.createRun();
+  const run = workflowC.createRun();
   const result = await run.start({
     inputData: {
       name: 'Abhi',

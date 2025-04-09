@@ -10,7 +10,7 @@ export interface WorkerConfig {
   address?: string;
   namespace?: string;
   taskQueue?: string;
-  steps: Record<string, NewStep<string, any, any>>;
+  steps: Record<string, { step: NewStep<string, any, any>; condition: any }>;
 }
 
 // Input/output types for workflow steps

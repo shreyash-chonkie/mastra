@@ -85,20 +85,11 @@ export async function executeWorkflow(steps: StepFlowEntry[], input: any): Promi
         }
 
         case 'conditional': {
-          const conditions = await Promise.all(
-            entry.conditions.map(condition =>
-              condition({
-                inputData: prevOutput,
-                getStepResult: (step: any) => state.stepResults[step.id]?.output,
-                suspend: async () => {}, // TODO: Implement suspend
-                emitter: undefined as any, // TODO: Handle events
-              }),
-            ),
-          );
+          console.log(entry.conditions, 'SUH DUDE');
 
-          const validSteps = entry.steps.filter((_, idx) => conditions[idx]);
+          // For conditional steps, we'll let the worker handle the conditions
           const results = await Promise.all(
-            validSteps.map(step => {
+            entry.steps.map(step => {
               if (step.type !== 'step') {
                 throw new Error('Nested conditional steps must be simple steps');
               }
@@ -106,7 +97,7 @@ export async function executeWorkflow(steps: StepFlowEntry[], input: any): Promi
             }),
           );
 
-          validSteps.forEach((step, idx) => {
+          entry.steps.forEach((step, idx) => {
             if (step.type === 'step') {
               state.stepResults[step.step.id] = results[idx];
             }

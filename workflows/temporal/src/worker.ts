@@ -35,7 +35,28 @@ export class WorkflowWorker {
           }
 
           try {
-            const executedResult = await step.execute({
+            // First check if the condition allows execution
+            const shouldExecute = await step.condition({
+              inputData,
+              getStepResult: (step: any) => {
+                const result = stepResults[step.id];
+                if (result?.status === 'success') {
+                  return result.output;
+                }
+                return null;
+              },
+              suspend: async () => {}, // TODO: Implement suspend
+              emitter: undefined as any, // TODO: Handle events
+            });
+
+            if (!shouldExecute) {
+              return {
+                output: null,
+                status: 'skipped',
+              };
+            }
+
+            const executedResult = await step.step.execute({
               inputData,
               getStepResult: (step: any) => {
                 const result = stepResults[step.id];
