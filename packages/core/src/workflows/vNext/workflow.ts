@@ -441,7 +441,6 @@ export class Run<
     this.emitter.on('nested-watch', ({ event, workflowId }) => {
       try {
         const { type, payload, eventTimestamp } = event;
-        // TODO: merge with current state
         const prefixedSteps = Object.fromEntries(
           Object.entries(payload?.workflowState?.steps ?? {}).map(([stepId, step]) => [
             `${workflowId}.${stepId}`,
