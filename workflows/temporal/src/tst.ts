@@ -1,113 +1,387 @@
 import { z } from 'zod';
-import { createStep } from '@mastra/core/workflows/vNext';
+import { createStep, createWorkflow } from '@mastra/core/workflows/vNext';
 import { MastraTemporalWorkflow } from './index';
-
-// Create test workflow steps
-const step1 = createStep({
-  id: 'step1',
-  description: 'First step',
-  inputSchema: z.object({
-    message: z.string(),
-  }),
-  outputSchema: z.object({
-    processed: z.string(),
-  }),
-  execute: async ({ inputData }) => {
-    return {
-      processed: `Processed: ${inputData.message}`,
-    };
-  },
-});
-
-const step2 = createStep({
-  id: 'step2',
-  description: 'Second step',
-  inputSchema: z.object({
-    processed: z.string(),
-  }),
-  outputSchema: z.object({
-    final: z.string(),
-  }),
-  execute: async ({ inputData }) => {
-    return {
-      final: `Final: ${inputData.processed}`,
-    };
-  },
-});
-
-// Create parallel steps
-const parallel1 = createStep({
-  id: 'parallel1',
-  description: 'Parallel step 1',
-  inputSchema: z.object({
-    final: z.string(),
-  }),
-  outputSchema: z.object({
-    result: z.string(),
-  }),
-  execute: async ({ inputData }) => {
-    return {
-      result: `Parallel 1: ${inputData?.final}`,
-    };
-  },
-});
-
-const parallel2 = createStep({
-  id: 'parallel2',
-  description: 'Parallel step 2',
-  inputSchema: z.object({
-    final: z.string(),
-  }),
-  outputSchema: z.object({
-    result: z.string(),
-  }),
-  execute: async ({ inputData }) => {
-    return {
-      result: `Parallel 2: ${inputData?.final}`,
-    };
-  },
-});
-
-const finalStep = createStep({
-  id: 'final',
-  description: 'Final step',
-  inputSchema: z.object({
-    parallel1: z.object({ result: z.string() }),
-    parallel2: z.object({ result: z.string() }),
-  }),
-  outputSchema: z.object({
-    final: z.string(),
-  }),
-  execute: async ({ inputData }) => {
-    return {
-      final: `Final: ${inputData.parallel1.result} ${inputData.parallel2.result}`,
-    };
-  },
-});
 
 async function main() {
   // Initialize Temporal client and worker
   await MastraTemporalWorkflow.initialize();
 
-  // Create workflow
-  const workflow = new MastraTemporalWorkflow({
-    id: 'test-workflow',
-    inputSchema: z.object({
-      message: z.string(),
-    }),
-    outputSchema: z.object({
-      final: z.string(),
-    }),
+  const inputSchema = z.object({
+    name: z.string(),
   });
 
-  // Add steps to workflow
-  workflow.then(step1).then(step2).parallel([parallel1, parallel2]).then(finalStep).commit();
+  const outputSchema = z.object({
+    result: z.string(),
+  });
+
+  const step = createStep({
+    id: 'test-step',
+    description: 'Test step',
+    inputSchema,
+    outputSchema: z.object({
+      resultz: z.string(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('Step 1 Input Data:', inputData);
+      return {
+        resultz: 'Step 1',
+      };
+    },
+  });
+
+  const step2 = createStep({
+    id: 'test-step2',
+    description: 'Test step 2',
+    inputSchema: z.object({
+      resultz: z.string(),
+    }),
+    outputSchema,
+    execute: async ({ inputData, getStepResult }) => {
+      const alt = getStepResult(step);
+      console.log('alt', alt);
+      console.log('Step 2 Input Data:', inputData);
+      return {
+        result: `Step 2 ${inputData.resultz}, alt: ${alt?.resultz}`,
+      };
+    },
+  });
+
+  const step3 = createStep({
+    id: 'test-step3',
+    description: 'Test step 3',
+    inputSchema: z.object({
+      result: z.string(),
+    }),
+    outputSchema: z.object({
+      thing: z.string(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('Step 3 Input Data:', inputData);
+      return {
+        thing: `Step 3 ${inputData.result}`,
+      };
+    },
+  });
+
+  const step4 = createStep({
+    id: 'test-step4',
+    description: 'Test step 4',
+    inputSchema: z.object({
+      result: z.string(),
+    }),
+    outputSchema: z.object({
+      thirdResult: z.string(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('Step 4 Input Data:', inputData);
+      return {
+        thirdResult: `Step 4 ${inputData.result}`,
+      };
+    },
+  });
+
+  const step5 = createStep({
+    id: 'test-step5',
+    description: 'Test step 4',
+    inputSchema: z.object({
+      'test-step3': z.object({
+        thing: z.string(),
+      }),
+      'test-step4': z.object({
+        thirdResult: z.string(),
+      }),
+    }),
+    outputSchema: z.object({
+      other: z.string(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('Step 5 Input Data:', inputData);
+      return {
+        other: `Step 5 ${JSON.stringify(inputData)}`,
+      };
+    },
+  });
+
+  // Create a new workflow instance for each test
+  const workflowA = new MastraTemporalWorkflow({
+    id: 'test-workflow-a',
+    inputSchema,
+    outputSchema,
+    steps: [step, step2, step3, step5],
+  });
+
+  workflowA.then(step).then(step2).commit();
+
+  const testWorkflowBFinalStep = createStep({
+    id: 'test-step-final',
+    description: 'Test step final',
+    inputSchema: z.object({
+      'test-step2': z.object({
+        result: z.string(),
+      }),
+    }),
+    outputSchema: z.object({
+      thingy: z.string(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('test-step-final');
+      return {
+        thingy: `Step final ${inputData['test-step2'].result}`,
+      };
+    },
+  });
+
+  const workflowB = new MastraTemporalWorkflow({
+    id: 'test-workflow-b',
+    inputSchema,
+    outputSchema: z.object({
+      'test-step2': z.object({
+        result: z.string(),
+      }),
+    }),
+    steps: [step, step2, step3, step5],
+  });
+
+  workflowB
+    .then(step)
+    .parallel([step2])
+    .then(testWorkflowBFinalStep)
+    .map({
+      result: {
+        step: testWorkflowBFinalStep,
+        path: 'thingy',
+      },
+    })
+    .then(step4)
+    .commit();
+
+  const workflowC = new MastraTemporalWorkflow({
+    id: 'test-workflow-c',
+    inputSchema,
+    outputSchema,
+    steps: [step, step2, step3, step4, step5],
+  });
+  workflowC
+    .then(step)
+    .then(step2)
+    .branch([
+      [
+        async ({ inputData }) => {
+          return inputData.result === 'Abhi';
+        },
+        step3,
+      ],
+      [
+        async ({ inputData }) => {
+          return inputData.result !== 'Abhi';
+        },
+        step4,
+      ],
+    ])
+    .then(step5)
+    .commit();
+
+  const stepDouble = createStep({
+    id: 'test-step-double',
+    description: 'Test step double',
+    inputSchema: z.object({
+      'test-step3': z.object({
+        thing: z.string(),
+      }),
+      'nested-workflow-b': z.object({
+        'test-step3': z.object({
+          thing: z.string(),
+        }),
+        'test-step4': z.object({
+          thirdResult: z.string(),
+        }),
+      }),
+    }),
+    outputSchema: z.object({
+      result: z.string(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('Step double', inputData);
+      return { result: `Step double ${inputData['test-step3'].thing}` };
+    },
+  });
+
+  let isSuspended = false;
+  const stepSuspend = createStep({
+    id: 'test-step-suspend',
+    description: 'Test step suspend',
+    inputSchema: z.object({
+      resultz: z.string(),
+    }),
+    outputSchema: z.object({
+      result: z.string(),
+    }),
+    execute: async ({ inputData, suspend }) => {
+      if (isSuspended) {
+        return { result: `Step suspend ${JSON.stringify(inputData)}` };
+      } else {
+        isSuspended = true;
+        await suspend({ suspendPayloadTest: 'hello' });
+        // TODO: this is annoying to have to return
+        return { result: 'SUSPENDED' };
+      }
+    },
+  });
+
+  let isSuspended2 = false;
+  const stepSuspend2 = createStep({
+    id: 'test-step-suspend2',
+    description: 'Test step suspend',
+    inputSchema: z.object({
+      thing: z.string(),
+    }),
+    outputSchema: z.object({
+      result: z.string(),
+    }),
+    execute: async ({ inputData, suspend }) => {
+      if (isSuspended2) {
+        return { result: `Step suspend ${JSON.stringify(inputData)}` };
+      } else {
+        isSuspended2 = true;
+        await suspend({ suspendPayloadTest: 'hello2' });
+        // TODO: this is annoying to have to return
+        return { result: 'SUSPENDED' };
+      }
+    },
+  });
+
+  const nestedWorkflowB = createWorkflow({
+    id: 'nested-workflow-b',
+    inputSchema: z.object({
+      result: z.string(),
+    }),
+    outputSchema: z.object({
+      'test-step3': z.object({
+        thing: z.string(),
+      }),
+      'test-step4': z.object({
+        thirdResult: z.string(),
+      }),
+    }),
+    steps: [step3, step4],
+  })
+    .parallel([step3, step4])
+    .commit();
+
+  const nestedWorkflowA = createWorkflow({
+    id: 'nested-workflow-a',
+    inputSchema: z.object({
+      name: z.string(),
+    }),
+    outputSchema: z.object({
+      result: z.string(),
+    }),
+    steps: [step, step2, step3, nestedWorkflowB, stepDouble],
+  })
+    .then(step)
+    .then(step2)
+    .parallel([step3, nestedWorkflowB])
+    .then(stepDouble)
+    .commit();
+
+  const workflowD = createWorkflow({
+    id: 'test-workflow-d',
+    inputSchema: z.object({
+      name: z.string(),
+    }),
+    outputSchema: z.object({
+      thing: z.string(),
+    }),
+    steps: [nestedWorkflowA, step3],
+  });
+
+  workflowD.then(nestedWorkflowA).then(step3).commit();
+
+  const nestedWorkflowSuspend = createWorkflow({
+    id: 'nested-workflow-hmm',
+    inputSchema: z.object({
+      result: z.string(),
+    }),
+    outputSchema: z.object({
+      result: z.string(),
+    }),
+    steps: [stepSuspend2],
+  })
+    .then(step3)
+    .then(stepSuspend2)
+    .commit();
+
+  const workflowE = createWorkflow({
+    id: 'test-workflow-e',
+    inputSchema: z.object({
+      name: z.string(),
+    }),
+    outputSchema: z.object({ result: z.string() }),
+    steps: [step, stepSuspend],
+  })
+    .then(step)
+    .then(stepSuspend)
+    .parallel([nestedWorkflowSuspend])
+    .map({
+      result: {
+        step: nestedWorkflowSuspend,
+        path: 'result',
+      },
+    })
+    .commit();
+
+  const repeatStep = createStep({
+    id: 'repeat-step',
+    description: 'Repeat step',
+    inputSchema: z.object({
+      result: z.number(),
+    }),
+    outputSchema: z.object({
+      result: z.number(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('repeat step', inputData);
+      return { result: inputData.result + 1 };
+    },
+  });
+  const repeatStep2 = createStep({
+    id: 'repeat-step2',
+    description: 'Repeat step',
+    inputSchema: z.object({
+      result: z.number(),
+    }),
+    outputSchema: z.object({
+      result: z.number(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('repeat step', inputData);
+      return { result: inputData.result + 1 };
+    },
+  });
+
+  const workflowF = createWorkflow({
+    id: 'test-workflow-f',
+    inputSchema: z.object({
+      result: z.number(),
+    }),
+    outputSchema: z.object({ result: z.string() }),
+    steps: [],
+  })
+    .dowhile(repeatStep, ({ inputData }) => {
+      console.log('doWhile inputData', inputData);
+      return Promise.resolve(inputData.result < 10);
+    })
+    .dountil(repeatStep2, ({ inputData }) => {
+      console.log('doUntil inputData', inputData);
+      return Promise.resolve(inputData.result >= 12);
+    })
+    .commit();
 
   // Execute workflow
-  const run = workflow.createRun();
+  const run = workflowB.createRun();
   const result = await run.start({
     inputData: {
-      message: 'Hello',
+      name: 'Abhi',
     },
   });
 

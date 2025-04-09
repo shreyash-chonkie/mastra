@@ -1,8 +1,8 @@
-import { NewStep } from '@mastra/core/workflows/vNext';
+import type { NewStep } from '@mastra/core/workflows/vNext';
 
 // Interface for workflow activities
 export interface Activities {
-  executeStep(params: { stepId: string; inputData: any }): Promise<any>;
+  executeStep(params: { stepId: string; inputData: any; stepResults: Record<string, any> }): Promise<any>;
 }
 
 // Configuration for workflow worker

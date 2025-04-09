@@ -28,19 +28,36 @@ export class WorkflowWorker {
 
       // Create activities implementation
       const activities: Activities = {
-        executeStep: async ({ stepId, inputData }) => {
+        executeStep: async ({ stepId, inputData, stepResults }) => {
           const step = this.steps[stepId];
           if (!step) {
             throw new Error(`Step ${stepId} not found in steps: ${Object.keys(this.steps).join(', ')}`);
           }
 
-          return step.execute({
-            inputData,
-            getStepResult: (stepToGet: any) => {
-              // This will be handled by the workflow
-              return undefined;
-            },
-          });
+          try {
+            const executedResult = await step.execute({
+              inputData,
+              getStepResult: (step: any) => {
+                const result = stepResults[step.id];
+                if (result?.status === 'success') {
+                  return result.output;
+                }
+
+                return null;
+              },
+            });
+
+            return {
+              output: executedResult,
+              status: 'success',
+            };
+          } catch (e) {
+            console.error(e);
+            return {
+              status: 'error',
+              error: e instanceof Error ? e.message : 'Unknown error',
+            };
+          }
         },
       };
 
@@ -49,7 +66,7 @@ export class WorkflowWorker {
         connection,
         namespace: config.namespace || 'default',
         taskQueue: config.taskQueue || 'mastra-workflows',
-        workflowsPath: require.resolve('./workflows'),
+        workflowsPath: new URL(import.meta.resolve('./workflows')).pathname,
         activities,
       });
 

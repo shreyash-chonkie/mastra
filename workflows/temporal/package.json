@@ -2,25 +2,30 @@
   "name": "@mastra/workflows-temporal",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
+  "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "test": "vitest",
-    "start": "ts-node src/worker.ts",
-    "start:dev": "nodemon src/worker.ts"
+    "build": "tsup src/index.ts --format esm,cjs --experimental-dts --clean --treeshake=smallest --splitting",
+    "build:watch": "pnpm build --watch",
+    "test": "vitest run",
+    "lint": "eslint ."
   },
   "dependencies": {
+    "@mastra/core": "workspace:*",
     "@temporalio/activity": "^1.8.6",
     "@temporalio/client": "^1.8.6",
     "@temporalio/worker": "^1.8.6",
     "@temporalio/workflow": "^1.8.6",
-    "@mastra/core": "workspace:*",
+    "node-polyfill-webpack-plugin": "^4.1.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/node": "^20.10.5",
-    "nodemon": "^3.0.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3",
-    "vitest": "^1.1.0"
+    "@internal/lint": "workspace:*",
+    "@microsoft/api-extractor": "^7.52.2",
+    "@types/node": "^20.17.27",
+    "eslint": "^9.23.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2",
+    "vitest": "^2.1.9"
   }
 }
