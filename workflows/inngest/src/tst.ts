@@ -88,18 +88,15 @@ const finalStep = createStep({
 });
 
 // Create workflow
-const workflow = new MastraInngestWorkflow(
-  {
-    id: 'test-workflow',
-    inputSchema: z.object({
-      message: z.string(),
-    }),
-    outputSchema: z.object({
-      final: z.string(),
-    }),
-  },
-  inngest,
-);
+const workflow = new MastraInngestWorkflow(inngest, {
+  id: 'test-workflow',
+  inputSchema: z.object({
+    message: z.string(),
+  }),
+  outputSchema: z.object({
+    final: z.string(),
+  }),
+});
 
 // Add steps to workflow
 workflow.then(step1).then(step2).parallel([parallel1, parallel2]).then(finalStep).commit();
