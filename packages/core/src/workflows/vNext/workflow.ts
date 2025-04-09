@@ -132,7 +132,7 @@ export class NewWorkflow<
     // TODO: ability to pass this from mastra intsance
     this.storage = new DefaultStorage({
       config: {
-        url: `file:${path.join(__dirname, 'mastra.db')}`,
+        url: `:memory:`,
       },
     });
 
