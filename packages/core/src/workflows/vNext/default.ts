@@ -263,7 +263,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         prevOutput,
         emitter,
       });
-    } else if (resume?.resumePath?.length) {
+    } else if (resume?.resumePath?.length && (entry.type === 'parallel' || entry.type === 'conditional')) {
       const idx = resume.resumePath.pop();
       return this.executeEntry({
         workflowId,
