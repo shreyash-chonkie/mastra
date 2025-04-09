@@ -195,16 +195,13 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         });
 
         if (suspended) {
-          stepResults[step.id] = { status: 'suspended', payload: suspended.payload };
           execResults = { status: 'suspended', output: suspended.payload };
         } else {
-          stepResults[step.id] = { status: 'success', output: result };
           execResults = { status: 'success', output: result };
         }
 
         break;
       } catch (e) {
-        stepResults[step.id] = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
         execResults = { status: 'failed', error: e instanceof Error ? e.message : 'Unknown error' };
       }
     }
@@ -538,7 +535,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       },
     });
 
-    if (entry.type === 'step') {
+    if (entry.type === 'step' || entry.type === 'loop') {
+      stepResults[entry.step.id] = execResults;
       emitter.emit('watch', {
         type: 'watch',
         payload: {
@@ -554,6 +552,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         eventTimestamp: Date.now(),
       });
     }
+
     return execResults;
   }
 }
