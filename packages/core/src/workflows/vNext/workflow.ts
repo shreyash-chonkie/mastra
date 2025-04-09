@@ -23,9 +23,10 @@ export type StepFlowEntry =
       conditions: ExecuteFunction<any, any>[];
     }
   | {
-      type: 'dowhile';
+      type: 'loop';
       step: Step;
       condition: ExecuteFunction<any, any>;
+      loopType: 'dowhile' | 'dountil';
     };
 
 /**
@@ -250,7 +251,15 @@ export class NewWorkflow<
     step: Step<TStepId, TPrevSchema, TSchemaOut>,
     condition: ExecuteFunction<z.infer<TSchemaOut>, any>,
   ) {
-    this.stepFlow.push({ type: 'dowhile', step: step as any, condition });
+    this.stepFlow.push({ type: 'loop', step: step as any, condition, loopType: 'dowhile' });
+    return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
+  }
+
+  dountil<TStepId extends string, TSchemaOut extends z.ZodObject<any>>(
+    step: Step<TStepId, TPrevSchema, TSchemaOut>,
+    condition: ExecuteFunction<z.infer<TSchemaOut>, any>,
+  ) {
+    this.stepFlow.push({ type: 'loop', step: step as any, condition, loopType: 'dountil' });
     return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
   }
 

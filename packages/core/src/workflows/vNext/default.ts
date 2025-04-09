@@ -391,7 +391,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     return execResults;
   }
 
-  async executeDowhile({
+  async executeLoop({
     workflowId,
     runId,
     entry,
@@ -404,7 +404,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
   }: {
     workflowId: string;
     runId: string;
-    entry: { type: 'dowhile'; step: NewStep; condition: ExecuteFunction<any, any> };
+    entry: { type: 'loop'; step: NewStep; condition: ExecuteFunction<any, any>; loopType: 'dowhile' | 'dountil' };
     prevStep: StepFlowEntry;
     prevOutput: any;
     stepResults: Record<string, StepResult<any>>;
@@ -440,7 +440,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         suspend: async (_suspendPayload: any) => {},
         emitter,
       });
-    } while (isTrue);
+    } while (entry.loopType === 'dowhile' ? isTrue : !isTrue);
 
     return result;
   }
@@ -520,8 +520,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         executionContext,
         emitter,
       });
-    } else if (entry.type === 'dowhile') {
-      execResults = await this.executeDowhile({
+    } else if (entry.type === 'loop') {
+      execResults = await this.executeLoop({
         workflowId,
         runId,
         entry,
