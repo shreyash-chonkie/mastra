@@ -157,7 +157,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         },
         {} as Record<string, any>,
       );
-    } else if (step.type === 'dowhile') {
+    } else if (step.type === 'loop') {
       return stepResults[step.step.id]?.output;
     }
   }
@@ -419,20 +419,24 @@ export class DefaultExecutionEngine extends ExecutionEngine {
   }): Promise<StepResult<any>> {
     const { step, condition } = entry;
     let isTrue = true;
-    let result: StepResult<any> | undefined = undefined;
+    let result: StepResult<any> = { status: 'success', output: prevOutput };
+
     do {
-      const inputData = result?.status === 'success' ? result.output : prevOutput;
       result = await this.executeStep({
         step,
         stepResults,
         executionContext,
         resume,
-        prevOutput: inputData,
+        prevOutput: result.output,
         emitter,
       });
 
+      if (result.status !== 'success') {
+        return result;
+      }
+
       isTrue = await condition({
-        inputData,
+        inputData: result.output,
         getStepResult: (step: any) => {
           const result = stepResults[step.id];
           return result?.status === 'success' ? result.output : null;

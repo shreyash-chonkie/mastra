@@ -342,6 +342,21 @@ describe('Workflow', () => {
       return { result: inputData.result + 1 };
     },
   });
+  const repeatStep2 = createStep({
+    id: 'repeat-step2',
+    description: 'Repeat step',
+    inputSchema: z.object({
+      result: z.number(),
+    }),
+    outputSchema: z.object({
+      result: z.number(),
+    }),
+    execute: async ({ inputData }) => {
+      console.log('repeat step', inputData);
+      return { result: inputData.result + 1 };
+    },
+  });
+
   const workflowF = createWorkflow({
     id: 'test-workflow-f',
     inputSchema: z.object({
@@ -350,7 +365,14 @@ describe('Workflow', () => {
     outputSchema: z.object({ result: z.string() }),
     steps: [],
   })
-    .dowhile(repeatStep, ({ inputData }) => Promise.resolve(inputData.result < 10))
+    .dowhile(repeatStep, ({ inputData }) => {
+      console.log('doWhile inputData', inputData);
+      return Promise.resolve(inputData.result < 10);
+    })
+    .dountil(repeatStep2, ({ inputData }) => {
+      console.log('doUntil inputData', inputData);
+      return Promise.resolve(inputData.result >= 12);
+    })
     .commit();
 
   describe('Workflow Execution', () => {
