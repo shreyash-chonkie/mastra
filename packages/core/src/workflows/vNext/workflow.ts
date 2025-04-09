@@ -322,7 +322,7 @@ export class NewWorkflow<
   }): Promise<z.infer<TOutput>> {
     const run = resume?.steps?.length ? this.createRun({ runId: resume.runId }) : this.createRun();
     const unwatch = run.watch(event => {
-      console.log('nested event', event);
+      emitter.emit('nested-watch', { event, workflowId: this.id, runId: run.runId, isResume: !!resume?.steps?.length });
     });
     const res = resume?.steps?.length
       ? await run.resume({ inputData, step: resume.steps as any })
@@ -435,6 +435,36 @@ export class Run<
 
   watch(cb: (event: WatchEvent) => void): () => void {
     this.emitter.on('watch', cb);
+    this.emitter.on('nested-watch', ({ event, workflowId }) => {
+      try {
+        const { type, payload, eventTimestamp } = event;
+        // TODO: merge with current state
+        const prefixedSteps = Object.fromEntries(
+          Object.entries(payload?.workflowState?.steps ?? {}).map(([stepId, step]) => [
+            `${workflowId}.${stepId}`,
+            step,
+          ]),
+        );
+        const newPayload: any = {
+          currentStep: {
+            id: `${workflowId}.${payload?.currentStep?.id}`,
+            status: payload?.currentStep?.status,
+            payload: payload?.currentStep?.payload,
+            output: payload?.currentStep?.output,
+          },
+          workflowState: {
+            status: payload?.workflowState?.status,
+            payload: payload?.workflowState?.payload,
+            output: payload?.workflowState?.output,
+            steps: prefixedSteps,
+          },
+        };
+
+        cb({ type, payload: newPayload, eventTimestamp: eventTimestamp });
+      } catch (e) {
+        console.error(e);
+      }
+    });
     return () => {
       this.emitter.off('watch', cb);
     };
