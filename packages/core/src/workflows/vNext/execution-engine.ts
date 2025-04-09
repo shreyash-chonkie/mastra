@@ -1,8 +1,9 @@
+import type EventEmitter from 'events';
 import { MastraBase } from '../../base';
 import { RegisteredLogger } from '../../logger';
 import type { MastraStorage } from '../../storage';
-import type { NewStep, StepFlowEntry, StepResult } from '.';
-import type EventEmitter from 'events';
+import type { StepResult } from './types';
+import type { NewStep, StepFlowEntry } from '.';
 
 /**
  * Represents an execution graph for a workflow
