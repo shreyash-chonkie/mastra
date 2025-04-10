@@ -121,6 +121,10 @@ export async function executeWorkflow(steps: StepFlowEntry[], input: any): Promi
             lastResult = await executeStepOrWorkflow(entry.step, lastResult, state.stepResults);
             state.stepResults[entry.step.id] = lastResult;
 
+            if (!entry.condition) {
+              break;
+            }
+
             shouldContinue = await entry.condition({
               inputData: lastResult,
               getStepResult: (step: any) => state.stepResults[step.id]?.output,

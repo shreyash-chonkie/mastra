@@ -117,13 +117,15 @@ class TemporalExecutionEngine extends DefaultExecutionEngine {
           }
           break;
 
-        case 'loop':
-          steps[entry.step.id] = { step: entry.step, condition: entry.condition };
+        case 'loop': {
+          console.log({ entry });
+          steps[entry.step.id] = { step: entry.step, condition: entry?.condition || defaultCondition };
           if (entry.step instanceof NewWorkflow) {
             const subSteps = this.collectSteps(entry.step.buildExecutionGraph().steps, defaultCondition);
             Object.assign(steps, subSteps);
           }
           break;
+        }
       }
     }
 
