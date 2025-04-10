@@ -247,6 +247,11 @@ export default withNextra({
       destination: "/examples/rag/rerank/rerank-rag",
       permanent: true,
     },
+    {
+      source: "/examples/rag/chunking",
+      destination: "/examples/rag/chunking/chunk-text",
+      permanent: true,
+    },
   ],
   trailingSlash: false,
 });
