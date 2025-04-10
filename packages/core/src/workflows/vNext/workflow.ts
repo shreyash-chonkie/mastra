@@ -150,7 +150,9 @@ export class NewWorkflow<
    * @param step The step to add to the workflow
    * @returns The workflow instance for chaining
    */
-  then<TStepId extends string, TSchemaOut extends z.ZodObject<any>>(step: Step<TStepId, TPrevSchema, TSchemaOut>) {
+  then<TStepInputSchema extends TPrevSchema, TStepId extends string, TSchemaOut extends z.ZodObject<any>>(
+    step: Step<TStepId, TStepInputSchema, TSchemaOut>,
+  ) {
     this.stepFlow.push({ type: 'step', step: step as any });
     return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
   }
@@ -191,7 +193,9 @@ export class NewWorkflow<
     >;
   }
 
-  parallel<TParallelSteps extends Step<string, TPrevSchema, any>[]>(steps: TParallelSteps) {
+  parallel<TStepInputSchema extends TPrevSchema, TParallelSteps extends Step<string, TStepInputSchema, any>[]>(
+    steps: TParallelSteps,
+  ) {
     this.stepFlow.push({ type: 'parallel', steps: steps.map(step => ({ type: 'step', step: step as any })) });
     return this as unknown as NewWorkflow<
       TSteps,
@@ -208,9 +212,10 @@ export class NewWorkflow<
     >;
   }
 
-  branch<TBranchSteps extends Array<[ExecuteFunction<z.infer<TPrevSchema>, any>, Step<string, TPrevSchema, any>]>>(
-    steps: TBranchSteps,
-  ) {
+  branch<
+    TStepInputSchema extends TPrevSchema,
+    TBranchSteps extends Array<[ExecuteFunction<z.infer<TStepInputSchema>, any>, Step<string, TStepInputSchema, any>]>,
+  >(steps: TBranchSteps) {
     this.stepFlow.push({
       type: 'conditional',
       steps: steps.map(([_cond, step]) => ({ type: 'step', step: step as any })),
@@ -239,16 +244,16 @@ export class NewWorkflow<
     >;
   }
 
-  dowhile<TStepId extends string, TSchemaOut extends z.ZodObject<any>>(
-    step: Step<TStepId, TPrevSchema, TSchemaOut>,
+  dowhile<TStepInputSchema extends TPrevSchema, TStepId extends string, TSchemaOut extends z.ZodObject<any>>(
+    step: Step<TStepId, TStepInputSchema, TSchemaOut>,
     condition: ExecuteFunction<z.infer<TSchemaOut>, any>,
   ) {
     this.stepFlow.push({ type: 'loop', step: step as any, condition, loopType: 'dowhile' });
     return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
   }
 
-  dountil<TStepId extends string, TSchemaOut extends z.ZodObject<any>>(
-    step: Step<TStepId, TPrevSchema, TSchemaOut>,
+  dountil<TStepInputSchema extends TPrevSchema, TStepId extends string, TSchemaOut extends z.ZodObject<any>>(
+    step: Step<TStepId, TStepInputSchema, TSchemaOut>,
     condition: ExecuteFunction<z.infer<TSchemaOut>, any>,
   ) {
     this.stepFlow.push({ type: 'loop', step: step as any, condition, loopType: 'dountil' });
