@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { createStep, createWorkflow, NewWorkflow } from './workflow';
+import { Step } from '../step';
 
 describe('Workflow', () => {
   // Input and output schemas for testing
@@ -1496,6 +1497,77 @@ describe('Workflow', () => {
       expect(result.steps['else-branch'].output).toEqual({ finalValue: 26 + 6 + 1 });
       // @ts-ignore
       expect(result.steps.start.output).toEqual({ newValue: 7 });
+    });
+  });
+
+  describe('multiple chains', () => {
+    it('should run multiple chains in parallel', async () => {
+      const step1 = createStep({
+        id: 'step1',
+        execute: vi.fn<any>().mockResolvedValue({ result: 'success1' }),
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+      const step2 = createStep({
+        id: 'step2',
+        execute: vi.fn<any>().mockResolvedValue({ result: 'success2' }),
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+      const step3 = createStep({
+        id: 'step3',
+        execute: vi.fn<any>().mockResolvedValue({ result: 'success3' }),
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+      const step4 = createStep({
+        id: 'step4',
+        execute: vi.fn<any>().mockResolvedValue({ result: 'success4' }),
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+      const step5 = createStep({
+        id: 'step5',
+        execute: vi.fn<any>().mockResolvedValue({ result: 'success5' }),
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+        steps: [step1, step2, step3, step4, step5],
+      });
+      workflow
+        .parallel([
+          createWorkflow({
+            id: 'nested-a',
+            inputSchema: z.object({}),
+            outputSchema: z.object({}),
+            steps: [step1, step2, step3],
+          })
+            .then(step1)
+            .then(step2)
+            .then(step3)
+            .commit(),
+          createWorkflow({
+            id: 'nested-b',
+            inputSchema: z.object({}),
+            outputSchema: z.object({}),
+            steps: [step4, step5],
+          })
+            .then(step4)
+            .then(step5)
+            .commit(),
+        ])
+        .commit();
+
+      const run = workflow.createRun();
+      const result = await run.start({ inputData: {} });
+
+      expect(result.steps['nested-a']).toEqual({ status: 'success', output: { result: 'success3' } });
+      expect(result.steps['nested-b']).toEqual({ status: 'success', output: { result: 'success5' } });
     });
   });
 });
