@@ -1,4 +1,4 @@
-import { describe, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { createStep, createWorkflow, NewWorkflow } from './workflow';
 import { subscribe } from 'diagnostics_channel';
@@ -441,5 +441,124 @@ describe('Workflow', () => {
       });
       console.dir({ resF }, { depth: null });
     }, 500000);
+  });
+
+  describe('Basic Workflow Execution', () => {
+    it('should execute a single step workflow successfully', async () => {
+      const execute = vi.fn<any>().mockResolvedValue({ result: 'success' });
+      const step1 = createStep({
+        id: 'step1',
+        execute,
+        inputSchema: z.object({}),
+        outputSchema: z.object({ result: z.string() }),
+      });
+
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: z.object({}),
+        outputSchema: z.object({
+          result: z.string(),
+        }),
+        steps: [step1],
+      });
+
+      workflow.then(step1).commit();
+
+      const run = workflow.createRun();
+      const result = await run.start({ inputData: {} });
+
+      expect(execute).toHaveBeenCalled();
+      expect(result.steps['step1']).toEqual({
+        status: 'success',
+        output: { result: 'success' },
+      });
+    });
+
+    it('should execute multiple steps in parallel', async () => {
+      const step1Action = vi.fn().mockImplementation(async () => {
+        return { value: 'step1' };
+      });
+      const step2Action = vi.fn().mockImplementation(async () => {
+        return { value: 'step2' };
+      });
+
+      const step1 = createStep({
+        id: 'step1',
+        execute: step1Action,
+        inputSchema: z.object({}),
+        outputSchema: z.object({ value: z.string() }),
+      });
+      const step2 = createStep({
+        id: 'step2',
+        execute: step2Action,
+        inputSchema: z.object({}),
+        outputSchema: z.object({ value: z.string() }),
+      });
+
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: z.object({}),
+        outputSchema: z.object({ value: z.string() }),
+        steps: [step1, step2],
+      });
+
+      workflow.then(step1).then(step2).commit();
+
+      const run = workflow.createRun();
+      const result = await run.start({ inputData: {} });
+
+      expect(step1Action).toHaveBeenCalled();
+      expect(step2Action).toHaveBeenCalled();
+      expect(result.steps).toEqual({
+        input: {},
+        step1: { status: 'success', output: { value: 'step1' } },
+        step2: { status: 'success', output: { value: 'step2' } },
+      });
+    });
+
+    it('should execute steps sequentially', async () => {
+      const executionOrder: string[] = [];
+
+      const step1Action = vi.fn().mockImplementation(() => {
+        executionOrder.push('step1');
+        return { value: 'step1' };
+      });
+      const step2Action = vi.fn().mockImplementation(() => {
+        executionOrder.push('step2');
+        return { value: 'step2' };
+      });
+
+      const step1 = createStep({
+        id: 'step1',
+        execute: step1Action,
+        inputSchema: z.object({}),
+        outputSchema: z.object({ value: z.string() }),
+      });
+      const step2 = createStep({
+        id: 'step2',
+        execute: step2Action,
+        inputSchema: z.object({}),
+        outputSchema: z.object({ value: z.string() }),
+      });
+
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: z.object({}),
+        outputSchema: z.object({ value: z.string() }),
+        steps: [step1, step2],
+      });
+
+      workflow.then(step1).then(step2).commit();
+
+      const run = workflow.createRun();
+      const result = await run.start({ inputData: {} });
+
+      expect(executionOrder).toEqual(['step1', 'step2']);
+      expect(result.steps).toEqual({
+        input: {},
+        step1: { status: 'success', output: { value: 'step1' } },
+        step2: { status: 'success', output: { value: 'step2' } },
+      });
+    });
   });
 });
