@@ -93,6 +93,10 @@ export async function getInputOptions(
             },
           },
           { find: /^\#mastra$/, replacement: normalizedEntryFile },
+          {
+            find: /^\#storage-libsql$/,
+            replacement: fileURLToPath(import.meta.resolve('@mastra/core/storage/libsql')).replaceAll('\\', '/'),
+          },
         ],
       }),
       esbuild({
