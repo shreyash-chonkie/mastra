@@ -135,9 +135,11 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         (acc, entry) => {
           if (entry.type === 'step') {
             acc[entry.step.id] = stepResults[entry.step.id]?.output;
-          } else if (entry.type === 'parallel') {
+          } else if (entry.type === 'parallel' || entry.type === 'conditional') {
             const parallelResult = this.getStepOutput(stepResults, entry)?.output;
             acc = { ...acc, ...parallelResult };
+          } else if (entry.type === 'loop') {
+            acc[entry.step.id] = stepResults[entry.step.id]?.output;
           }
           return acc;
         },
