@@ -93,12 +93,18 @@ export async function getInputOptions(
             },
           },
           { find: /^\#mastra$/, replacement: normalizedEntryFile },
-          {
-            find: /^\#storage-libsql$/,
-            replacement: fileURLToPath(import.meta.resolve('@mastra/core/storage/libsql')).replaceAll('\\', '/'),
-          },
         ],
       }),
+      // Custom plugin to handle dynamic import of the storage module
+      {
+        name: 'dynamic-libsql-import-resolver',
+        resolveId(source: string, importer: string | undefined) {
+          if (source === './libsql' && importer?.includes('default-proxy-storage')) {
+            return fileURLToPath(import.meta.resolve('@mastra/core/storage/libsql')).replaceAll('\\', '/');
+          }
+          return null;
+        },
+      },
       esbuild({
         target: 'node20',
         platform,
