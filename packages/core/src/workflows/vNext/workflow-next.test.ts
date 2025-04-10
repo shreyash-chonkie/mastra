@@ -560,5 +560,236 @@ describe('Workflow', () => {
         step2: { status: 'success', output: { value: 'step2' } },
       });
     });
+
+    describe('Simple Conditions', () => {
+      it('should follow conditional chains', async () => {
+        const step1Action = vi.fn().mockImplementation(() => {
+          return Promise.resolve({ status: 'success' });
+        });
+        const step2Action = vi.fn().mockImplementation(() => {
+          return Promise.resolve({ result: 'step2' });
+        });
+        const step3Action = vi.fn().mockImplementation(() => {
+          return Promise.resolve({ result: 'step3' });
+        });
+
+        const step1 = createStep({
+          id: 'step1',
+          execute: step1Action,
+          inputSchema: z.object({ status: z.string() }),
+          outputSchema: z.object({ status: z.string() }),
+        });
+        const step2 = createStep({
+          id: 'step2',
+          execute: step2Action,
+          inputSchema: z.object({ status: z.string() }),
+          outputSchema: z.object({ result: z.string() }),
+        });
+        const step3 = createStep({
+          id: 'step3',
+          execute: step3Action,
+          inputSchema: z.object({ status: z.string() }),
+          outputSchema: z.object({ result: z.string() }),
+        });
+
+        const workflow = createWorkflow({
+          id: 'test-workflow',
+          inputSchema: z.object({ status: z.string() }),
+          outputSchema: z.object({ result: z.string() }),
+          steps: [step1, step2, step3],
+        });
+
+        workflow
+          .then(step1)
+          .branch([
+            [
+              async ({ inputData }) => {
+                return inputData.status === 'success';
+              },
+              step2,
+            ],
+            [
+              async ({ inputData }) => {
+                return inputData.status === 'failed';
+              },
+              step3,
+            ],
+          ])
+          .commit();
+
+        const run = workflow.createRun();
+        const result = await run.start({ inputData: { status: 'success' } });
+
+        expect(step1Action).toHaveBeenCalled();
+        expect(step2Action).toHaveBeenCalled();
+        expect(step3Action).not.toHaveBeenCalled();
+        expect(result.steps).toEqual({
+          input: { status: 'success' },
+          step1: { status: 'success', output: { status: 'success' } },
+          step2: { status: 'success', output: { result: 'step2' } },
+        });
+      });
+
+      it('should handle failing dependencies', async () => {
+        const step1Action = vi.fn<any>().mockRejectedValue(new Error('Failed'));
+        const step2Action = vi.fn<any>();
+
+        const step1 = createStep({
+          id: 'step1',
+          execute: step1Action,
+          inputSchema: z.object({}),
+          outputSchema: z.object({}),
+        });
+        const step2 = createStep({
+          id: 'step2',
+          execute: step2Action,
+          inputSchema: z.object({}),
+          outputSchema: z.object({}),
+        });
+
+        const workflow = createWorkflow({
+          id: 'test-workflow',
+          inputSchema: z.object({}),
+          outputSchema: z.object({}),
+          steps: [step1, step2],
+        });
+
+        workflow.then(step1).then(step2).commit();
+
+        const run = workflow.createRun();
+        let result: Awaited<ReturnType<typeof run.start>> | undefined = undefined;
+        try {
+          result = await run.start({ inputData: {} });
+        } catch {
+          // do nothing
+        }
+
+        expect(step1Action).toHaveBeenCalled();
+        expect(step2Action).not.toHaveBeenCalled();
+        expect(result?.steps).toEqual({
+          input: {},
+          step1: { status: 'failed', error: 'Failed' },
+        });
+      });
+
+      it('should support simple string conditions', async () => {
+        const step1Action = vi.fn<any>().mockResolvedValue({ status: 'success' });
+        const step2Action = vi.fn<any>().mockResolvedValue({ result: 'step2' });
+        const step3Action = vi.fn<any>().mockResolvedValue({ result: 'step3' });
+        const step1 = createStep({
+          id: 'step1',
+          execute: step1Action,
+          inputSchema: z.object({}),
+          outputSchema: z.object({ status: z.string() }),
+        });
+        const step2 = createStep({
+          id: 'step2',
+          execute: step2Action,
+          inputSchema: z.object({ status: z.string() }),
+          outputSchema: z.object({ result: z.string() }),
+        });
+        const step3 = createStep({
+          id: 'step3',
+          execute: step3Action,
+          inputSchema: z.object({ result: z.string() }),
+          outputSchema: z.object({ result: z.string() }),
+        });
+
+        const workflow = createWorkflow({
+          id: 'test-workflow',
+          inputSchema: z.object({}),
+          outputSchema: z.object({}),
+          steps: [step1, step2, step3],
+        });
+        workflow
+          .then(step1)
+          .branch([
+            [
+              async ({ inputData }) => {
+                return inputData.status === 'success';
+              },
+              step2,
+            ],
+          ])
+          .map({
+            result: {
+              step: step3,
+              path: 'result',
+            },
+          })
+          .branch([
+            [
+              async ({ inputData }) => {
+                return inputData.result === 'unexpected value';
+              },
+              step3,
+            ],
+          ])
+          .commit();
+
+        const run = workflow.createRun();
+        const result = await run.start({ inputData: { status: 'success' } });
+
+        expect(step1Action).toHaveBeenCalled();
+        expect(step2Action).toHaveBeenCalled();
+        expect(step3Action).not.toHaveBeenCalled();
+        expect(result.steps).toMatchObject({
+          input: { status: 'success' },
+          step1: { status: 'success', output: { status: 'success' } },
+          step2: { status: 'success', output: { result: 'step2' } },
+        });
+      });
+
+      it('should support custom condition functions', async () => {
+        const step1Action = vi.fn<any>().mockResolvedValue({ count: 5 });
+        const step2Action = vi.fn<any>();
+
+        const step1 = createStep({
+          id: 'step1',
+          execute: step1Action,
+          inputSchema: z.object({}),
+          outputSchema: z.object({ count: z.number() }),
+        });
+        const step2 = createStep({
+          id: 'step2',
+          execute: step2Action,
+          inputSchema: z.object({ count: z.number() }),
+          outputSchema: z.object({}),
+        });
+
+        const workflow = createWorkflow({
+          id: 'test-workflow',
+          inputSchema: z.object({}),
+          outputSchema: z.object({}),
+        });
+
+        workflow
+          .then(step1)
+          .branch([
+            [
+              async ({ getStepResult }) => {
+                const step1Result = getStepResult(step1);
+
+                return step1Result ? step1Result.count > 3 : false;
+              },
+              step2,
+            ],
+          ])
+          .commit();
+
+        const run = workflow.createRun();
+        const result = await run.start({ inputData: { count: 5 } });
+
+        expect(step2Action).toHaveBeenCalled();
+        expect(result.steps.step1).toEqual({
+          status: 'success',
+          output: { count: 5 },
+        });
+        expect(result.steps.step2).toEqual({
+          status: 'success',
+          output: undefined,
+        });
+      });
+    });
   });
 });
