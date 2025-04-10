@@ -250,7 +250,7 @@ async function main() {
     },
   });
 
-  const nestedWorkflowB = createWorkflow({
+  const nestedWorkflowB = new MastraTemporalWorkflow({
     id: 'nested-workflow-b',
     inputSchema: z.object({
       result: z.string(),
@@ -268,7 +268,7 @@ async function main() {
     .parallel([step3, step4])
     .commit();
 
-  const nestedWorkflowA = createWorkflow({
+  const nestedWorkflowA = new MastraTemporalWorkflow({
     id: 'nested-workflow-a',
     inputSchema: z.object({
       name: z.string(),
@@ -284,7 +284,7 @@ async function main() {
     .then(stepDouble)
     .commit();
 
-  const workflowD = createWorkflow({
+  const workflowD = new MastraTemporalWorkflow({
     id: 'test-workflow-d',
     inputSchema: z.object({
       name: z.string(),
@@ -297,7 +297,7 @@ async function main() {
 
   workflowD.then(nestedWorkflowA).then(step3).commit();
 
-  const nestedWorkflowSuspend = createWorkflow({
+  const nestedWorkflowSuspend = new MastraTemporalWorkflow({
     id: 'nested-workflow-hmm',
     inputSchema: z.object({
       result: z.string(),
@@ -311,7 +311,7 @@ async function main() {
     .then(stepSuspend2)
     .commit();
 
-  const workflowE = createWorkflow({
+  const workflowE = new MastraTemporalWorkflow({
     id: 'test-workflow-e',
     inputSchema: z.object({
       name: z.string(),
@@ -359,7 +359,7 @@ async function main() {
     },
   });
 
-  const workflowF = createWorkflow({
+  const workflowF = new MastraTemporalWorkflow({
     id: 'test-workflow-f',
     inputSchema: z.object({
       result: z.number(),
@@ -378,7 +378,7 @@ async function main() {
     .commit();
 
   // Execute workflow
-  const run = workflowC.createRun();
+  const run = workflowD.createRun();
   const result = await run.start({
     inputData: {
       name: 'Abhi',

@@ -14,6 +14,13 @@ interface WorkflowState {
   error?: string;
 }
 
+interface WorkflowResult {
+  steps: Record<string, any>;
+  result: any;
+  status: 'success' | 'failed';
+  error?: string;
+}
+
 function getStepOutput(stepResults: Record<string, any>, step?: StepFlowEntry): any {
   if (!step) {
     return stepResults.input;
@@ -38,7 +45,7 @@ function getStepOutput(stepResults: Record<string, any>, step?: StepFlowEntry): 
 }
 
 /** @workflow */
-export async function executeWorkflow(steps: StepFlowEntry[], input: any): Promise<WorkflowState> {
+export async function executeWorkflow(steps: StepFlowEntry[], input: any): Promise<WorkflowResult> {
   const state: WorkflowState = {
     stepResults: { input },
     status: 'running',
@@ -50,12 +57,13 @@ export async function executeWorkflow(steps: StepFlowEntry[], input: any): Promi
       const previousStep = i > 0 ? steps[i - 1] : undefined;
       state.currentStepId = entry.type === 'step' ? entry.step.id : undefined;
 
-      console.log(state.stepResults, previousStep, '####');
       const prevOutput = getStepOutput(state.stepResults, previousStep);
+
+      console.log('Executing', { entry, steps: state.stepResults, previousStep, prevOutput });
 
       switch (entry.type) {
         case 'step': {
-          console.log(entry.step.id);
+          console.log(entry.step.id, '####');
           try {
             state.stepResults[entry.step.id] = await executeStepOrWorkflow(entry.step, prevOutput, state.stepResults);
           } catch (e) {
@@ -85,7 +93,7 @@ export async function executeWorkflow(steps: StepFlowEntry[], input: any): Promi
         }
 
         case 'conditional': {
-          console.log(entry.conditions, 'SUH DUDE');
+          // console.log(entry.conditions, 'SUH DUDE');
 
           // For conditional steps, we'll let the worker handle the conditions
           const results = await Promise.all(
@@ -127,11 +135,18 @@ export async function executeWorkflow(steps: StepFlowEntry[], input: any): Promi
 
     state.status = 'completed';
 
-    return state;
+    return {
+      steps: state.stepResults,
+      result: getStepOutput(state.stepResults, steps[steps.length - 1]),
+      status: 'success',
+    };
   } catch (error) {
-    state.status = 'failed';
-    state.error = error instanceof Error ? error.message : 'Unknown error';
-    return state;
+    return {
+      steps: state.stepResults,
+      result: null,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      status: 'failed',
+    };
   }
 }
 
@@ -140,18 +155,20 @@ async function executeStepOrWorkflow(
   input: any,
   stepResults: Record<string, any>,
 ): Promise<any> {
-  console.log(step, 'Step');
+  console.log(step, (step as any).then);
   // @ts-ignore
-  if (step.then) {
-    const workflow = step as NewWorkflow<any, any, any, any>;
+  if ('executionGraph' in step) {
+    const workflow = step as unknown as NewWorkflow<any, any, any, any>;
     // Execute as child workflow
     const handle = await executeChild('executeWorkflow', {
       workflowId: `${workflow.id}-${Date.now()}`,
       parentClosePolicy: ParentClosePolicy.PARENT_CLOSE_POLICY_TERMINATE,
-      args: [workflow.buildExecutionGraph().steps, input],
+      // @ts-ignore
+      args: [workflow.executionGraph.steps, input],
     });
-    const result = await handle.result();
-    return result.stepResults[step.id];
+
+    // For nested workflows, return the full result so parent workflow can access all step outputs
+    return { output: handle.result, status: 'success' };
   } else {
     // Execute as activity
     return executeStep({

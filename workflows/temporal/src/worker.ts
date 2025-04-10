@@ -30,32 +30,13 @@ export class WorkflowWorker {
       const activities: Activities = {
         executeStep: async ({ stepId, inputData, stepResults }) => {
           const step = this.steps[stepId];
+          console.log({ step });
+
           if (!step) {
             throw new Error(`Step ${stepId} not found in steps: ${Object.keys(this.steps).join(', ')}`);
           }
 
           try {
-            // First check if the condition allows execution
-            const shouldExecute = await step.condition({
-              inputData,
-              getStepResult: (step: any) => {
-                const result = stepResults[step.id];
-                if (result?.status === 'success') {
-                  return result.output;
-                }
-                return null;
-              },
-              suspend: async () => {}, // TODO: Implement suspend
-              emitter: undefined as any, // TODO: Handle events
-            });
-
-            if (!shouldExecute) {
-              return {
-                output: null,
-                status: 'skipped',
-              };
-            }
-
             const executedResult = await step.step.execute({
               inputData,
               getStepResult: (step: any) => {
@@ -67,6 +48,8 @@ export class WorkflowWorker {
                 return null;
               },
             });
+
+            console.log({ executedResult });
 
             return {
               output: executedResult,

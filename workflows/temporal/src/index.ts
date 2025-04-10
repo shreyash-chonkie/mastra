@@ -35,6 +35,9 @@ class TemporalExecutionEngine extends DefaultExecutionEngine {
     // Default condition that always returns true
     const defaultCondition = async () => true;
     const registeredSteps = this.collectSteps(steps, defaultCondition);
+
+    console.log(registeredSteps, 'REGISTERED STEPS');
+
     await workflowWorker.start({
       steps: registeredSteps as Record<string, { step: NewStep<string, any, any>; condition: any }>,
     });
@@ -74,7 +77,7 @@ class TemporalExecutionEngine extends DefaultExecutionEngine {
   ): Record<string, { step: NewStep<string, any, any>; condition: ExecuteFunction<any, any> }> {
     const steps: Record<string, { step: NewStep<string, any, any>; condition: ExecuteFunction<any, any> }> = {};
 
-    console.log({ entries });
+    console.error({ entries });
 
     for (const entry of entries) {
       switch (entry.type) {
@@ -143,16 +146,14 @@ class TemporalExecutionEngine extends DefaultExecutionEngine {
     // Set up event forwarding
     this.emitter = emitter;
 
+    console.log('YOOOOOOO');
+
     try {
       // Execute workflow and get results
       const result = await this.executeWorkflow(workflowId, graph.steps, input);
 
       // Return final result
-      return {
-        steps: result.stepResults,
-        result: result.stepResults[this.getFinalStepId(graph.steps)].output,
-        status: result.status,
-      } as TOutput;
+      return result;
     } catch (error) {
       return {
         steps: this.stepResults,
