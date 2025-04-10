@@ -193,9 +193,7 @@ export class NewWorkflow<
     >;
   }
 
-  parallel<TStepInputSchema extends TPrevSchema, TParallelSteps extends Step<string, TStepInputSchema, any>[]>(
-    steps: TParallelSteps,
-  ) {
+  parallel<TParallelSteps extends Step<string, any, any>[]>(steps: TParallelSteps) {
     this.stepFlow.push({ type: 'parallel', steps: steps.map(step => ({ type: 'step', step: step as any })) });
     return this as unknown as NewWorkflow<
       TSteps,
@@ -212,10 +210,9 @@ export class NewWorkflow<
     >;
   }
 
-  branch<
-    TStepInputSchema extends TPrevSchema,
-    TBranchSteps extends Array<[ExecuteFunction<z.infer<TStepInputSchema>, any>, Step<string, TStepInputSchema, any>]>,
-  >(steps: TBranchSteps) {
+  branch<TBranchSteps extends Array<[ExecuteFunction<z.infer<any>, any>, Step<string, any, any>]>>(
+    steps: TBranchSteps,
+  ) {
     this.stepFlow.push({
       type: 'conditional',
       steps: steps.map(([_cond, step]) => ({ type: 'step', step: step as any })),

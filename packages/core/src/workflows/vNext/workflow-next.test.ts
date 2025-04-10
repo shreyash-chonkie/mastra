@@ -1909,7 +1909,7 @@ describe('Workflow', () => {
       });
     });
 
-    it.only('should handle parallel steps with conditional suspend', async () => {
+    it('should handle parallel steps with conditional suspend', async () => {
       const getUserInputAction = vi.fn().mockResolvedValue({ userInput: 'test input' });
       const promptAgentAction = vi.fn().mockResolvedValue({ modelOutput: 'test output' });
       const evaluateToneAction = vi.fn().mockResolvedValue({
