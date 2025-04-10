@@ -252,6 +252,11 @@ export default withNextra({
       destination: "/examples/rag/chunking/chunk-text",
       permanent: true,
     },
+    {
+      source: "/examples/rag/hybrid-vector-search",
+      destination: "/examples/rag/query/hybrid-vector-search",
+      permanent: true,
+    },
   ],
   trailingSlash: false,
 });
