@@ -9,7 +9,8 @@ import { DefaultStorage } from '../../storage/libsql';
 import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
-import type { StepsRecord, StepResult, WatchEvent } from './types';
+import type { StepsRecord, StepResult, WatchEvent, ExtractSchemaType, ExtractSchemaFromStep } from './types';
+import type { VariableReference } from './types';
 
 export type StepFlowEntry =
   | { type: 'step'; step: Step }
@@ -154,49 +155,40 @@ export class NewWorkflow<
     return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
   }
 
-  map<
-    TStepRef extends Step<string, any, any>,
-    TMapping extends Record<
-      string,
-      {
-        step: TStepRef;
-        path: keyof z.infer<TStepRef['outputSchema']>;
-      }
-    >,
-    // Extract the actual Zod types from the referenced steps
-    TSchemaOut extends z.ZodObject<any> = z.ZodObject<
-      {
-        [K in keyof TMapping]: TMapping[K]['step']['outputSchema']['shape'][TMapping[K]['path']];
-      },
-      'strip',
-      z.ZodTypeAny
-    >,
-  >(mappingConfig: TMapping) {
+  map<TMapping extends { [K in keyof TMapping]: VariableReference<TSteps[number]> }>(mappingConfig: TMapping) {
     // Create an implicit step that handles the mapping
-    const mappingStep = createStep({
+    const mappingStep: any = createStep({
       id: `mapping_${randomUUID()}`,
-      inputSchema: this.inputSchema as any,
-      outputSchema: z.object(
-        Object.entries(mappingConfig).reduce(
-          (acc, [key, mapping]) => ({
-            ...acc,
-            [key]: mapping.step.outputSchema.shape[mapping.path as keyof typeof mapping.step.outputSchema.shape],
-          }),
-          {},
-        ),
-      ) as TSchemaOut,
+      inputSchema: z.object({}),
+      outputSchema: z.object({}),
       execute: async ({ getStepResult }) => {
         const result: Record<string, any> = {};
         for (const [key, mapping] of Object.entries(mappingConfig)) {
-          const stepResult = getStepResult(mapping.step);
-          result[key] = stepResult[mapping.path];
+          const m: any = mapping;
+          const stepResult = getStepResult(m.step);
+          const pathParts = m.path.split('.');
+          let value: any = stepResult;
+          for (const part of pathParts) {
+            if (typeof value === 'object' && value !== null) {
+              value = value[part];
+            } else {
+              throw new Error(`Invalid path ${m.path} in step ${m.step.id}`);
+            }
+          }
+          result[key] = value;
         }
-        return result;
+        return result as z.infer<typeof mappingStep.outputSchema>;
       },
     });
 
     this.stepFlow.push({ type: 'step', step: mappingStep as any });
-    return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
+    return this as unknown as NewWorkflow<
+      TSteps,
+      TWorkflowId,
+      TInput,
+      TOutput,
+      z.infer<typeof mappingStep.outputSchema>
+    >;
   }
 
   parallel<TParallelSteps extends Step<string, TPrevSchema, any>[]>(steps: TParallelSteps) {
