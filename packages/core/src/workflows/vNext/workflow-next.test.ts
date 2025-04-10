@@ -1133,4 +1133,142 @@ describe('Workflow', () => {
       expect(result.steps.step2).toEqual({ status: 'success', output: { result: 'step2' } });
     });
   });
+
+  describe('Loops', () => {
+    it('should run an until loop', async () => {
+      const increment = vi.fn().mockImplementation(async ({ inputData, getStepResult }) => {
+        // Get the current value (either from trigger or previous increment)
+        const currentValue = inputData.value;
+
+        // Increment the value
+        const newValue = currentValue + 1;
+
+        return { value: newValue };
+      });
+      const incrementStep = createStep({
+        id: 'increment',
+        description: 'Increments the current value by 1',
+        inputSchema: z.object({
+          value: z.number(),
+          target: z.number(),
+        }),
+        outputSchema: z.object({
+          value: z.number(),
+        }),
+        execute: increment,
+      });
+
+      const final = vi.fn().mockImplementation(async ({ inputData }) => {
+        return { finalValue: inputData?.value };
+      });
+      const finalStep = createStep({
+        id: 'final',
+        description: 'Final step that prints the result',
+        inputSchema: z.object({
+          value: z.number(),
+        }),
+        outputSchema: z.object({
+          finalValue: z.number(),
+        }),
+        execute: final,
+      });
+
+      const counterWorkflow = createWorkflow({
+        steps: [incrementStep, finalStep],
+        id: 'counter-workflow',
+        inputSchema: z.object({
+          target: z.number(),
+          value: z.number(),
+        }),
+        outputSchema: z.object({
+          finalValue: z.number(),
+        }),
+      });
+
+      counterWorkflow
+        .dountil(incrementStep, async ({ inputData }) => {
+          return (inputData?.value ?? 0) >= 12;
+        })
+        .then(finalStep)
+        .commit();
+
+      const run = counterWorkflow.createRun();
+      const result = await run.start({ inputData: { target: 10, value: 0 } });
+
+      expect(increment).toHaveBeenCalledTimes(12);
+      expect(final).toHaveBeenCalledTimes(1);
+      // @ts-ignore
+      expect(result.result).toEqual({ finalValue: 12 });
+      // @ts-ignore
+      expect(result.steps.increment.output).toEqual({ value: 12 });
+    });
+
+    it('should run a while loop', async () => {
+      const increment = vi.fn().mockImplementation(async ({ inputData, getStepResult }) => {
+        // Get the current value (either from trigger or previous increment)
+        const currentValue = inputData.value;
+
+        // Increment the value
+        const newValue = currentValue + 1;
+
+        return { value: newValue };
+      });
+      const incrementStep = createStep({
+        id: 'increment',
+        description: 'Increments the current value by 1',
+        inputSchema: z.object({
+          value: z.number(),
+          target: z.number(),
+        }),
+        outputSchema: z.object({
+          value: z.number(),
+        }),
+        execute: increment,
+      });
+
+      const final = vi.fn().mockImplementation(async ({ inputData }) => {
+        return { finalValue: inputData?.value };
+      });
+      const finalStep = createStep({
+        id: 'final',
+        description: 'Final step that prints the result',
+        inputSchema: z.object({
+          value: z.number(),
+        }),
+        outputSchema: z.object({
+          finalValue: z.number(),
+        }),
+        execute: final,
+      });
+
+      const counterWorkflow = createWorkflow({
+        steps: [incrementStep, finalStep],
+        id: 'counter-workflow',
+        inputSchema: z.object({
+          target: z.number(),
+          value: z.number(),
+        }),
+        outputSchema: z.object({
+          finalValue: z.number(),
+        }),
+      });
+
+      counterWorkflow
+        .dowhile(incrementStep, async ({ inputData }) => {
+          return (inputData?.value ?? 0) < 12;
+        })
+        .then(finalStep)
+        .commit();
+
+      const run = counterWorkflow.createRun();
+      const result = await run.start({ inputData: { target: 10, value: 0 } });
+
+      expect(increment).toHaveBeenCalledTimes(12);
+      expect(final).toHaveBeenCalledTimes(1);
+      // @ts-ignore
+      expect(result.result).toEqual({ finalValue: 12 });
+      // @ts-ignore
+      expect(result.steps.increment.output).toEqual({ value: 12 });
+    });
+  });
 });
