@@ -1570,4 +1570,216 @@ describe('Workflow', () => {
       expect(result.steps['nested-b']).toEqual({ status: 'success', output: { result: 'success5' } });
     });
   });
+
+  // TODO:
+  // describe('Retry', () => {
+  //   it('should retry a step default 0 times', async () => {
+  //     const step1 = new Step({ id: 'step1', execute: vi.fn<any>().mockResolvedValue({ result: 'success' }) });
+  //     const step2 = new Step({ id: 'step2', execute: vi.fn<any>().mockRejectedValue(new Error('Step failed')) });
+
+  //     const mastra = new Mastra({
+  //       logger: createLogger({
+  //         name: 'Workflow',
+  //       }),
+  //       storage,
+  //     });
+
+  //     const workflow = new Workflow({
+  //       name: 'test-workflow',
+  //       mastra,
+  //     });
+
+  //     workflow.step(step1).then(step2).commit();
+
+  //     const run = workflow.createRun();
+  //     const result = await run.start();
+
+  //     expect(result.results.step1).toEqual({ status: 'success', output: { result: 'success' } });
+  //     expect(result.results.step2).toEqual({ status: 'failed', error: 'Step failed' });
+  //     expect(step1.execute).toHaveBeenCalledTimes(1);
+  //     expect(step2.execute).toHaveBeenCalledTimes(1); // 0 retries + 1 initial call
+  //   });
+
+  //   it('should retry a step with a custom retry config', async () => {
+  //     const step1 = new Step({ id: 'step1', execute: vi.fn<any>().mockResolvedValue({ result: 'success' }) });
+  //     const step2 = new Step({ id: 'step2', execute: vi.fn<any>().mockRejectedValue(new Error('Step failed')) });
+
+  //     const mastra = new Mastra({
+  //       logger: createLogger({
+  //         name: 'Workflow',
+  //       }),
+  //       storage,
+  //     });
+
+  //     const workflow = new Workflow({
+  //       name: 'test-workflow',
+  //       mastra,
+  //       retryConfig: { attempts: 5, delay: 200 },
+  //     });
+
+  //     workflow.step(step1).then(step2).commit();
+
+  //     const run = workflow.createRun();
+  //     const result = await run.start();
+
+  //     expect(result.results.step1).toEqual({ status: 'success', output: { result: 'success' } });
+  //     expect(result.results.step2).toEqual({ status: 'failed', error: 'Step failed' });
+  //     expect(step1.execute).toHaveBeenCalledTimes(1);
+  //     expect(step2.execute).toHaveBeenCalledTimes(6); // 5 retries + 1 initial call
+  //   });
+  // });
+
+  describe('Watch', () => {
+    it('should watch workflow state changes and call onTransition', async () => {
+      const step1Action = vi.fn<any>().mockResolvedValue({ result: 'success1' });
+      const step2Action = vi.fn<any>().mockResolvedValue({ result: 'success2' });
+
+      const step1 = createStep({
+        id: 'step1',
+        execute: step1Action,
+        inputSchema: z.object({}),
+        outputSchema: z.object({ value: z.string() }),
+      });
+      const step2 = createStep({
+        id: 'step2',
+        execute: step2Action,
+        inputSchema: z.object({ value: z.string() }),
+        outputSchema: z.object({}),
+      });
+
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+        steps: [step1, step2],
+      });
+      workflow.then(step1).then(step2).commit();
+
+      const onTransition = vi.fn();
+
+      const run = workflow.createRun();
+
+      // Start watching the workflow
+      run.watch(onTransition);
+      run.watch(ev => {
+        console.log('ev', ev);
+      });
+
+      const executionResult = await run.start({ inputData: {} });
+
+      expect(onTransition).toHaveBeenCalledTimes(2);
+      expect(onTransition).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'watch',
+          payload: {
+            currentStep: expect.objectContaining({
+              id: expect.any(String),
+              status: expect.any(String),
+              output: expect.any(Object),
+            }),
+            workflowState: expect.objectContaining({
+              status: expect.any(String),
+            }),
+          },
+          eventTimestamp: expect.any(Number),
+        }),
+      );
+
+      // Verify execution completed successfully
+      expect(executionResult.steps.step1).toEqual({
+        status: 'success',
+        output: { result: 'success1' },
+      });
+      expect(executionResult.steps.step2).toEqual({
+        status: 'success',
+        output: { result: 'success2' },
+      });
+    });
+
+    it('should unsubscribe from transitions when unwatch is called', async () => {
+      const step1Action = vi.fn<any>().mockResolvedValue({ result: 'success1' });
+      const step2Action = vi.fn<any>().mockResolvedValue({ result: 'success2' });
+
+      const step1 = createStep({
+        id: 'step1',
+        execute: step1Action,
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+      const step2 = createStep({
+        id: 'step2',
+        execute: step2Action,
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+        steps: [step1, step2],
+      });
+      workflow.then(step1).then(step2).commit();
+
+      const onTransition = vi.fn();
+      const onTransition2 = vi.fn();
+
+      const run = workflow.createRun();
+
+      run.watch(onTransition);
+      run.watch(onTransition2);
+
+      await run.start({ inputData: {} });
+
+      expect(onTransition).toHaveBeenCalledTimes(2);
+      expect(onTransition2).toHaveBeenCalledTimes(2);
+
+      const run2 = workflow.createRun();
+
+      run2.watch(onTransition2);
+
+      await run2.start({ inputData: {} });
+
+      expect(onTransition).toHaveBeenCalledTimes(2);
+      expect(onTransition2).toHaveBeenCalledTimes(4);
+
+      const run3 = workflow.createRun();
+
+      run3.watch(onTransition);
+
+      await run3.start({ inputData: {} });
+
+      expect(onTransition).toHaveBeenCalledTimes(4);
+      expect(onTransition2).toHaveBeenCalledTimes(4);
+    });
+
+    //   it('should handle parallel transitions', async () => {
+    //     const step1Action = vi.fn<any>().mockResolvedValue({ result: 'success1' });
+    //     const step2Action = vi.fn<any>().mockResolvedValue({ result: 'success2' });
+
+    //     const step1 = new Step({ id: 'step1', execute: step1Action });
+    //     const step2 = new Step({ id: 'step2', execute: step2Action });
+
+    //     const workflow = new Workflow({ name: 'test-workflow' });
+    //     workflow.step(step1).step(step2).commit();
+
+    //     const onTransition = vi.fn();
+
+    //     const run = workflow.createRun();
+
+    //     run.watch(onTransition);
+
+    //     await run.start();
+
+    //     expect(onTransition).toHaveBeenCalledTimes(6);
+    //     expect(onTransition).toHaveBeenCalledWith(
+    //       expect.objectContaining({
+    //         activePaths: new Map([
+    //           ['step1', { status: 'runningSubscribers' }],
+    //           ['step2', { status: 'runningSubscribers' }],
+    //         ]),
+    //       }),
+    //     );
+    //   });
+  });
 });
