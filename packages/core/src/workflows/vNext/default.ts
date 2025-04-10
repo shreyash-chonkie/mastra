@@ -313,6 +313,10 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             const result = await cond({
               inputData: prevOutput,
               getStepResult: (step: any) => {
+                if (!step?.id) {
+                  return null;
+                }
+
                 const result = stepResults[step.id];
                 if (result?.status === 'success') {
                   return result.output;
@@ -423,6 +427,10 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       isTrue = await condition({
         inputData: result.output,
         getStepResult: (step: any) => {
+          if (!step?.id) {
+            return null;
+          }
+
           const result = stepResults[step.id];
           return result?.status === 'success' ? result.output : null;
         },

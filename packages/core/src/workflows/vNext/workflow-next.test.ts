@@ -1778,7 +1778,7 @@ describe('Workflow', () => {
       expect(run2.runId).toBeDefined();
       expect(run.runId).toBe(run2.runId);
     });
-    it.only('should handle basic suspend and resume flow', async () => {
+    it('should handle basic suspend and resume flow', async () => {
       const getUserInputAction = vi.fn().mockResolvedValue({ userInput: 'test input' });
       const promptAgentAction = vi
         .fn()
@@ -1888,7 +1888,7 @@ describe('Workflow', () => {
 
       // Wait for the workflow to be ready to resume
       const resumeData = await workflowSuspended;
-      const resumeResult = await run.resume(resumeData as any);
+      const resumeResult = await run.resume({ inputData: resumeData as any, step: promptAgent });
 
       if (!resumeResult) {
         throw new Error('Resume failed to return a result');
@@ -1896,7 +1896,7 @@ describe('Workflow', () => {
 
       expect(resumeResult.steps).toEqual({
         input: { input: 'test' },
-        getUserInput: { status: 'success', output: { userInput: 'test input for resumption' } },
+        getUserInput: { status: 'success', output: { userInput: 'test input' } },
         promptAgent: { status: 'success', output: { modelOutput: 'test output' } },
         evaluateToneConsistency: {
           status: 'success',
