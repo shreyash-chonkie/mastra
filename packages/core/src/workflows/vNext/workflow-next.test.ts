@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { createStep, createWorkflow, NewWorkflow } from './workflow';
 import { subscribe } from 'diagnostics_channel';
+import { Step } from '../step';
 
 describe('Workflow', () => {
   // Input and output schemas for testing
@@ -961,6 +962,84 @@ describe('Workflow', () => {
             },
           }),
         );
+      });
+    });
+
+    describe('Error Handling', () => {
+      it('should handle step execution errors', async () => {
+        const error = new Error('Step execution failed');
+        const failingAction = vi.fn<any>().mockRejectedValue(error);
+
+        const step1 = createStep({
+          id: 'step1',
+          execute: failingAction,
+          inputSchema: z.object({}),
+          outputSchema: z.object({}),
+        });
+
+        const workflow = createWorkflow({
+          id: 'test-workflow',
+          inputSchema: z.object({}),
+          outputSchema: z.object({}),
+        });
+
+        workflow.then(step1).commit();
+
+        const run = workflow.createRun();
+
+        await expect(run.start({ inputData: {} })).resolves.toMatchObject({
+          steps: {
+            step1: {
+              error: 'Step execution failed',
+              status: 'failed',
+            },
+          },
+        });
+      });
+
+      it('should handle variable resolution errors', async () => {
+        const step1 = createStep({
+          id: 'step1',
+          execute: vi.fn<any>().mockResolvedValue({ data: 'success' }),
+          inputSchema: z.object({}),
+          outputSchema: z.object({ data: z.string() }),
+        });
+        const step2 = createStep({
+          id: 'step2',
+          execute: vi.fn<any>(),
+          inputSchema: z.object({ data: z.string() }),
+          outputSchema: z.object({}),
+        });
+
+        const workflow = createWorkflow({
+          id: 'test-workflow',
+          inputSchema: z.object({}),
+          outputSchema: z.object({}),
+        });
+
+        workflow
+          .then(step1)
+          .map({
+            data: { step: step1, path: 'data' },
+          })
+          .then(step2)
+          .commit();
+
+        const run = workflow.createRun();
+        await expect(run.start({ inputData: {} })).resolves.toMatchObject({
+          steps: {
+            step1: {
+              status: 'success',
+              output: {
+                data: 'success',
+              },
+            },
+            step2: {
+              output: undefined,
+              status: 'success',
+            },
+          },
+        });
       });
     });
   });
