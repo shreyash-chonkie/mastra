@@ -427,6 +427,8 @@ await voiceAgent.voice.send(micStream);
 
 Voice providers can be configured with different models and options:
 
+<Tabs items={["OpenAI", "ElevenLabs", "PlayAI", "Cloudflare", "Sarvam", "Murf"]}>
+  <Tabs.Tab>
 ```typescript
 const voice = new OpenAIVoice({
   speechModel: {
@@ -439,8 +441,10 @@ const voice = new OpenAIVoice({
   speaker: "alloy"
 });
 ```
+  </Tabs.Tab>
+</Tabs>
 
-## Using Multiple Voice Providers
+### Using Multiple Voice Providers
 This example demonstrates how to create and use two different voice providers in Mastra: OpenAI for speech-to-text (STT) and PlayAI for text-to-speech (TTS).
 
 Start by creating instances of the voice providers with any necessary configuration.
@@ -487,16 +491,6 @@ const responseAudio = await voice.speak(`You said: ${transcript}`, {
 // Play the audio response
 playAudio(responseAudio);
 ```
-
-## Available Voice Providers
-
-Mastra supports a variety of voice providers, including:
-
-- OpenAI
-- PlayAI
-- Murf
-- ElevenLabs
-- [More](https://github.com/mastra-ai/mastra/tree/main/voice)
 
 ## More Resources
 
