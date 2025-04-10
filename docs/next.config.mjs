@@ -232,6 +232,21 @@ export default withNextra({
       destination: "/guides/guide/:path*",
       permanent: true,
     },
+    {
+      source: "/docs/deployment/logging-and-tracing",
+      destination: "/docs/observability/logging",
+      permanent: true,
+    },
+    {
+      source: "/examples/memory",
+      destination: "/examples/memory/memory-with-libsql",
+      permanent: true,
+    },
+    {
+      source: "/examples/rag/rerank-rag",
+      destination: "/examples/rag/rerank/rerank-rag",
+      permanent: true,
+    },
   ],
   trailingSlash: false,
 });
