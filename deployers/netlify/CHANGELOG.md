@@ -1,5 +1,57 @@
 # @mastra/deployer-netlify
 
+## 0.1.18-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [359b089]
+  - @mastra/core@0.8.3-alpha.0
+  - @mastra/deployer@0.2.9-alpha.0
+
+## 0.1.17
+
+### Patch Changes
+
+- Updated dependencies [a06aadc]
+- Updated dependencies [ae6c5ce]
+- Updated dependencies [94cd5c1]
+  - @mastra/core@0.8.2
+  - @mastra/deployer@0.2.8
+
+## 0.1.17-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [94cd5c1]
+  - @mastra/deployer@0.2.8-alpha.1
+
+## 0.1.17-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [a06aadc]
+- Updated dependencies [ae6c5ce]
+  - @mastra/core@0.8.2-alpha.0
+  - @mastra/deployer@0.2.8-alpha.0
+
+## 0.1.16
+
+### Patch Changes
+
+- Updated dependencies [99e2998]
+- Updated dependencies [8fdb414]
+  - @mastra/core@0.8.1
+  - @mastra/deployer@0.2.7
+
+## 0.1.16-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [99e2998]
+- Updated dependencies [8fdb414]
+  - @mastra/core@0.8.1-alpha.0
+  - @mastra/deployer@0.2.7-alpha.0
+
 ## 0.1.15
 
 ### Patch Changes

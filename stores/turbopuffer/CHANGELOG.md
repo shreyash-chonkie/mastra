@@ -1,5 +1,42 @@
 # @mastra/turbopuffer
 
+## 0.0.10-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [359b089]
+  - @mastra/core@0.8.3-alpha.0
+
+## 0.0.9
+
+### Patch Changes
+
+- Updated dependencies [a06aadc]
+  - @mastra/core@0.8.2
+
+## 0.0.9-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [a06aadc]
+  - @mastra/core@0.8.2-alpha.0
+
+## 0.0.8
+
+### Patch Changes
+
+- Updated dependencies [99e2998]
+- Updated dependencies [8fdb414]
+  - @mastra/core@0.8.1
+
+## 0.0.8-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [99e2998]
+- Updated dependencies [8fdb414]
+  - @mastra/core@0.8.1-alpha.0
+
 ## 0.0.7
 
 ### Patch Changes

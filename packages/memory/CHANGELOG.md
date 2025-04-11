@@ -1,5 +1,44 @@
 # @mastra/memory
 
+## 0.2.10-alpha.0
+
+### Patch Changes
+
+- f6f7345: Added missing createdAt field to UI messages in memory
+- 359b089: Allowed explicitly disabling vector/embedder in Memory by passing vector: false or options.semanticRecall: false
+- Updated dependencies [359b089]
+  - @mastra/core@0.8.3-alpha.0
+
+## 0.2.9
+
+### Patch Changes
+
+- Updated dependencies [a06aadc]
+  - @mastra/core@0.8.2
+
+## 0.2.9-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [a06aadc]
+  - @mastra/core@0.8.2-alpha.0
+
+## 0.2.8
+
+### Patch Changes
+
+- Updated dependencies [99e2998]
+- Updated dependencies [8fdb414]
+  - @mastra/core@0.8.1
+
+## 0.2.8-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [99e2998]
+- Updated dependencies [8fdb414]
+  - @mastra/core@0.8.1-alpha.0
+
 ## 0.2.7
 
 ### Patch Changes

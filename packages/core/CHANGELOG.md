@@ -1,5 +1,37 @@
 # @mastra/core
 
+## 0.8.3-alpha.0
+
+### Patch Changes
+
+- 359b089: Allowed explicitly disabling vector/embedder in Memory by passing vector: false or options.semanticRecall: false
+
+## 0.8.2
+
+### Patch Changes
+
+- a06aadc: Upgrade fastembed to fix bug where fastembe cannot be imported
+
+## 0.8.2-alpha.0
+
+### Patch Changes
+
+- a06aadc: Upgrade fastembed to fix bug where fastembe cannot be imported
+
+## 0.8.1
+
+### Patch Changes
+
+- 99e2998: Set default max steps to 5
+- 8fdb414: Custom mastra server cors config
+
+## 0.8.1-alpha.0
+
+### Patch Changes
+
+- 99e2998: Set default max steps to 5
+- 8fdb414: Custom mastra server cors config
+
 ## 0.8.0
 
 ### Minor Changes

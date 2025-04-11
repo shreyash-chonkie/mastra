@@ -1,5 +1,49 @@
 # @mastra/cloudflare
 
+## 0.0.4-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [359b089]
+  - @mastra/core@0.8.3-alpha.0
+
+## 0.0.3
+
+### Patch Changes
+
+- 3f90868: Add missing getTraces method to Cloudflare KV
+- Updated dependencies [a06aadc]
+  - @mastra/core@0.8.2
+
+## 0.0.3-alpha.1
+
+### Patch Changes
+
+- 3f90868: Add missing getTraces method to Cloudflare KV
+
+## 0.0.3-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [a06aadc]
+  - @mastra/core@0.8.2-alpha.0
+
+## 0.0.2
+
+### Patch Changes
+
+- Updated dependencies [99e2998]
+- Updated dependencies [8fdb414]
+  - @mastra/core@0.8.1
+
+## 0.0.2-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [99e2998]
+- Updated dependencies [8fdb414]
+  - @mastra/core@0.8.1-alpha.0
+
 ## 0.0.1
 
 ### Patch Changes
