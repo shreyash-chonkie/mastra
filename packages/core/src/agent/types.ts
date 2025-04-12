@@ -24,6 +24,7 @@ import type { MastraMemory } from '../memory/memory';
 import type { MemoryConfig } from '../memory/types';
 import type { ToolAction, VercelTool } from '../tools';
 import type { CompositeVoice } from '../voice';
+import type { MastraPrimitives } from '../action';
 
 export type { Message as AiMessageType } from 'ai';
 
@@ -84,6 +85,8 @@ export type AgentGenerateOptions<Z extends ZodSchema | JSONSchema7 | undefined =
 } & ({ resourceId?: undefined; threadId?: undefined } | { resourceId: string; threadId: string }) &
   (Z extends undefined ? DefaultLLMTextOptions : DefaultLLMTextObjectOptions);
 
+export type AgentGenerateOptionsServer<Z extends ZodSchema | JSONSchema7 | undefined = undefined> = AgentGenerateOptions<Z> & { onAfterToolExecute?: ({ mastra }: { mastra: (Mastra & MastraPrimitives) | MastraPrimitives }) => void };
+
 /**
  * Options for streaming responses with an agent
  * @template Z - The schema type for structured output (Zod schema or JSON schema)
@@ -101,10 +104,10 @@ export type AgentStreamOptions<Z extends ZodSchema | JSONSchema7 | undefined = u
   runId?: string;
   /** Callback fired when streaming completes */
   onFinish?: Z extends undefined
-    ? StreamTextOnFinishCallback<any>
-    : Z extends ZodSchema
-      ? StreamObjectOnFinishCallback<z.infer<Z>>
-      : StreamObjectOnFinishCallback<any>;
+  ? StreamTextOnFinishCallback<any>
+  : Z extends ZodSchema
+  ? StreamObjectOnFinishCallback<z.infer<Z>>
+  : StreamObjectOnFinishCallback<any>;
   /** Callback fired after each generation step completes */
   onStepFinish?: Z extends undefined ? StreamTextOnStepFinishCallback<any> : never;
   /** Maximum number of steps allowed for generation */

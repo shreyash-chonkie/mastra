@@ -37,6 +37,7 @@ import { agentToStep, Step } from '../workflows';
 import type {
   AgentConfig,
   AgentGenerateOptions,
+  AgentGenerateOptionsServer,
   AgentStreamOptions,
   AiMessageType,
   MastraLanguageModel,
@@ -253,25 +254,25 @@ export class Agent<
       const [memoryMessages, memorySystemMessage] =
         threadId && memory
           ? await Promise.all([
-              memory
-                .rememberMessages({
-                  threadId,
-                  resourceId,
-                  config: memoryConfig,
-                  systemMessage,
-                  vectorMessageSearch: messages
-                    .slice(-1)
-                    .map(m => {
-                      if (typeof m === `string`) {
-                        return m;
-                      }
-                      return m?.content || ``;
-                    })
-                    .join(`\n`),
-                })
-                .then(r => r.messages),
-              memory.getSystemMessage({ threadId, memoryConfig }),
-            ])
+            memory
+              .rememberMessages({
+                threadId,
+                resourceId,
+                config: memoryConfig,
+                systemMessage,
+                vectorMessageSearch: messages
+                  .slice(-1)
+                  .map(m => {
+                    if (typeof m === `string`) {
+                      return m;
+                    }
+                    return m?.content || ``;
+                  })
+                  .join(`\n`),
+              })
+              .then(r => r.messages),
+            memory.getSystemMessage({ threadId, memoryConfig }),
+          ])
           : [[], null];
 
       this.logger.debug('Saved messages to memory', {
@@ -291,9 +292,9 @@ export class Agent<
         messages: [
           memorySystemMessage
             ? {
-                role: 'system' as const,
-                content: memorySystemMessage,
-              }
+              role: 'system' as const,
+              content: memorySystemMessage,
+            }
             : null,
           ...processedMessages,
           ...newMessages,
@@ -342,10 +343,10 @@ export class Agent<
             return undefined;
           })
           ?.filter(Boolean) as Array<{
-          toolCallId: string;
-          toolArgs: Record<string, unknown>;
-          toolName: string;
-        }>;
+            toolCallId: string;
+            toolArgs: Record<string, unknown>;
+            toolName: string;
+          }>;
 
         toolCallIds = assistantToolCalls?.map(toolCall => toolCall.toolCallId);
 
@@ -446,12 +447,14 @@ export class Agent<
     resourceId,
     runId,
     container,
+    onAfterToolExecute,
   }: {
     toolsets?: ToolsetsInput;
     threadId?: string;
     resourceId?: string;
     runId?: string;
     container: Container;
+    onAfterToolExecute?: ({ mastra }: { mastra: (Mastra & MastraPrimitives) | MastraPrimitives }) => void;
   }): Record<string, CoreTool> {
     this.logger.debug(`[Agents:${this.name}] - Assigning tools`, { runId, threadId, resourceId });
 
@@ -481,6 +484,7 @@ export class Agent<
             memory,
             agentName: this.name,
             container,
+            onAfterToolExecute,
           };
           memo[k] = makeCoreTool(tool, options);
         }
@@ -492,51 +496,51 @@ export class Agent<
     // Convert memory tools with proper context
     const convertedMemoryTools = memoryTools
       ? Object.entries(memoryTools).reduce(
-          (memo, [k, tool]) => {
-            memo[k] = {
-              description: tool.description,
-              parameters: tool.parameters,
-              execute:
-                typeof tool?.execute === 'function'
-                  ? async (args, options) => {
-                      try {
-                        this.logger.debug(`[Agent:${this.name}] - Executing memory tool ${k}`, {
-                          name: k,
-                          description: tool.description,
-                          args,
+        (memo, [k, tool]) => {
+          memo[k] = {
+            description: tool.description,
+            parameters: tool.parameters,
+            execute:
+              typeof tool?.execute === 'function'
+                ? async (args, options) => {
+                  try {
+                    this.logger.debug(`[Agent:${this.name}] - Executing memory tool ${k}`, {
+                      name: k,
+                      description: tool.description,
+                      args,
+                      runId,
+                      threadId,
+                      resourceId,
+                    });
+                    return (
+                      tool?.execute?.(
+                        {
+                          context: args,
+                          mastra: mastraProxy as MastraUnion | undefined,
+                          memory,
                           runId,
                           threadId,
                           resourceId,
-                        });
-                        return (
-                          tool?.execute?.(
-                            {
-                              context: args,
-                              mastra: mastraProxy as MastraUnion | undefined,
-                              memory,
-                              runId,
-                              threadId,
-                              resourceId,
-                            },
-                            options,
-                          ) ?? undefined
-                        );
-                      } catch (err) {
-                        this.logger.error(`[Agent:${this.name}] - Failed memory tool execution`, {
-                          error: err,
-                          runId,
-                          threadId,
-                          resourceId,
-                        });
-                        throw err;
-                      }
-                    }
-                  : undefined,
-            };
-            return memo;
-          },
-          {} as Record<string, CoreTool>,
-        )
+                        },
+                        options,
+                      ) ?? undefined
+                    );
+                  } catch (err) {
+                    this.logger.error(`[Agent:${this.name}] - Failed memory tool execution`, {
+                      error: err,
+                      runId,
+                      threadId,
+                      resourceId,
+                    });
+                    throw err;
+                  }
+                }
+                : undefined,
+          };
+          return memo;
+        },
+        {} as Record<string, CoreTool>,
+      )
       : {};
 
     const toolsFromToolsetsConverted: Record<string, CoreTool> = {
@@ -614,6 +618,7 @@ export class Agent<
     resourceId,
     runId,
     toolsets,
+    onAfterToolExecute,
     container,
   }: {
     instructions?: string;
@@ -623,6 +628,7 @@ export class Agent<
     memoryConfig?: MemoryConfig;
     context?: CoreMessage[];
     runId?: string;
+    onAfterToolExecute?: ({ mastra }: { mastra: (Mastra & MastraPrimitives) | MastraPrimitives }) => void;
     messages: CoreMessage[];
     container: Container;
   }) {
@@ -707,6 +713,7 @@ export class Agent<
             resourceId,
             runId,
             container,
+            onAfterToolExecute,
           });
         }
 
@@ -829,15 +836,15 @@ export class Agent<
 
   async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
     messages: string | string[] | CoreMessage[] | AiMessageType[],
-    args?: AgentGenerateOptions<Z> & { output?: never; experimental_output?: never },
+    args?: AgentGenerateOptionsServer<Z> & { output?: never; experimental_output?: never },
   ): Promise<GenerateTextResult<any, Z extends ZodSchema ? z.infer<Z> : unknown>>;
   async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
     messages: string | string[] | CoreMessage[] | AiMessageType[],
-    args?: AgentGenerateOptions<Z> & { output?: Z; experimental_output?: never },
+    args?: AgentGenerateOptionsServer<Z> & { output?: Z; experimental_output?: never },
   ): Promise<GenerateObjectResult<Z extends ZodSchema ? z.infer<Z> : unknown>>;
   async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
     messages: string | string[] | CoreMessage[] | AiMessageType[],
-    args?: AgentGenerateOptions<Z> & { output?: never; experimental_output?: Z },
+    args?: AgentGenerateOptionsServer<Z> & { output?: never; experimental_output?: Z },
   ): Promise<
     GenerateTextResult<any, Z extends ZodSchema ? z.infer<Z> : unknown> & {
       object: Z extends ZodSchema ? z.infer<Z> : unknown;
@@ -845,7 +852,7 @@ export class Agent<
   >;
   async generate<Z extends ZodSchema | JSONSchema7 | undefined = undefined>(
     messages: string | string[] | CoreMessage[] | AiMessageType[],
-    generateOptions: AgentGenerateOptions<Z> = {},
+    generateOptions: AgentGenerateOptionsServer<Z> = {},
   ): Promise<
     | GenerateTextResult<any, Z extends ZodSchema ? z.infer<Z> : unknown>
     | GenerateObjectResult<Z extends ZodSchema ? z.infer<Z> : unknown>

@@ -318,6 +318,7 @@ interface ToolOptions {
   container: Container;
   memory?: MastraMemory;
   agentName?: string;
+  onAfterToolExecute?: ({ mastra }: { mastra: (Mastra & MastraPrimitives) | MastraPrimitives }) => void;
 }
 
 type ToolToConvert = VercelTool | ToolAction<any, any, any>;
@@ -388,7 +389,14 @@ function createExecute(tool: ToolToConvert, options: ToolOptions, logType?: 'too
   return async (args: any, execOptions?: any) => {
     try {
       logger.debug(start, { ...rest, args });
-      return await execFunction(args, execOptions);
+      const result = await execFunction(args, execOptions);
+
+      if (options.mastra && options.onAfterToolExecute) {
+        await Promise.resolve(options.onAfterToolExecute({ mastra: options.mastra }));
+      }
+
+      return result;
+
     } catch (err) {
       logger.error(error, { ...rest, error: err, args });
       throw err;
