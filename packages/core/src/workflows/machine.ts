@@ -5,10 +5,9 @@ import sift from 'sift';
 import type { MachineContext, Snapshot } from 'xstate';
 import { assign, createActor, fromPromise, setup } from 'xstate';
 import type { z } from 'zod';
-
 import type { MastraUnion } from '../action';
+import type { Container } from '../di';
 import type { Logger } from '../logger';
-
 import type { Mastra } from '../mastra';
 import { createMastraProxy } from '../utils';
 import type { Step } from './step';
@@ -17,7 +16,6 @@ import type {
   ResolverFunctionInput,
   ResolverFunctionOutput,
   RetryConfig,
-  StepAction,
   StepCondition,
   StepDef,
   StepGraph,
@@ -37,6 +35,7 @@ import {
   getResultActivePaths,
   getStepResult,
   getSuspendedPaths,
+  isConditionalKey,
   isErrorEvent,
   isTransitionEvent,
   recursivelyCheckForFinalState,
@@ -44,12 +43,13 @@ import {
 import type { WorkflowInstance } from './workflow-instance';
 
 export class Machine<
-  TSteps extends Step<any, any, any>[] = any,
+  TSteps extends Step<any, any, any, any>[] = Step<any, any, any, any>[],
   TTriggerSchema extends z.ZodObject<any> = any,
   TResultSchema extends z.ZodObject<any> = any,
 > extends EventEmitter {
   logger: Logger;
   #mastra?: Mastra;
+  #container: Container;
   #workflowInstance: WorkflowInstance;
   #executionSpan?: Span | undefined;
 
@@ -60,12 +60,13 @@ export class Machine<
   name: string;
 
   #actor: ReturnType<typeof createActor<ReturnType<typeof this.initializeMachine>>> | null = null;
-  #steps: Record<string, StepAction<any, any, any, any>> = {};
+  #steps: Record<string, StepNode> = {};
   #retryConfig?: RetryConfig;
 
   constructor({
     logger,
     mastra,
+    container,
     workflowInstance,
     executionSpan,
     name,
@@ -77,11 +78,12 @@ export class Machine<
   }: {
     logger: Logger;
     mastra?: Mastra;
+    container: Container;
     workflowInstance: WorkflowInstance;
     executionSpan?: Span;
     name: string;
     runId: string;
-    steps: Record<string, TSteps[0]>;
+    steps: Record<string, StepNode>;
     stepGraph: StepGraph;
     retryConfig?: RetryConfig;
     startStepId: string;
@@ -90,6 +92,7 @@ export class Machine<
 
     this.#mastra = mastra;
     this.#workflowInstance = workflowInstance;
+    this.#container = container;
     this.#executionSpan = executionSpan;
     this.logger = logger;
 
@@ -270,7 +273,7 @@ export class Machine<
     const delayMap: Record<string, number> = {};
 
     Object.keys(this.#steps).forEach(stepId => {
-      delayMap[stepId] = this.#steps[stepId]?.retryConfig?.delay || this.#retryConfig?.delay || 1000;
+      delayMap[stepId] = this.#steps[stepId]?.step?.retryConfig?.delay || this.#retryConfig?.delay || 1000;
     });
 
     return delayMap;
@@ -412,6 +415,7 @@ export class Machine<
             },
             runId: this.#runId,
             mastra: mastraProxy as MastraUnion | undefined,
+            container: this.#container,
           });
         } catch (error) {
           this.logger.debug(`Step ${stepNode.id} failed`, {
@@ -502,6 +506,11 @@ export class Machine<
             });
             return { type: 'CONDITIONS_MET' as const };
           }
+
+          if (isConditionalKey(stepNode.id)) {
+            return { type: 'CONDITIONS_LIMBO' as const };
+          }
+
           return this.#workflowInstance.hasSubscribers(stepNode.id)
             ? { type: 'CONDITIONS_SKIPPED' as const }
             : { type: 'CONDITIONS_LIMBO' as const };
@@ -526,7 +535,7 @@ export class Machine<
           };
         }) => {
           const { parentStepId, context } = input;
-          const result = await this.#workflowInstance.runMachine(parentStepId, context);
+          const result = await this.#workflowInstance.runMachine(parentStepId, context, this.#container);
           return Promise.resolve({
             steps: result.reduce((acc, r) => {
               return { ...acc, ...r?.results };
