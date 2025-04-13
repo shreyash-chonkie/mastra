@@ -9,7 +9,7 @@ Mastra organizes memory into threads, which are records that identify specific c
 1. **`threadId`**: A specific conversation ID (e.g., `support_123`)
 2. **`resourceId`**: The user or entity ID that owns each thread (e.g., `user_alice`)
 
-These identifiers are crucial for memory to work properly outside of the playground.
+These identifiers allow memory to work properly outside of the playground.
 
 ## Configuring Conversation History
 
@@ -57,7 +57,7 @@ const response = await memoryAgent.stream("Hello, my name is Alice.", {
 
 ## Storage Configuration
 
-Conversation history relies on a storage adapter to persist messages. By default, Mastra uses a LibSQL store that saves messages to a local SQLite database. You can configure this or use other storage options:
+Conversation history relies on a storage adapter to persist messages. By default, Mastra uses a LibSQL store that saves messages to a local database. You can configure this or use other storage options:
 
 ```typescript
 import { Memory } from "@mastra/memory";
@@ -67,7 +67,7 @@ const memory = new Memory({
   // Configure storage
   storage: new LibSQLStore({
     config: {
-      url: "file:memory.db", // Local SQLite database
+      url: "file:memory.db", // Local database
     },
   }),
   options: {
@@ -77,6 +77,7 @@ const memory = new Memory({
 ```
 
 Mastra supports several storage options, including:
+
 - LibSQL (default, local SQLite)
 - PostgreSQL
 - Upstash (Redis)
@@ -105,28 +106,28 @@ When building a frontend application that uses Mastra memory, it's important to 
 Here's a simplified example of how to handle this in a React application:
 
 ```tsx
-import { useState } from 'react';
-import { memoryAgent } from './agents';
+import { useState } from "react";
+import { memoryAgent } from "./agents";
 
 function ChatApp() {
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  
+  const [input, setInput] = useState("");
+
   const handleSendMessage = async () => {
     // Add user message to UI
-    setMessages([...messages, { role: 'user', content: input }]);
-    
+    setMessages([...messages, { role: "user", content: input }]);
+
     // Only send the newest message to the agent
     const response = await memoryAgent.stream(input, {
       resourceId: "user_123",
       threadId: "conversation_456",
     });
-    
+
     // Add agent response to UI
-    setMessages([...messages, { role: 'assistant', content: response }]);
-    setInput('');
+    setMessages([...messages, { role: "assistant", content: response }]);
+    setInput("");
   };
-  
+
   return (
     <div>
       {/* Display messages */}
@@ -137,12 +138,12 @@ function ChatApp() {
           </div>
         ))}
       </div>
-      
+
       {/* Input for new messages */}
       <input
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+        onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
       />
       <button onClick={handleSendMessage}>Send</button>
     </div>

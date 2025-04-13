@@ -1,6 +1,6 @@
 # Implementing Semantic Recall
 
-In this step, we'll explore semantic recall, a powerful memory feature that helps agents maintain context across longer interactions when messages are no longer within recent conversation history.
+In this step, we'll explore semantic recall, a feature that helps agents maintain context across longer interactions when messages are no longer within recent conversation history.
 
 ## What is Semantic Recall?
 
@@ -41,7 +41,7 @@ const memory = new Memory({
       topK: 3, // Retrieve 3 most similar messages
       messageRange: {
         before: 2, // Include 2 messages before each match
-        after: 1,  // Include 1 message after each match
+        after: 1, // Include 1 message after each match
       },
     },
   },
@@ -89,6 +89,7 @@ const memory = new Memory({
 ```
 
 Mastra supports several vector store options, including:
+
 - In-memory (default for development)
 - Chroma
 - Pinecone
