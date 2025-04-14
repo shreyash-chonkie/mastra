@@ -18,7 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/forms";
 import { useTheme } from "nextra-theme-docs";
-import { T } from "gt-next/client";
+import { T, Var } from "gt-next/client";
 
 export const formSchema = z.object({
   email: z.string().email(),
@@ -140,7 +140,7 @@ export const SubscribeForm = ({
               {showLabel ? (
                 <T id="components.subscribe_form.0">
                   <FormLabel className="text-[13px] mb-[0.69rem] block text-gray-500 dark:text-[#E6E6E6]">
-                    {label || "Mastra Newsletter"}
+                    <Var>{label || "Mastra Newsletter"}</Var>
                   </FormLabel>
                 </T>
               ) : null}
