@@ -53,7 +53,7 @@ export const TabSwitcher = ({ className }: { className?: string }) => {
         >
           {docsTabs.map((tab) => {
             const isActive =
-              pathname === tab.href ||
+              pathname.includes(tab.href) ||
               pathname?.startsWith(`/${locale}/${tab.href}/`);
 
             return (
