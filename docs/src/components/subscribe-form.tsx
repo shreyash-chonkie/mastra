@@ -124,7 +124,10 @@ export const SubscribeForm = ({
   return (
     <Form {...form}>
       <form
-        className="mt-[2.38rem] items-end flex flex-col md:flex-row w-full gap-2 "
+        className={cn(
+          "mt-[2.38rem] items-end flex flex-col md:flex-row w-full gap-2 ",
+          className,
+        )}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
