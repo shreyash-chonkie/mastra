@@ -187,6 +187,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       try {
         let suspended: { payload: any } | undefined;
         const result = await step.execute({
+          mastra: this.mastra!,
           inputData: resume?.steps[0]!.id === step.id ? resume?.resumePayload : prevOutput,
           getStepResult: (step: any) => {
             const result = stepResults[step.id];
@@ -322,6 +323,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         entry.conditions.map(async (cond, index) => {
           try {
             const result = await cond({
+              mastra: this.mastra!,
               inputData: prevOutput,
               getStepResult: (step: any) => {
                 if (!step?.id) {
@@ -435,6 +437,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       }
 
       isTrue = await condition({
+        mastra: this.mastra!,
         inputData: result.output,
         getStepResult: (step: any) => {
           if (!step?.id) {

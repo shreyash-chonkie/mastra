@@ -1,8 +1,10 @@
 import type EventEmitter from 'events';
 import type { z } from 'zod';
+import type { Mastra } from '../..';
 
 // Define a type for the execute function
 export type ExecuteFunction<TStepInput, TStepOutput> = (params: {
+  mastra: Mastra;
   inputData: TStepInput;
   getStepResult<T extends NewStep<any, any, any>>(
     stepId: T,

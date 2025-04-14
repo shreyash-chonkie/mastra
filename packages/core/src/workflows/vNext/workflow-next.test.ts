@@ -5,7 +5,7 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { Agent } from '../../agent';
 import { createStep, createWorkflow, NewWorkflow } from './workflow';
-import { Mastra } from '../..';
+import { Mastra, Telemetry } from '../..';
 import { DefaultStorage } from '../../storage/libsql';
 
 describe('Workflow', () => {
@@ -2441,69 +2441,34 @@ describe('Workflow', () => {
     });
   });
 
-  // TODO
-  // describe('Accessing Mastra', () => {
-  //   it('should be able to access the deprecated mastra primitives', async () => {
-  //     let telemetry: Telemetry | undefined;
-  //     const step1 = new Step({
-  //       id: 'step1',
-  //       execute: async ({ mastra }) => {
-  //         telemetry = mastra?.telemetry;
-  //       },
-  //     });
+  describe('Accessing Mastra', () => {
+    it('should be able to access the deprecated mastra primitives', async () => {
+      let telemetry: Telemetry | undefined;
+      const step1 = createStep({
+        id: 'step1',
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+        execute: async ({ mastra }) => {
+          telemetry = mastra?.getTelemetry();
+          return {};
+        },
+      });
 
-  //     const workflow = new Workflow({ name: 'test-workflow' });
-  //     workflow.step(step1).commit();
+      const workflow = createWorkflow({ id: 'test-workflow', inputSchema: z.object({}), outputSchema: z.object({}) });
+      workflow.then(step1).commit();
 
-  //     const mastra = new Mastra({
-  //       logger,
-  //       workflows: { 'test-workflow': workflow },
-  //       storage,
-  //     });
+      const mastra = new Mastra({
+        newWorkflows: { 'test-workflow': workflow },
+      });
 
-  //     const wf = mastra.getWorkflow('test-workflow');
+      // Access new instance properties directly - should work without warning
+      const run = workflow.createRun();
+      await run.start({ inputData: {} });
 
-  //     expect(mastra?.getLogger()).toBe(logger);
-
-  //     // Access new instance properties directly - should work without warning
-  //     const run = wf.createRun();
-  //     await run.start();
-
-  //     expect(telemetry).toBeDefined();
-  //     expect(telemetry).toBeInstanceOf(Telemetry);
-  //   });
-
-  //   it('should be able to access the new Mastra primitives', async () => {
-  //     let telemetry: Telemetry | undefined;
-  //     const step1 = new Step({
-  //       id: 'step1',
-  //       execute: async ({ mastra }) => {
-  //         telemetry = mastra?.getTelemetry();
-  //       },
-  //     });
-
-  //     const workflow = new Workflow({ name: 'test-workflow' });
-  //     workflow.step(step1).commit();
-
-  //     const mastra = new Mastra({
-  //       logger,
-  //       workflows: { 'test-workflow': workflow },
-  //       storage,
-  //     });
-
-  //     const wf = mastra.getWorkflow('test-workflow');
-
-  //     expect(mastra?.getLogger()).toBe(logger);
-
-  //     // Access new instance properties directly - should work without warning
-  //     const run = wf.createRun();
-  //     run.watch(() => {});
-  //     await run.start();
-
-  //     expect(telemetry).toBeDefined();
-  //     expect(telemetry).toBeInstanceOf(Telemetry);
-  //   });
-  // });
+      expect(telemetry).toBeDefined();
+      expect(telemetry).toBeInstanceOf(Telemetry);
+    });
+  });
 
   describe('Agent as step', () => {
     it('should be able to use an agent as a step', async () => {
