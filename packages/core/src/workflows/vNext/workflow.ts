@@ -410,6 +410,7 @@ export class Run<
         : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
     };
   }> {
+    console.log('starting workflow run', { workflowId: this.workflowId, runId: this.runId, inputData });
     return this.executionEngine.execute<
       z.infer<TInput>,
       {

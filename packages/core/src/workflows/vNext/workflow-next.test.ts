@@ -1,8 +1,10 @@
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { createStep, createWorkflow, NewWorkflow } from './workflow';
 import path from 'path';
 import fs from 'fs';
+import { openai } from '@ai-sdk/openai';
+import { Agent } from '../../agent';
 
 describe('Workflow', () => {
   // Input and output schemas for testing
@@ -2381,86 +2383,314 @@ describe('Workflow', () => {
         },
       });
     });
+  });
 
-    //   it('should handle basic event based resume flow', async () => {
-    //     const getUserInputAction = vi.fn().mockResolvedValue({ userInput: 'test input' });
-    //     const promptAgentAction = vi
-    //       .fn()
-    //       .mockImplementationOnce(async () => {
-    //         return { test: 'yes' };
-    //       })
-    //       .mockImplementationOnce(() => ({ modelOutput: 'test output' }));
-    //     const getUserInput = new Step({
-    //       id: 'getUserInput',
-    //       execute: getUserInputAction,
-    //       outputSchema: z.object({ userInput: z.string() }),
-    //     });
-    //     const promptAgent = new Step({
-    //       id: 'promptAgent',
-    //       execute: promptAgentAction,
-    //       outputSchema: z.object({ modelOutput: z.string() }),
-    //     });
+  // TODO
+  // describe('Workflow Runs', () => {
+  //   it('should return empty result when mastra is not initialized', async () => {
+  //     const workflow = createWorkflow({ id: 'test', inputSchema: z.object({}), outputSchema: z.object({}) });
+  //     const result = await workflow.getWorkflowRuns();
+  //     expect(result).toEqual({ runs: [], total: 0 });
+  //   });
 
-    //     const promptEvalWorkflow = new Workflow({
-    //       name: 'test-workflow',
-    //       triggerSchema: z.object({ input: z.string() }),
-    //       events: {
-    //         testev: {
-    //           schema: z.object({
-    //             catName: z.string(),
-    //           }),
-    //         },
-    //       },
-    //     });
+  //   it('should get workflow runs from storage', async () => {
+  //     await storage.init();
 
-    //     promptEvalWorkflow.step(getUserInput).afterEvent('testev').step(promptAgent).commit();
+  //     const step1Action = vi.fn<any>().mockResolvedValue({ result: 'success1' });
+  //     const step2Action = vi.fn<any>().mockResolvedValue({ result: 'success2' });
 
-    //     const mastra = new Mastra({
-    //       logger,
-    //       workflows: { 'test-workflow': promptEvalWorkflow },
-    //     });
+  //     const step1 = new Step({ id: 'step1', execute: step1Action });
+  //     const step2 = new Step({ id: 'step2', execute: step2Action });
 
-    //     const wf = mastra.getWorkflow('test-workflow');
-    //     const run = wf.createRun({
-    //       events: {
-    //         testev: {
-    //           schema: z.object({
-    //             catName: z.string(),
-    //           }),
-    //         },
-    //       },
-    //     });
+  //     const workflow = new Workflow({ name: 'test-workflow' });
+  //     workflow.step(step1).then(step2).commit();
 
-    //     const initialResult = await run.start({ triggerData: { input: 'test' } });
-    //     expect(initialResult.activePaths.size).toBe(1);
-    //     expect(initialResult.results).toEqual({
-    //       getUserInput: { status: 'success', output: { userInput: 'test input' } },
-    //       __testev_event: { status: 'suspended' },
-    //     });
-    //     expect(getUserInputAction).toHaveBeenCalledTimes(1);
+  //     const mastra = new Mastra({
+  //       logger,
+  //       storage,
+  //       workflows: {
+  //         'test-workflow': workflow,
+  //       },
+  //     });
 
-    //     const firstResumeResult = await run.resumeWithEvent('testev', {
-    //       catName: 'test input for resumption',
-    //     });
+  //     const testWorkflow = mastra.getWorkflow('test-workflow');
 
-    //     if (!firstResumeResult) {
-    //       throw new Error('Resume failed to return a result');
-    //     }
+  //     // Create a few runs
+  //     const run1 = await testWorkflow.createRun();
+  //     await run1.start();
 
-    //     expect(firstResumeResult.activePaths.size).toBe(1);
-    //     expect(firstResumeResult.results).toEqual({
-    //       getUserInput: { status: 'success', output: { userInput: 'test input' } },
-    //       promptAgent: { status: 'success', output: { test: 'yes' } },
-    //       __testev_event: {
-    //         status: 'success',
-    //         output: {
-    //           executed: true,
-    //           resumedEvent: {
-    //             catName: 'test input for resumption',
-    //           },
-    //         },
-    //       },
-    //     });
-    //   });
+  //     const run2 = await testWorkflow.createRun();
+  //     await run2.start();
+
+  //     const { runs, total } = await testWorkflow.getWorkflowRuns();
+  //     expect(total).toBe(2);
+  //     expect(runs).toHaveLength(2);
+  //     expect(runs.map(r => r.runId)).toEqual(expect.arrayContaining([run1.runId, run2.runId]));
+  //     expect(runs[0]?.workflowName).toBe('test-workflow');
+  //     expect(runs[0]?.snapshot).toBeDefined();
+  //     expect(runs[1]?.snapshot).toBeDefined();
+  //   });
+  // });
+
+  // TODO
+  // describe('Accessing Mastra', () => {
+  //   it('should be able to access the deprecated mastra primitives', async () => {
+  //     let telemetry: Telemetry | undefined;
+  //     const step1 = new Step({
+  //       id: 'step1',
+  //       execute: async ({ mastra }) => {
+  //         telemetry = mastra?.telemetry;
+  //       },
+  //     });
+
+  //     const workflow = new Workflow({ name: 'test-workflow' });
+  //     workflow.step(step1).commit();
+
+  //     const mastra = new Mastra({
+  //       logger,
+  //       workflows: { 'test-workflow': workflow },
+  //       storage,
+  //     });
+
+  //     const wf = mastra.getWorkflow('test-workflow');
+
+  //     expect(mastra?.getLogger()).toBe(logger);
+
+  //     // Access new instance properties directly - should work without warning
+  //     const run = wf.createRun();
+  //     await run.start();
+
+  //     expect(telemetry).toBeDefined();
+  //     expect(telemetry).toBeInstanceOf(Telemetry);
+  //   });
+
+  //   it('should be able to access the new Mastra primitives', async () => {
+  //     let telemetry: Telemetry | undefined;
+  //     const step1 = new Step({
+  //       id: 'step1',
+  //       execute: async ({ mastra }) => {
+  //         telemetry = mastra?.getTelemetry();
+  //       },
+  //     });
+
+  //     const workflow = new Workflow({ name: 'test-workflow' });
+  //     workflow.step(step1).commit();
+
+  //     const mastra = new Mastra({
+  //       logger,
+  //       workflows: { 'test-workflow': workflow },
+  //       storage,
+  //     });
+
+  //     const wf = mastra.getWorkflow('test-workflow');
+
+  //     expect(mastra?.getLogger()).toBe(logger);
+
+  //     // Access new instance properties directly - should work without warning
+  //     const run = wf.createRun();
+  //     run.watch(() => {});
+  //     await run.start();
+
+  //     expect(telemetry).toBeDefined();
+  //     expect(telemetry).toBeInstanceOf(Telemetry);
+  //   });
+  // });
+
+  describe('Agent as step', () => {
+    it('should be able to use an agent as a step', async () => {
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: z.object({
+          prompt1: z.string(),
+          prompt2: z.string(),
+        }),
+        outputSchema: z.object({}),
+      });
+
+      const agent = new Agent({
+        name: 'test-agent-1',
+        instructions: 'test agent instructions',
+        model: openai('gpt-4'),
+      });
+
+      const agent2 = new Agent({
+        name: 'test-agent-2',
+        instructions: 'test agent instructions',
+        model: openai('gpt-4'),
+      });
+
+      const startStep = createStep({
+        id: 'start',
+        inputSchema: z.object({
+          prompt1: z.string(),
+          prompt2: z.string(),
+        }),
+        outputSchema: z.object({ prompt1: z.string(), prompt2: z.string() }),
+        execute: async ({ inputData }) => {
+          return {
+            prompt1: inputData.prompt1,
+            prompt2: inputData.prompt2,
+          };
+        },
+      });
+
+      // TODO
+      // new Mastra({
+      //   logger,
+      //   workflows: { 'test-workflow': workflow },
+      //   agents: { 'test-agent-1': agent, 'test-agent-2': agent2 },
+      //   storage,
+      // });
+
+      workflow
+        .then(startStep)
+        .map({
+          prompt: {
+            step: startStep,
+            path: 'prompt1',
+          },
+        })
+        .then(agent)
+        .map({
+          prompt: {
+            step: startStep,
+            path: 'prompt2',
+          },
+        })
+        .then(agent2)
+        .commit();
+
+      const run = workflow.createRun();
+      const result = await run.start({
+        inputData: { prompt1: 'Capital of France, just the name', prompt2: 'Capital of UK, just the name' },
+      });
+
+      console.log(result);
+
+      expect(result.steps['test-agent-1']).toEqual({
+        status: 'success',
+        output: { text: 'Paris' },
+      });
+
+      expect(result.steps['test-agent-2']).toEqual({
+        status: 'success',
+        output: { text: 'London' },
+      });
+    });
+
+    it('should be able to use an agent in parallel', async () => {
+      const execute = vi.fn<any>().mockResolvedValue({ result: 'success' });
+      const finalStep = createStep({
+        id: 'finalStep',
+        inputSchema: z.object({
+          'nested-workflow': z.object({ text: z.string() }),
+          'nested-workflow-2': z.object({ text: z.string() }),
+        }),
+        outputSchema: z.object({
+          result: z.string(),
+        }),
+        execute,
+      });
+
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: z.object({
+          prompt1: z.string(),
+          prompt2: z.string(),
+        }),
+        outputSchema: z.object({
+          'nested-workflow': z.object({ text: z.string() }),
+          'nested-workflow-2': z.object({ text: z.string() }),
+        }),
+      });
+
+      const agent = new Agent({
+        name: 'test-agent-1',
+        instructions: 'test agent instructions',
+        model: openai('gpt-4'),
+      });
+
+      const agent2 = new Agent({
+        name: 'test-agent-2',
+        instructions: 'test agent instructions',
+        model: openai('gpt-4'),
+      });
+
+      const startStep = createStep({
+        id: 'start',
+        inputSchema: z.object({
+          prompt1: z.string(),
+          prompt2: z.string(),
+        }),
+        outputSchema: z.object({ prompt1: z.string(), prompt2: z.string() }),
+        execute: async ({ inputData }) => {
+          return {
+            prompt1: inputData.prompt1,
+            prompt2: inputData.prompt2,
+          };
+        },
+      });
+
+      // TODO
+      // new Mastra({
+      //   logger,
+      //   workflows: { 'test-workflow': workflow },
+      //   agents: { 'test-agent-1': agent, 'test-agent-2': agent2 },
+      //   storage,
+      // });
+
+      const nestedWorkflow1 = createWorkflow({
+        id: 'nested-workflow',
+        inputSchema: z.object({ prompt1: z.string(), prompt2: z.string() }),
+        outputSchema: z.object({ text: z.string() }),
+      })
+        .then(startStep)
+        .map({
+          prompt: {
+            step: startStep,
+            path: 'prompt1',
+          },
+        })
+        .then(agent)
+        .commit();
+
+      const nestedWorkflow2 = createWorkflow({
+        id: 'nested-workflow-2',
+        inputSchema: z.object({ prompt1: z.string(), prompt2: z.string() }),
+        outputSchema: z.object({ text: z.string() }),
+      })
+        .then(startStep)
+        .map({
+          prompt: {
+            step: startStep,
+            path: 'prompt2',
+          },
+        })
+        .then(agent2)
+        .commit();
+
+      workflow.parallel([nestedWorkflow1, nestedWorkflow2]).then(finalStep).commit();
+
+      const run = workflow.createRun();
+      const result = await run.start({
+        inputData: { prompt1: 'Capital of France, just the name', prompt2: 'Capital of UK, just the name' },
+      });
+
+      expect(execute).toHaveBeenCalledTimes(1);
+      expect(result.steps['finalStep']).toEqual({
+        status: 'success',
+        output: { result: 'success' },
+      });
+
+      expect(result.steps['nested-workflow']).toEqual({
+        status: 'success',
+        output: { text: 'Paris' },
+      });
+
+      expect(result.steps['nested-workflow-2']).toEqual({
+        status: 'success',
+        output: { text: 'London' },
+      });
+    });
   });
 });
