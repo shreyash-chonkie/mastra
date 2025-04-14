@@ -197,7 +197,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         });
 
         if (suspended) {
-          execResults = { status: 'suspended', output: suspended.payload };
+          execResults = { status: 'suspended', payload: suspended.payload };
         } else {
           execResults = { status: 'success', output: result };
         }
@@ -360,7 +360,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     if (hasFailed) {
       execResults = { status: 'failed', error: hasFailed.error };
     } else if (hasSuspended) {
-      execResults = { status: 'suspended', output: hasSuspended.payload };
+      execResults = { status: 'suspended', payload: hasSuspended.payload };
     } else {
       execResults = {
         status: 'success',
