@@ -383,7 +383,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         output: results.reduce((acc: Record<string, any>, result, index) => {
           if (result.status === 'success') {
             // @ts-ignore
-            acc[entry.steps[index]!.step.id] = result.output;
+            acc[stepsToRun[index]!.step.id] = result.output;
           }
 
           return acc;
