@@ -1,11 +1,10 @@
 "use client";
+import { T, Var } from "gt-next/client";
 import { Check, SendHorizontal } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SubscribeForm } from "./subscribe-form";
-import { logo } from "./logo";
-import { Var, T } from "gt-next/client";
 
 const links = [
   {
