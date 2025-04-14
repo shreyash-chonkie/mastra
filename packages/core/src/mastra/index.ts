@@ -353,6 +353,22 @@ This is a warning for now, but will throw an error in the future
     return workflow;
   }
 
+  public getNewWorkflow<TWorkflowId extends keyof TNewWorkflows>(
+    id: TWorkflowId,
+    { serialized }: { serialized?: boolean } = {},
+  ): TNewWorkflows[TWorkflowId] {
+    const workflow = this.#newWorkflows?.[id];
+    if (!workflow) {
+      throw new Error(`Workflow with ID ${String(id)} not found`);
+    }
+
+    if (serialized) {
+      return { name: workflow.name } as TNewWorkflows[TWorkflowId];
+    }
+
+    return workflow;
+  }
+
   public getWorkflows(props: { serialized?: boolean } = {}): Record<string, Workflow> {
     if (props.serialized) {
       return Object.entries(this.#workflows).reduce((acc, [k, v]) => {
