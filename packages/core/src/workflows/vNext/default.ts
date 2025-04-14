@@ -67,6 +67,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           },
           emitter: params.emitter,
         });
+        console.log('lastOutput', lastOutput);
         if (lastOutput.status !== 'success') {
           if (entry.type === 'step') {
             params.emitter.emit('watch', {

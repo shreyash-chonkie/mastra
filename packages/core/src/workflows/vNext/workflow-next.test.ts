@@ -2695,11 +2695,10 @@ describe('Workflow', () => {
   });
 
   describe('Nested workflows', () => {
-    it.only('should be able to nest workflows', async () => {
-      const start = vi.fn().mockImplementation(async ({ context }) => {
+    it('should be able to nest workflows', async () => {
+      const start = vi.fn().mockImplementation(async ({ inputData }) => {
         // Get the current value (either from trigger or previous increment)
-        const currentValue =
-          context.getStepResult('start')?.newValue || context.getStepResult('trigger')?.startValue || 0;
+        const currentValue = inputData.startValue || 0;
 
         // Increment the value
         const newValue = currentValue + 1;
@@ -2725,9 +2724,9 @@ describe('Workflow', () => {
         execute: other,
       });
 
-      const final = vi.fn().mockImplementation(async ({ context }) => {
-        const startVal = context.getStepResult('start')?.newValue ?? 0;
-        const otherVal = context.getStepResult('other')?.other ?? 0;
+      const final = vi.fn().mockImplementation(async ({ getStepResult }) => {
+        const startVal = getStepResult(startStep)?.newValue ?? 0;
+        const otherVal = getStepResult(otherStep)?.other ?? 0;
         return { finalValue: startVal + otherVal };
       });
       const last = vi.fn().mockImplementation(async () => {
@@ -2781,7 +2780,7 @@ describe('Workflow', () => {
         .commit();
 
       const run = counterWorkflow.createRun();
-      const result = await run.start({ inputData: { startValue: 1 } });
+      const result = await run.start({ inputData: { startValue: 0 } });
       console.log(result);
 
       expect(start).toHaveBeenCalledTimes(2);
@@ -2789,16 +2788,13 @@ describe('Workflow', () => {
       expect(final).toHaveBeenCalledTimes(2);
       expect(last).toHaveBeenCalledTimes(1);
       // @ts-ignore
-      expect(result.steps['nested-workflow-a'].output.results).toEqual({
-        start: { output: { newValue: 1 }, status: 'success' },
-        other: { output: { other: 26 }, status: 'success' },
-        final: { output: { finalValue: 26 + 1 }, status: 'success' },
+      expect(result.steps['nested-workflow-a'].output).toEqual({
+        finalValue: 26 + 1,
       });
 
       // @ts-ignore
-      expect(result.steps['nested-workflow-b'].output.results).toEqual({
-        start: { output: { newValue: 1 }, status: 'success' },
-        final: { output: { finalValue: 1 }, status: 'success' },
+      expect(result.steps['nested-workflow-b'].output).toEqual({
+        finalValue: 1,
       });
 
       expect(result.steps['last-step']).toEqual({
