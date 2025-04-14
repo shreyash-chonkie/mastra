@@ -12,10 +12,12 @@ import type { OtelConfig } from '../telemetry';
 import type { MastraTTS } from '../tts';
 import type { MastraVector } from '../vector';
 import type { Workflow } from '../workflows';
+import type { NewWorkflow } from '../workflows/vNext';
 
 export interface Config<
   TAgents extends Record<string, Agent<any>> = Record<string, Agent<any>>,
   TWorkflows extends Record<string, Workflow> = Record<string, Workflow>,
+  TNewWorkflows extends Record<string, NewWorkflow> = Record<string, NewWorkflow>,
   TVectors extends Record<string, MastraVector> = Record<string, MastraVector>,
   TTTS extends Record<string, MastraTTS> = Record<string, MastraTTS>,
   TLogger extends Logger = Logger,
@@ -27,6 +29,7 @@ export interface Config<
   vectors?: TVectors;
   logger?: TLogger | false;
   workflows?: TWorkflows;
+  newWorkflows?: TNewWorkflows;
   tts?: TTTS;
   telemetry?: OtelConfig;
   deployer?: MastraDeployer;
@@ -53,6 +56,7 @@ export interface Config<
 export class Mastra<
   TAgents extends Record<string, Agent<any>> = Record<string, Agent<any>>,
   TWorkflows extends Record<string, Workflow> = Record<string, Workflow>,
+  TNewWorkflows extends Record<string, NewWorkflow> = Record<string, NewWorkflow>,
   TVectors extends Record<string, MastraVector> = Record<string, MastraVector>,
   TTTS extends Record<string, MastraTTS> = Record<string, MastraTTS>,
   TLogger extends Logger = Logger,
@@ -62,6 +66,7 @@ export class Mastra<
   #agents: TAgents;
   #logger: TLogger;
   #workflows: TWorkflows;
+  #newWorkflows: TNewWorkflows;
   #tts?: TTTS;
   #deployer?: MastraDeployer;
   #serverMiddleware: Array<{
@@ -95,7 +100,7 @@ export class Mastra<
     return this.#memory;
   }
 
-  constructor(config?: Config<TAgents, TWorkflows, TVectors, TTTS, TLogger>) {
+  constructor(config?: Config<TAgents, TWorkflows, TNewWorkflows, TVectors, TTTS, TLogger>) {
     // Store server middleware with default path
     if (config?.serverMiddleware) {
       this.#serverMiddleware = config.serverMiddleware.map(m => ({
@@ -276,6 +281,24 @@ This is a warning for now, but will throw an error in the future
             this.#workflows[step.workflowId] = step.workflow;
           });
         }
+      });
+    }
+
+    this.#newWorkflows = {} as TNewWorkflows;
+    if (config?.newWorkflows) {
+      Object.entries(config.newWorkflows).forEach(([key, workflow]) => {
+        workflow.__registerMastra(this);
+        workflow.__registerPrimitives({
+          logger: this.getLogger(),
+          telemetry: this.#telemetry,
+          storage: this.storage,
+          memory: this.memory,
+          agents: agents,
+          tts: this.#tts,
+          vectors: this.#vectors,
+        });
+        // @ts-ignore
+        this.#newWorkflows[key] = workflow;
       });
     }
 

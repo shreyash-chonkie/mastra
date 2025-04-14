@@ -1,9 +1,9 @@
 import type EventEmitter from 'events';
 import { MastraBase } from '../../base';
 import { RegisteredLogger } from '../../logger';
-import type { MastraStorage } from '../../storage';
 import type { StepResult } from './types';
 import type { NewStep, StepFlowEntry } from '.';
+import type { Mastra } from '../..';
 
 /**
  * Represents an execution graph for a workflow
@@ -18,11 +18,16 @@ export interface ExecutionGraph {
  * Providers will implement this class to provide their own execution logic
  */
 export abstract class ExecutionEngine extends MastraBase {
-  protected storage: MastraStorage;
-  constructor({ storage }: { storage: MastraStorage }) {
+  protected mastra?: Mastra;
+  constructor({ mastra }: { mastra?: Mastra }) {
     super({ name: 'ExecutionEngine', component: RegisteredLogger.WORKFLOW });
-    this.storage = storage;
+    this.mastra = mastra;
   }
+
+  __registerMastra(mastra: Mastra) {
+    this.mastra = mastra;
+  }
+
   /**
    * Executes a workflow run with the provided execution graph and input
    * @param graph The execution graph to execute

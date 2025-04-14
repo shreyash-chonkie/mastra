@@ -5,6 +5,8 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { Agent } from '../../agent';
 import { createStep, createWorkflow, NewWorkflow } from './workflow';
+import { Mastra } from '../..';
+import { DefaultStorage } from '../../storage/libsql';
 
 describe('Workflow', () => {
   // Input and output schemas for testing
@@ -1589,18 +1591,16 @@ describe('Workflow', () => {
         outputSchema: z.object({}),
       });
 
-      // TODO
-      // const mastra = new Mastra({
-      //   logger: createLogger({
-      //     name: 'Workflow',
-      //   }),
-      //   storage,
-      // });
-
       const workflow = createWorkflow({
         id: 'test-workflow',
         inputSchema: z.object({}),
         outputSchema: z.object({}),
+      });
+
+      const mastra = new Mastra({
+        newWorkflows: {
+          'test-workflow': workflow,
+        },
       });
 
       workflow.then(step1).then(step2).commit();
@@ -1628,19 +1628,17 @@ describe('Workflow', () => {
         outputSchema: z.object({}),
       });
 
-      // TODO
-      // const mastra = new Mastra({
-      //   logger: createLogger({
-      //     name: 'Workflow',
-      //   }),
-      //   storage,
-      // });
-
       const workflow = createWorkflow({
         id: 'test-workflow',
         inputSchema: z.object({}),
         outputSchema: z.object({}),
         retryConfig: { attempts: 5, delay: 200 },
+      });
+
+      const mastra = new Mastra({
+        newWorkflows: {
+          'test-workflow': workflow,
+        },
       });
 
       workflow.then(step1).then(step2).commit();
@@ -1873,22 +1871,19 @@ describe('Workflow', () => {
         .then(evaluateImproved)
         .commit();
 
-      // TODO: add this logic back
       // Create a new storage instance for initial run
-      // const initialStorage = new DefaultStorage({
-      //   config: {
-      //     url: 'file::memory:',
-      //   },
-      // });
-      // await initialStorage.init();
+      const initialStorage = new DefaultStorage({
+        config: {
+          url: 'file::memory:',
+        },
+      });
+      await initialStorage.init();
 
-      // const mastra = new Mastra({
-      //   logger,
-      //   storage: initialStorage,
-      //   workflows: { 'test-workflow': promptEvalWorkflow },
-      // });
+      const mastra = new Mastra({
+        storage: initialStorage,
+        newWorkflows: { 'test-workflow': promptEvalWorkflow },
+      });
 
-      // const wf = mastra.getWorkflow('test-workflow');
       const run = promptEvalWorkflow.createRun();
 
       // Create a promise to track when the workflow is ready to resume
@@ -2004,14 +1999,10 @@ describe('Workflow', () => {
         ])
         .commit();
 
-      // TODO
-      // const mastra = new Mastra({
-      //   logger,
-      //   workflows: { 'test-workflow': workflow },
-      //   storage,
-      // });
+      const mastra = new Mastra({
+        newWorkflows: { 'test-workflow': workflow },
+      });
 
-      // const wf = mastra.getWorkflow('test-workflow');
       const run = workflow.createRun();
 
       const started = run.start({ inputData: { input: 'test' } });
@@ -2164,14 +2155,10 @@ describe('Workflow', () => {
         .parallel([humanIntervention, explainResponse])
         .commit();
 
-      // TODO
-      // const mastra = new Mastra({
-      //   logger,
-      //   workflows: { 'test-workflow': workflow },
-      //   storage,
-      // });
+      const mastra = new Mastra({
+        newWorkflows: { 'test-workflow': workflow },
+      });
 
-      // const wf = mastra.getWorkflow('test-workflow');
       const run = workflow.createRun();
       const started = run.start({ inputData: { input: 'test' } });
       let improvedResponseResultPromise: Promise<any | undefined>;
@@ -2327,14 +2314,10 @@ describe('Workflow', () => {
         .then(evaluateImproved)
         .commit();
 
-      // TODO
-      // const mastra = new Mastra({
-      //   logger,
-      //   workflows: { 'test-workflow': promptEvalWorkflow },
-      //   storage,
-      // });
+      const mastra = new Mastra({
+        newWorkflows: { 'test-workflow': promptEvalWorkflow },
+      });
 
-      // const wf = mastra.getWorkflow('test-workflow');
       const run = promptEvalWorkflow.createRun();
 
       const initialResult = await run.start({ inputData: { input: 'test' } });
@@ -2408,52 +2391,55 @@ describe('Workflow', () => {
     });
   });
 
-  // TODO
-  // describe('Workflow Runs', () => {
-  //   it('should return empty result when mastra is not initialized', async () => {
-  //     const workflow = createWorkflow({ id: 'test', inputSchema: z.object({}), outputSchema: z.object({}) });
-  //     const result = await workflow.getWorkflowRuns();
-  //     expect(result).toEqual({ runs: [], total: 0 });
-  //   });
+  describe('Workflow Runs', () => {
+    it('should return empty result when mastra is not initialized', async () => {
+      const workflow = createWorkflow({ id: 'test', inputSchema: z.object({}), outputSchema: z.object({}) });
+      const result = await workflow.getWorkflowRuns();
+      expect(result).toEqual({ runs: [], total: 0 });
+    });
 
-  //   it('should get workflow runs from storage', async () => {
-  //     await storage.init();
+    it('should get workflow runs from storage', async () => {
+      const step1Action = vi.fn<any>().mockResolvedValue({ result: 'success1' });
+      const step2Action = vi.fn<any>().mockResolvedValue({ result: 'success2' });
 
-  //     const step1Action = vi.fn<any>().mockResolvedValue({ result: 'success1' });
-  //     const step2Action = vi.fn<any>().mockResolvedValue({ result: 'success2' });
+      const step1 = createStep({
+        id: 'step1',
+        execute: step1Action,
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+      const step2 = createStep({
+        id: 'step2',
+        execute: step2Action,
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
 
-  //     const step1 = new Step({ id: 'step1', execute: step1Action });
-  //     const step2 = new Step({ id: 'step2', execute: step2Action });
+      const workflow = createWorkflow({ id: 'test-workflow', inputSchema: z.object({}), outputSchema: z.object({}) });
+      workflow.then(step1).then(step2).commit();
 
-  //     const workflow = new Workflow({ name: 'test-workflow' });
-  //     workflow.step(step1).then(step2).commit();
+      const mastra = new Mastra({
+        newWorkflows: {
+          'test-workflow': workflow,
+        },
+      });
 
-  //     const mastra = new Mastra({
-  //       logger,
-  //       storage,
-  //       workflows: {
-  //         'test-workflow': workflow,
-  //       },
-  //     });
+      // Create a few runs
+      const run1 = await workflow.createRun();
+      await run1.start({ inputData: {} });
 
-  //     const testWorkflow = mastra.getWorkflow('test-workflow');
+      const run2 = await workflow.createRun();
+      await run2.start({ inputData: {} });
 
-  //     // Create a few runs
-  //     const run1 = await testWorkflow.createRun();
-  //     await run1.start();
-
-  //     const run2 = await testWorkflow.createRun();
-  //     await run2.start();
-
-  //     const { runs, total } = await testWorkflow.getWorkflowRuns();
-  //     expect(total).toBe(2);
-  //     expect(runs).toHaveLength(2);
-  //     expect(runs.map(r => r.runId)).toEqual(expect.arrayContaining([run1.runId, run2.runId]));
-  //     expect(runs[0]?.workflowName).toBe('test-workflow');
-  //     expect(runs[0]?.snapshot).toBeDefined();
-  //     expect(runs[1]?.snapshot).toBeDefined();
-  //   });
-  // });
+      const { runs, total } = await workflow.getWorkflowRuns();
+      expect(total).toBe(2);
+      expect(runs).toHaveLength(2);
+      expect(runs.map(r => r.runId)).toEqual(expect.arrayContaining([run1.runId, run2.runId]));
+      expect(runs[0]?.workflowName).toBe('test-workflow');
+      expect(runs[0]?.snapshot).toBeDefined();
+      expect(runs[1]?.snapshot).toBeDefined();
+    });
+  });
 
   // TODO
   // describe('Accessing Mastra', () => {
@@ -2557,13 +2543,10 @@ describe('Workflow', () => {
         },
       });
 
-      // TODO
-      // new Mastra({
-      //   logger,
-      //   workflows: { 'test-workflow': workflow },
-      //   agents: { 'test-agent-1': agent, 'test-agent-2': agent2 },
-      //   storage,
-      // });
+      const mastra = new Mastra({
+        newWorkflows: { 'test-workflow': workflow },
+        agents: { 'test-agent-1': agent, 'test-agent-2': agent2 },
+      });
 
       workflow
         .then(startStep)
@@ -2654,13 +2637,10 @@ describe('Workflow', () => {
         },
       });
 
-      // TODO
-      // new Mastra({
-      //   logger,
-      //   workflows: { 'test-workflow': workflow },
-      //   agents: { 'test-agent-1': agent, 'test-agent-2': agent2 },
-      //   storage,
-      // });
+      const mastra = new Mastra({
+        newWorkflows: { 'test-workflow': workflow },
+        agents: { 'test-agent-1': agent, 'test-agent-2': agent2 },
+      });
 
       const nestedWorkflow1 = createWorkflow({
         id: 'nested-workflow',
@@ -3453,11 +3433,9 @@ describe('Workflow', () => {
           )
           .commit();
 
-        // TODO: remove this
-        // new Mastra({
-        //   logger,
-        //   workflows: { counterWorkflow },
-        // });
+        const mastra = new Mastra({
+          newWorkflows: { counterWorkflow },
+        });
 
         const run = counterWorkflow.createRun();
         const result = await run.start({ inputData: { startValue: 1 } });

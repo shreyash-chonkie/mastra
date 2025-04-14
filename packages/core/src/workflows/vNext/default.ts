@@ -50,7 +50,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       throw new Error('Workflow must have at least one step');
     }
 
-    await this.storage.init();
+    await this.mastra?.getStorage()?.init();
 
     let startIdx = 0;
     if (resume?.resumePath) {
@@ -542,7 +542,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       });
     }
 
-    await this.storage.persistWorkflowSnapshot({
+    await this.mastra?.getStorage()?.persistWorkflowSnapshot({
       workflowName: workflowId,
       runId,
       snapshot: {

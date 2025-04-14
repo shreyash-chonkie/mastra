@@ -11,6 +11,8 @@ import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
 import type { StepsRecord, StepResult, WatchEvent, ExtractSchemaType, ExtractSchemaFromStep } from './types';
 import type { VariableReference } from './types';
+import type { Mastra } from '../..';
+import type { MastraPrimitives } from '../../action';
 
 export type StepFlowEntry =
   | { type: 'step'; step: Step }
@@ -88,6 +90,7 @@ export type NewWorkflowConfig<
   TOutput extends z.ZodObject<any> = z.ZodObject<any>,
   TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
 > = {
+  mastra?: Mastra;
   id: TWorkflowId;
   description?: string | undefined;
   inputSchema: TInput;
@@ -116,14 +119,15 @@ export class NewWorkflow<
   public outputSchema: TOutput;
   protected stepFlow: StepFlowEntry[];
   protected executionEngine: ExecutionEngine;
-  protected storage: MastraStorage;
   protected executionGraph: ExecutionGraph;
   protected retryConfig: {
     attempts?: number;
     delay?: number;
   };
+  #mastra?: Mastra;
 
   constructor({
+    mastra,
     id,
     inputSchema,
     outputSchema,
@@ -139,19 +143,28 @@ export class NewWorkflow<
     this.retryConfig = retryConfig ?? { attempts: 0, delay: 0 };
     this.executionGraph = this.buildExecutionGraph();
     this.stepFlow = [];
-
-    // TODO: ability to pass this from mastra intsance
-    this.storage = new DefaultStorage({
-      config: {
-        url: `:memory:`,
-      },
-    });
+    this.#mastra = mastra;
 
     if (!executionEngine) {
       // TODO: this should be configured using the Mastra class instance that's passed in
-      this.executionEngine = new DefaultExecutionEngine({ storage: this.storage });
+      this.executionEngine = new DefaultExecutionEngine({ mastra: this.#mastra });
     } else {
       this.executionEngine = executionEngine;
+    }
+  }
+
+  __registerMastra(mastra: Mastra) {
+    this.#mastra = mastra;
+    this.executionEngine.__registerMastra(mastra);
+  }
+
+  __registerPrimitives(p: MastraPrimitives) {
+    if (p.telemetry) {
+      this.__setTelemetry(p.telemetry);
+    }
+
+    if (p.logger) {
+      this.__setLogger(p.logger);
     }
   }
 
@@ -304,7 +317,7 @@ export class NewWorkflow<
       runId: runIdToUse,
       executionEngine: this.executionEngine,
       executionGraph: this.executionGraph,
-      storage: this.storage,
+      mastra: this.#mastra,
       retryConfig: this.retryConfig,
     });
   }
@@ -352,6 +365,18 @@ export class NewWorkflow<
 
     return res.result;
   }
+
+  async getWorkflowRuns() {
+    const storage = this.#mastra?.getStorage();
+    console.log('mastra', this.#mastra);
+    console.log('storage', storage);
+    if (!storage) {
+      this.logger.debug('Cannot get workflow runs. Mastra engine is not initialized');
+      return { runs: [], total: 0 };
+    }
+
+    return storage.getWorkflowRuns({ workflowName: this.id });
+  }
 }
 
 /**
@@ -391,7 +416,7 @@ export class Run<
   /**
    * The storage for this run
    */
-  public storage: MastraStorage;
+  #mastra?: Mastra;
 
   protected retryConfig?: {
     attempts?: number;
@@ -403,7 +428,7 @@ export class Run<
     runId: string;
     executionEngine: ExecutionEngine;
     executionGraph: ExecutionGraph;
-    storage: MastraStorage;
+    mastra?: Mastra;
     retryConfig?: {
       attempts?: number;
       delay?: number;
@@ -413,7 +438,7 @@ export class Run<
     this.runId = params.runId;
     this.executionEngine = params.executionEngine;
     this.executionGraph = params.executionGraph;
-    this.storage = params.storage;
+    this.#mastra = params.mastra;
     this.emitter = new EventEmitter();
     this.retryConfig = params.retryConfig;
   }
@@ -498,7 +523,7 @@ export class Run<
     };
   }> {
     const steps = Array.isArray(params.step) ? params.step : [params.step];
-    const snapshot = await this.storage.loadWorkflowSnapshot({
+    const snapshot = await this.#mastra?.storage?.loadWorkflowSnapshot({
       workflowName: this.workflowId,
       runId: this.runId,
     });
