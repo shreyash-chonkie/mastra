@@ -67,7 +67,6 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           },
           emitter: params.emitter,
         });
-        console.log('lastOutput', lastOutput);
         if (lastOutput.status !== 'success') {
           if (entry.type === 'step') {
             params.emitter.emit('watch', {
@@ -263,13 +262,10 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     } else {
       execResults = {
         status: 'success',
-        output: results.reduce((acc: Record<string, any>, result) => {
+        output: results.reduce((acc: Record<string, any>, result, index) => {
           if (result.status === 'success') {
-            Object.entries(result).forEach(([key, value]) => {
-              if (value.status === 'success') {
-                acc[key] = value.output;
-              }
-            });
+            // @ts-ignore
+            acc[entry.steps[index]!.step.id] = result.output;
           }
 
           return acc;
@@ -365,13 +361,10 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     } else {
       execResults = {
         status: 'success',
-        output: results.reduce((acc: Record<string, any>, result) => {
+        output: results.reduce((acc: Record<string, any>, result, index) => {
           if (result.status === 'success') {
-            Object.entries(result).forEach(([key, value]) => {
-              if (value.status === 'success') {
-                acc[key] = value.output;
-              }
-            });
+            // @ts-ignore
+            acc[entry.steps[index]!.step.id] = result.output;
           }
 
           return acc;
