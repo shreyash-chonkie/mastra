@@ -258,7 +258,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     if (hasFailed) {
       execResults = { status: 'failed', error: hasFailed.error };
     } else if (hasSuspended) {
-      execResults = { status: 'suspended', output: hasSuspended.payload };
+      execResults = { status: 'suspended', payload: hasSuspended.payload };
     } else {
       execResults = {
         status: 'success',
@@ -346,6 +346,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           entry: step,
           prevStep,
           stepResults,
+          resume,
           executionContext: {
             executionPath: [...executionContext.executionPath, index],
             suspendedPaths: executionContext.suspendedPaths,
@@ -480,7 +481,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         emitter,
       });
     } else if (resume?.resumePath?.length && (entry.type === 'parallel' || entry.type === 'conditional')) {
-      const idx = resume.resumePath.pop();
+      const idx = resume.resumePath.shift();
       return this.executeEntry({
         workflowId,
         runId,

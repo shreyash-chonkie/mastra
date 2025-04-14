@@ -193,6 +193,7 @@ export class NewWorkflow<
     >;
   }
 
+  // TODO: make typing better here
   parallel<TParallelSteps extends Step<string, any, any>[]>(steps: TParallelSteps) {
     this.stepFlow.push({ type: 'parallel', steps: steps.map(step => ({ type: 'step', step: step as any })) });
     return this as unknown as NewWorkflow<
@@ -210,6 +211,7 @@ export class NewWorkflow<
     >;
   }
 
+  // TODO: make typing better here
   branch<TBranchSteps extends Array<[ExecuteFunction<z.infer<any>, any>, Step<string, any, any>]>>(
     steps: TBranchSteps,
   ) {

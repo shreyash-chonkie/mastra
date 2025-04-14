@@ -2042,178 +2042,189 @@ describe('Workflow', () => {
       });
     });
 
-    //   it('should handle complex workflow with multiple suspends', async () => {
-    //     const getUserInputAction = vi.fn().mockResolvedValue({ userInput: 'test input' });
-    //     const promptAgentAction = vi.fn().mockResolvedValue({ modelOutput: 'test output' });
+    it.only('should handle complex workflow with multiple suspends', async () => {
+      const getUserInputAction = vi.fn().mockResolvedValue({ userInput: 'test input' });
+      const promptAgentAction = vi.fn().mockResolvedValue({ modelOutput: 'test output' });
 
-    //     const evaluateToneAction = vi.fn().mockResolvedValue({
-    //       toneScore: { score: 0.8 },
-    //       completenessScore: { score: 0.7 },
-    //     });
-    //     const improveResponseAction = vi
-    //       .fn()
-    //       .mockImplementationOnce(async ({ suspend }) => {
-    //         await suspend();
-    //       })
-    //       .mockImplementationOnce(() => ({ improvedOutput: 'improved output' }));
-    //     const evaluateImprovedAction = vi.fn().mockResolvedValue({
-    //       toneScore: { score: 0.9 },
-    //       completenessScore: { score: 0.8 },
-    //     });
-    //     const humanInterventionAction = vi
-    //       .fn()
-    //       .mockImplementationOnce(async ({ suspend }) => {
-    //         await suspend();
-    //       })
-    //       .mockImplementationOnce(() => ({ improvedOutput: 'human intervention output' }));
-    //     const explainResponseAction = vi.fn().mockResolvedValue({
-    //       improvedOutput: 'explanation output',
-    //     });
+      const evaluateToneAction = vi.fn().mockResolvedValue({
+        toneScore: { score: 0.8 },
+        completenessScore: { score: 0.7 },
+      });
+      const improveResponseAction = vi
+        .fn()
+        .mockImplementationOnce(async ({ suspend }) => {
+          console.log('suspend improveResponse');
+          await suspend();
+        })
+        .mockImplementationOnce(() => ({ improvedOutput: 'improved output' }));
+      const evaluateImprovedAction = vi.fn().mockResolvedValue({
+        toneScore: { score: 0.9 },
+        completenessScore: { score: 0.8 },
+      });
+      const humanInterventionAction = vi
+        .fn()
+        .mockImplementationOnce(async ({ suspend }) => {
+          console.log('suspend humanIntervention');
+          await suspend();
+        })
+        .mockImplementationOnce(() => {
+          console.log('human intervention output');
+          return { improvedOutput: 'human intervention output' };
+        });
+      const explainResponseAction = vi.fn().mockResolvedValue({
+        improvedOutput: 'explanation output',
+      });
 
-    //     const getUserInput = new Step({
-    //       id: 'getUserInput',
-    //       execute: getUserInputAction,
-    //       outputSchema: z.object({ userInput: z.string() }),
-    //     });
-    //     const promptAgent = new Step({
-    //       id: 'promptAgent',
-    //       execute: promptAgentAction,
-    //       outputSchema: z.object({ modelOutput: z.string() }),
-    //     });
-    //     const evaluateTone = new Step({
-    //       id: 'evaluateToneConsistency',
-    //       execute: evaluateToneAction,
-    //       outputSchema: z.object({
-    //         toneScore: z.any(),
-    //         completenessScore: z.any(),
-    //       }),
-    //     });
-    //     const improveResponse = new Step({
-    //       id: 'improveResponse',
-    //       execute: improveResponseAction,
-    //       outputSchema: z.object({ improvedOutput: z.string() }),
-    //     });
-    //     const evaluateImproved = new Step({
-    //       id: 'evaluateImprovedResponse',
-    //       execute: evaluateImprovedAction,
-    //       outputSchema: z.object({
-    //         toneScore: z.any(),
-    //         completenessScore: z.any(),
-    //       }),
-    //     });
-    //     const humanIntervention = new Step({
-    //       id: 'humanIntervention',
-    //       execute: humanInterventionAction,
-    //       outputSchema: z.object({ improvedOutput: z.string() }),
-    //     });
-    //     const explainResponse = new Step({
-    //       id: 'explainResponse',
-    //       execute: explainResponseAction,
-    //       outputSchema: z.object({ improvedOutput: z.string() }),
-    //     });
+      const getUserInput = createStep({
+        id: 'getUserInput',
+        execute: getUserInputAction,
+        inputSchema: z.object({ input: z.string() }),
+        outputSchema: z.object({ userInput: z.string() }),
+      });
+      const promptAgent = createStep({
+        id: 'promptAgent',
+        execute: promptAgentAction,
+        inputSchema: z.object({ userInput: z.string() }),
+        outputSchema: z.object({ modelOutput: z.string() }),
+      });
+      const evaluateTone = createStep({
+        id: 'evaluateToneConsistency',
+        execute: evaluateToneAction,
+        inputSchema: z.object({ modelOutput: z.string() }),
+        outputSchema: z.object({
+          toneScore: z.any(),
+          completenessScore: z.any(),
+        }),
+      });
+      const improveResponse = createStep({
+        id: 'improveResponse',
+        execute: improveResponseAction,
+        inputSchema: z.object({ toneScore: z.any(), completenessScore: z.any() }),
+        outputSchema: z.object({ improvedOutput: z.string() }),
+      });
+      const evaluateImproved = createStep({
+        id: 'evaluateImprovedResponse',
+        execute: evaluateImprovedAction,
+        inputSchema: z.object({ improvedOutput: z.string() }),
+        outputSchema: z.object({
+          toneScore: z.any(),
+          completenessScore: z.any(),
+        }),
+      });
+      const humanIntervention = createStep({
+        id: 'humanIntervention',
+        execute: humanInterventionAction,
+        inputSchema: z.object({ toneScore: z.any(), completenessScore: z.any(), humanPrompt: z.string().optional() }),
+        outputSchema: z.object({ improvedOutput: z.string() }),
+      });
+      const explainResponse = createStep({
+        id: 'explainResponse',
+        execute: explainResponseAction,
+        inputSchema: z.object({ toneScore: z.any(), completenessScore: z.any() }),
+        outputSchema: z.object({ improvedOutput: z.string() }),
+      });
 
-    //     const workflow = new Workflow({
-    //       name: 'test-workflow',
-    //       triggerSchema: z.object({ input: z.string() }),
-    //     });
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: z.object({ input: z.string() }),
+        outputSchema: z.object({}),
+      });
 
-    //     workflow
-    //       .step(getUserInput)
-    //       .then(promptAgent)
-    //       .then(evaluateTone)
-    //       .then(improveResponse)
-    //       .then(evaluateImproved)
-    //       .after(evaluateImproved)
-    //       .step(humanIntervention, {
-    //         id: 'humanIntervention',
-    //         when: () => Promise.resolve(true),
-    //       })
-    //       .step(explainResponse, {
-    //         id: 'explainResponse',
-    //         when: () => Promise.resolve(false),
-    //       })
-    //       .commit();
+      workflow
+        .then(getUserInput)
+        .then(promptAgent)
+        .then(evaluateTone)
+        .then(improveResponse)
+        .then(evaluateImproved)
+        .parallel([humanIntervention, explainResponse])
+        .commit();
 
-    //     const mastra = new Mastra({
-    //       logger,
-    //       workflows: { 'test-workflow': workflow },
-    //       storage,
-    //     });
+      // TODO
+      // const mastra = new Mastra({
+      //   logger,
+      //   workflows: { 'test-workflow': workflow },
+      //   storage,
+      // });
 
-    //     const wf = mastra.getWorkflow('test-workflow');
-    //     const run = wf.createRun();
-    //     const started = run.start({ triggerData: { input: 'test' } });
-    //     let improvedResponseResultPromise: Promise<WorkflowResumeResult<any> | undefined>;
+      // const wf = mastra.getWorkflow('test-workflow');
+      const run = workflow.createRun();
+      const started = run.start({ inputData: { input: 'test' } });
+      let improvedResponseResultPromise: Promise<any | undefined>;
 
-    //     const result = await new Promise<WorkflowResumeResult<any>>((resolve, reject) => {
-    //       let hasResumed = false;
-    //       run.watch(async data => {
-    //         const isHumanInterventionSuspended = data.activePaths.get('humanIntervention')?.status === 'suspended';
-    //         const isImproveResponseSuspended = data.activePaths.get('improveResponse')?.status === 'suspended';
+      const resultPromise = new Promise<any>((resolve, reject) => {
+        let hasResumed = false;
+        let hasResumedImproveResponse = false;
+        run.watch(async data => {
+          const isHumanInterventionSuspended =
+            data.payload?.currentStep?.id === 'humanIntervention' && data.payload?.currentStep?.status === 'suspended';
+          const isImproveResponseSuspended =
+            data.payload?.currentStep?.id === 'improveResponse' && data.payload?.currentStep?.status === 'suspended';
 
-    //         if (isHumanInterventionSuspended) {
-    //           const newCtx = {
-    //             ...data.results,
-    //             humanPrompt: 'What improvements would you suggest?',
-    //           };
-    //           if (!hasResumed) {
-    //             hasResumed = true;
+          if (isHumanInterventionSuspended) {
+            if (!hasResumed) {
+              hasResumed = true;
 
-    //             try {
-    //               const resumed = await run.resume({
-    //                 stepId: 'humanIntervention',
-    //                 context: newCtx,
-    //               });
-    //               resolve(resumed as any);
-    //             } catch (error) {
-    //               reject(error);
-    //             }
-    //           }
-    //         } else if (isImproveResponseSuspended) {
-    //           const resumed = run.resume({
-    //             stepId: 'improveResponse',
-    //             context: {
-    //               ...data.results,
-    //             },
-    //           });
-    //           improvedResponseResultPromise = resumed;
-    //         }
-    //       });
-    //     });
+              try {
+                const resumed = await run.resume({
+                  step: humanIntervention,
+                  inputData: {
+                    humanPrompt: 'What improvements would you suggest?',
+                  },
+                });
+                resolve(resumed as any);
+              } catch (error) {
+                reject(error);
+              }
+            }
+          } else if (isImproveResponseSuspended) {
+            if (!hasResumedImproveResponse) {
+              hasResumedImproveResponse = true;
+              const resumed = run.resume({
+                step: improveResponse,
+                inputData: {
+                  ...data.payload.workflowState.steps,
+                },
+              });
+              improvedResponseResultPromise = resumed;
+            }
+          }
+        });
+      });
 
-    //     const initialResult = await started;
+      const initialResult = await started;
+      console.dir({ initialResult }, { depth: null });
+      expect(initialResult?.steps.improveResponse.status).toBe('suspended');
+      // @ts-ignore
+      const improvedResponseResult = await improvedResponseResultPromise;
+      console.dir({ improvedResponseResult }, { depth: null });
 
-    //     // @ts-ignore
-    //     const improvedResponseResult = await improvedResponseResultPromise;
-    //     expect(initialResult?.results.improveResponse.status).toBe('suspended');
+      expect(improvedResponseResult?.steps.humanIntervention.status).toBe('suspended');
+      expect(improvedResponseResult?.steps.improveResponse.status).toBe('success');
+      expect(improvedResponseResult?.steps.evaluateImprovedResponse.status).toBe('success');
+      expect(humanInterventionAction).toHaveBeenCalledTimes(2);
+      expect(explainResponseAction).toHaveBeenCalledTimes(1);
 
-    //     expect(improvedResponseResult?.results.humanIntervention.status).toBe('suspended');
-    //     expect(improvedResponseResult?.results.improveResponse.status).toBe('success');
-    //     expect(improvedResponseResult?.results.evaluateImprovedResponse.status).toBe('success');
-    //     expect(improvedResponseResult?.results.explainResponse.status).toBe('skipped');
-    //     expect(humanInterventionAction).toHaveBeenCalledTimes(2);
-    //     expect(explainResponseAction).not.toHaveBeenCalled();
+      const result = await resultPromise;
+      if (!result) {
+        throw new Error('Resume failed to return a result');
+      }
 
-    //     if (!result) {
-    //       throw new Error('Resume failed to return a result');
-    //     }
-
-    //     expect(result.results).toEqual({
-    //       getUserInput: { status: 'success', output: { userInput: 'test input' } },
-    //       promptAgent: { status: 'success', output: { modelOutput: 'test output' } },
-    //       evaluateToneConsistency: {
-    //         status: 'success',
-    //         output: { toneScore: { score: 0.8 }, completenessScore: { score: 0.7 } },
-    //       },
-    //       improveResponse: { status: 'success', output: { improvedOutput: 'improved output' } },
-    //       evaluateImprovedResponse: {
-    //         status: 'success',
-    //         output: { toneScore: { score: 0.9 }, completenessScore: { score: 0.8 } },
-    //       },
-    //       humanIntervention: { status: 'success', output: { improvedOutput: 'human intervention output' } },
-    //       explainResponse: { status: 'skipped' },
-    //     });
-    //   });
+      expect(result.steps).toEqual({
+        input: { input: 'test' },
+        getUserInput: { status: 'success', output: { userInput: 'test input' } },
+        promptAgent: { status: 'success', output: { modelOutput: 'test output' } },
+        evaluateToneConsistency: {
+          status: 'success',
+          output: { toneScore: { score: 0.8 }, completenessScore: { score: 0.7 } },
+        },
+        improveResponse: { status: 'success', output: { improvedOutput: 'improved output' } },
+        evaluateImprovedResponse: {
+          status: 'success',
+          output: { toneScore: { score: 0.9 }, completenessScore: { score: 0.8 } },
+        },
+        humanIntervention: { status: 'success', output: { improvedOutput: 'human intervention output' } },
+      });
+    });
 
     //   it('should handle basic suspend and resume flow with async await syntax', async () => {
     //     const getUserInputAction = vi.fn().mockResolvedValue({ userInput: 'test input' });
