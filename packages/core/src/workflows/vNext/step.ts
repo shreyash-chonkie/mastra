@@ -27,8 +27,8 @@ export interface NewStep<
 > {
   id: TStepId;
   description?: string;
-  inputSchema?: TSchemaIn;
-  outputSchema?: TSchemaOut;
+  inputSchema: TSchemaIn;
+  outputSchema: TSchemaOut;
   execute: ExecuteFunction<z.infer<TSchemaIn>, z.infer<TSchemaOut>>;
   retries?: number;
 }
