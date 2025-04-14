@@ -926,7 +926,10 @@ export class Workflow<
       onFinish: () => {
         this.#runs.delete(run.runId);
       },
-      events,
+      events: {
+        ...this.events,
+        ...events,
+      },
     });
     this.#runs.set(run.runId, run);
     return {
@@ -1189,7 +1192,7 @@ export class Workflow<
       return activeRun.resume({ stepId, context: resumeContext, container });
     }
 
-    const run = this.createRun({ runId });
+    const run = this.createRun({ runId, events: this.events });
     return run.resume({ stepId, context: resumeContext, container });
   }
 
@@ -1211,7 +1214,8 @@ export class Workflow<
 
   async resumeWithEvent(runId: string, eventName: string, data: any) {
     this.logger.warn(`Please use 'resumeWithEvent' on the 'createRun' call instead, resumeWithEvent is deprecated`);
-    const event = this.events?.[eventName];
+    const run = this.#runs.get(runId);
+    const event = this.events?.[eventName] ?? run?.events?.[eventName];
     if (!event) {
       throw new Error(`Event ${eventName} not found`);
     }
