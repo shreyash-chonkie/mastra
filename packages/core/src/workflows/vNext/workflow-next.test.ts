@@ -1736,6 +1736,7 @@ describe('Workflow', () => {
         inputSchema: z.object({}),
         outputSchema: z.object({}),
       });
+      // TODO: fix types
       workflow.then(step1).then(randomTool).commit();
 
       const result = await workflow.createRun().start({ inputData: {} });
