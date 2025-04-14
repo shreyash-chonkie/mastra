@@ -869,10 +869,11 @@ export class Workflow<
   }
 
   afterEvent(eventName: string) {
-    const event = this.events?.[eventName];
-    if (!event) {
-      throw new Error(`Event ${eventName} not found`);
-    }
+    // if the event was defined on run, it won't exist at this point
+    // const event = this.events?.[eventName];
+    // if (!event) {
+    //   throw new Error(`Event ${eventName} not found`);
+    // }
 
     const lastStep = this.#steps[this.#lastStepStack[this.#lastStepStack.length - 1] ?? ''];
     if (!lastStep) {
@@ -912,6 +913,8 @@ export class Workflow<
     runId?: string;
     events?: Record<string, { schema: z.ZodObject<any> }>;
   } = {}): WorkflowResultReturn<TResultSchema, TTriggerSchema, TSteps> {
+    this.events = { ...this.events, ...events };
+
     const run = new WorkflowInstance<TSteps, TTriggerSchema, TResultSchema>({
       logger: this.logger,
       name: this.name,
@@ -926,10 +929,7 @@ export class Workflow<
       onFinish: () => {
         this.#runs.delete(run.runId);
       },
-      events: {
-        ...this.events,
-        ...events,
-      },
+      events: this.events,
     });
     this.#runs.set(run.runId, run);
     return {
