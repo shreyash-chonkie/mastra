@@ -5,10 +5,12 @@ import type {
   StreamTextOnFinishCallback,
   StreamTextOnStepFinishCallback,
   TelemetrySettings,
+  ToolExecutionOptions,
 } from 'ai';
 import type { JSONSchema7 } from 'json-schema';
 import type { z, ZodSchema } from 'zod';
 
+import type { MastraPrimitives } from '../action';
 import type { Container } from '../di';
 import type { Metric } from '../eval';
 import type {
@@ -24,7 +26,6 @@ import type { MastraMemory } from '../memory/memory';
 import type { MemoryConfig } from '../memory/types';
 import type { ToolAction, VercelTool } from '../tools';
 import type { CompositeVoice } from '../voice';
-import type { MastraPrimitives } from '../action';
 
 export type { Message as AiMessageType } from 'ai';
 
@@ -53,6 +54,21 @@ export interface AgentConfig<
   voice?: CompositeVoice;
 }
 
+export type onAfterToolExecute = ({
+  mastra,
+  runId,
+}: {
+  mastra: (Mastra & MastraPrimitives) | MastraPrimitives;
+  runId?: string;
+  threadId?: string;
+  resourceId?: string;
+  container?: Container;
+  memory?: MastraMemory;
+  context: Record<string, any>;
+  execOptions?: ToolExecutionOptions;
+  result: any;
+}) => Promise<void> | void;
+
 /**
  * Options for generating responses with an agent
  * @template Z - The schema type for structured output (Zod schema or JSON schema)
@@ -62,6 +78,7 @@ export type AgentGenerateOptions<Z extends ZodSchema | JSONSchema7 | undefined =
   instructions?: string;
   /** Additional tool sets that can be used for this generation */
   toolsets?: ToolsetsInput;
+  clientTools?: ToolsInput;
   /** Additional context messages to include */
   context?: CoreMessage[];
   /** Memory configuration options */
@@ -82,10 +99,10 @@ export type AgentGenerateOptions<Z extends ZodSchema | JSONSchema7 | undefined =
   telemetry?: TelemetrySettings;
   /** Container for dependency injection */
   container?: Container;
+  /** Callback fired after each tool execution */
+  onAfterToolExecute?: onAfterToolExecute;
 } & ({ resourceId?: undefined; threadId?: undefined } | { resourceId: string; threadId: string }) &
   (Z extends undefined ? DefaultLLMTextOptions : DefaultLLMTextObjectOptions);
-
-export type AgentGenerateOptionsServer<Z extends ZodSchema | JSONSchema7 | undefined = undefined> = AgentGenerateOptions<Z> & { onAfterToolExecute?: ({ mastra }: { mastra: (Mastra & MastraPrimitives) | MastraPrimitives }) => void };
 
 /**
  * Options for streaming responses with an agent
@@ -96,6 +113,7 @@ export type AgentStreamOptions<Z extends ZodSchema | JSONSchema7 | undefined = u
   instructions?: string;
   /** Additional tool sets that can be used for this generation */
   toolsets?: ToolsetsInput;
+  clientTools?: ToolsInput;
   /** Additional context messages to include */
   context?: CoreMessage[];
   /** Memory configuration options */
@@ -104,10 +122,10 @@ export type AgentStreamOptions<Z extends ZodSchema | JSONSchema7 | undefined = u
   runId?: string;
   /** Callback fired when streaming completes */
   onFinish?: Z extends undefined
-  ? StreamTextOnFinishCallback<any>
-  : Z extends ZodSchema
-  ? StreamObjectOnFinishCallback<z.infer<Z>>
-  : StreamObjectOnFinishCallback<any>;
+    ? StreamTextOnFinishCallback<any>
+    : Z extends ZodSchema
+      ? StreamObjectOnFinishCallback<z.infer<Z>>
+      : StreamObjectOnFinishCallback<any>;
   /** Callback fired after each generation step completes */
   onStepFinish?: Z extends undefined ? StreamTextOnStepFinishCallback<any> : never;
   /** Maximum number of steps allowed for generation */
@@ -124,5 +142,7 @@ export type AgentStreamOptions<Z extends ZodSchema | JSONSchema7 | undefined = u
   telemetry?: TelemetrySettings;
   /** Container for dependency injection */
   container?: Container;
+  /** Callback fired after each tool execution */
+  onAfterToolExecute?: onAfterToolExecute;
 } & ({ resourceId?: undefined; threadId?: undefined } | { resourceId: string; threadId: string }) &
   (Z extends undefined ? DefaultLLMStreamOptions : DefaultLLMStreamObjectOptions);

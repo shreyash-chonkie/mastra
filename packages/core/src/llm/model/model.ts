@@ -123,7 +123,6 @@ export class MastraLLM extends MastraLLMBase {
     messages,
     maxSteps = 5,
     tools,
-    convertedTools,
     temperature,
     toolChoice = 'auto',
     onStepFinish,
@@ -143,10 +142,10 @@ export class MastraLLM extends MastraLLMBase {
       maxSteps,
       threadId,
       resourceId,
-      tools: Object.keys(tools || convertedTools || {}),
+      tools: Object.keys(tools || {}),
     });
 
-    const finalTools = convertedTools || this.convertTools({ tools, runId, threadId, resourceId, memory, container });
+    const finalTools = tools || {};
 
     const argsForExecute = {
       model,
@@ -215,7 +214,6 @@ export class MastraLLM extends MastraLLMBase {
     onStepFinish,
     maxSteps = 5,
     tools,
-    convertedTools,
     structuredOutput,
     runId,
     temperature,
@@ -231,7 +229,7 @@ export class MastraLLM extends MastraLLMBase {
 
     this.logger.debug(`[LLM] - Generating a text object`, { runId });
 
-    const finalTools = convertedTools || this.convertTools({ tools, runId, threadId, resourceId, memory, container });
+    const finalTools = tools || {};
 
     const argsForExecute = {
       model,
@@ -295,7 +293,6 @@ export class MastraLLM extends MastraLLMBase {
     onFinish,
     maxSteps = 5,
     tools,
-    convertedTools,
     runId,
     temperature,
     toolChoice = 'auto',
@@ -314,10 +311,10 @@ export class MastraLLM extends MastraLLMBase {
       resourceId,
       messages,
       maxSteps,
-      tools: Object.keys(tools || convertedTools || {}),
+      tools: Object.keys(tools || {}),
     });
 
-    const finalTools = convertedTools || this.convertTools({ tools, runId, threadId, resourceId, memory, container });
+    const finalTools = tools || {};
 
     const argsForExecute = {
       model,
@@ -399,7 +396,6 @@ export class MastraLLM extends MastraLLMBase {
     messages,
     runId,
     tools,
-    convertedTools,
     maxSteps = 5,
     toolChoice = 'auto',
     container,
@@ -418,10 +414,10 @@ export class MastraLLM extends MastraLLMBase {
       runId,
       messages,
       maxSteps,
-      tools: Object.keys(tools || convertedTools || {}),
+      tools: Object.keys(tools || {}),
     });
 
-    const finalTools = convertedTools || this.convertTools({ tools, runId, threadId, resourceId, memory, container });
+    const finalTools = tools || {};
 
     const argsForExecute = {
       model,

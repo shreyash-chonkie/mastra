@@ -14,7 +14,6 @@ import type {
   GetTelemetryResponse,
   GetToolResponse,
   GetWorkflowResponse,
-  RequestOptions,
   SaveMessageToMemoryParams,
   SaveMessageToMemoryResponse,
 } from './types';

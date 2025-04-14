@@ -268,10 +268,10 @@ async function main() {
 
   // await generateStreamObject();
 
-  const query1 = 'What happened in San Francisco last week?';
-
-  const pastaResponse = await responsesAgent.generate(query1, {
-    instructions: 'You take every recipe you get an exaggerate it and use weird ingredients.',
+  const pastaResponse = await responsesAgent.generate('Use the cooking tool', {
+    onAfterToolExecute: props => {
+      console.log(props);
+    },
   });
 
   console.log(pastaResponse.text);

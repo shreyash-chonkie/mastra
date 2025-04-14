@@ -1,8 +1,8 @@
+import { processDataStream } from '@ai-sdk/ui-utils';
 import type { GenerateReturn } from '@mastra/core';
 import type { JSONSchema7 } from 'json-schema';
 import { ZodSchema } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { processDataStream } from '@ai-sdk/ui-utils';
 
 import type {
   GenerateParams,

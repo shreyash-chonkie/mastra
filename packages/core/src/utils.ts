@@ -6,7 +6,7 @@ import { z } from 'zod';
 import type { ZodObject } from 'zod';
 
 import type { MastraPrimitives } from './action';
-import type { ToolsInput } from './agent';
+import type { onAfterToolExecute, ToolsInput } from './agent';
 import { Container } from './di';
 import type { Logger } from './logger';
 import type { Mastra } from './mastra';
@@ -304,7 +304,7 @@ export function resolveSerializedZodOutput(schema: string): z.ZodType {
  */
 export function isVercelTool(tool?: ToolToConvert): tool is VercelTool {
   // Checks if this tool is not an instance of Tool
-  return !(tool instanceof Tool);
+  return !!(tool && !(tool instanceof Tool) && 'parameters' in tool);
 }
 
 interface ToolOptions {
@@ -318,7 +318,7 @@ interface ToolOptions {
   container: Container;
   memory?: MastraMemory;
   agentName?: string;
-  onAfterToolExecute?: ({ mastra }: { mastra: (Mastra & MastraPrimitives) | MastraPrimitives }) => void;
+  onAfterToolExecute?: onAfterToolExecute;
 }
 
 type ToolToConvert = VercelTool | ToolAction<any, any, any>;
@@ -327,7 +327,7 @@ interface LogOptions {
   agentName?: string;
   toolName: string;
   tool?: ToolToConvert;
-  type?: 'tool' | 'toolset';
+  type?: 'tool' | 'toolset' | 'client-tool';
 }
 
 interface LogMessageOptions {
@@ -354,7 +354,7 @@ function createLogMessageOptions({ agentName, toolName, tool, type }: LogOptions
   };
 }
 
-function createExecute(tool: ToolToConvert, options: ToolOptions, logType?: 'tool' | 'toolset') {
+function createExecute(tool: ToolToConvert, options: ToolOptions, logType?: 'tool' | 'toolset' | 'client-tool') {
   // dont't add memory or mastra to logging
   const { logger, mastra: _mastra, memory: _memory, container, ...rest } = options;
 
@@ -391,12 +391,25 @@ function createExecute(tool: ToolToConvert, options: ToolOptions, logType?: 'too
       logger.debug(start, { ...rest, args });
       const result = await execFunction(args, execOptions);
 
+      console.log(options?.onAfterToolExecute);
+
       if (options.mastra && options.onAfterToolExecute) {
-        await Promise.resolve(options.onAfterToolExecute({ mastra: options.mastra }));
+        await Promise.resolve(
+          options.onAfterToolExecute({
+            mastra: options.mastra,
+            result,
+            context: args,
+            execOptions,
+            runId: options.runId,
+            threadId: options.threadId,
+            container: container ?? new Container(),
+            memory: options.memory,
+            resourceId: options.resourceId,
+          }),
+        );
       }
 
       return result;
-
     } catch (err) {
       logger.error(error, { ...rest, error: err, args });
       throw err;
@@ -474,6 +487,11 @@ function convertVercelToolParameters(tool: VercelTool): z.ZodType {
   return isZodType(schema) ? schema : resolveSerializedZodOutput(jsonSchemaToZod(schema));
 }
 
+function convertInputSchema(tool: ToolAction<any, any, any>): z.ZodType {
+  const schema = tool.inputSchema ?? z.object({});
+  return isZodType(schema) ? schema : resolveSerializedZodOutput(jsonSchemaToZod(schema));
+}
+
 /**
  * Converts a Vercel Tool or Mastra Tool into a CoreTool format
  * @param tool - The tool to convert (either VercelTool or ToolAction)
@@ -481,13 +499,18 @@ function convertVercelToolParameters(tool: VercelTool): z.ZodType {
  * @param logType - Type of tool to log (tool or toolset)
  * @returns A CoreTool that can be used by the system
  */
-export function makeCoreTool(tool: ToolToConvert, options: ToolOptions, logType?: 'tool' | 'toolset'): CoreTool {
+export function makeCoreTool(
+  tool: ToolToConvert,
+  options: ToolOptions,
+  logType?: 'tool' | 'toolset' | 'client-tool',
+): CoreTool {
   // Helper to get parameters based on tool type
   const getParameters = () => {
     if (isVercelTool(tool)) {
       return convertVercelToolParameters(tool);
     }
-    return tool.inputSchema ?? z.object({});
+
+    return convertInputSchema(tool);
   };
 
   // Check if this is a provider-defined tool

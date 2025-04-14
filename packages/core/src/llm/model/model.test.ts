@@ -2,10 +2,12 @@ import type { CoreMessage } from 'ai';
 import type { JSONSchema7 } from 'json-schema';
 import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod';
-
+import { Container } from '../../di';
 import { createTool } from '../../tools';
-
+import { makeCoreTool } from '../../utils';
 import { MockProvider } from './mock';
+
+const container = new Container();
 
 describe('MastraLLM', () => {
   const mockMastra = {
@@ -19,14 +21,17 @@ describe('MastraLLM', () => {
   const mockToolExecute = vi.fn().mockResolvedValue('tool result');
 
   const mockTools = {
-    testTool: createTool({
-      id: 'testTool',
-      inputSchema: z.object({ test: z.string() }),
-      description: 'Test tool description',
-      execute: async ({ context, threadId, resourceId }, options) => {
-        return mockToolExecute({ ...context, threadId, resourceId }, options);
-      },
-    }),
+    testTool: makeCoreTool(
+      createTool({
+        id: 'testTool',
+        inputSchema: z.object({ test: z.string() }),
+        description: 'Test tool description',
+        execute: async ({ context, threadId, resourceId }, options) => {
+          return mockToolExecute({ ...context, threadId, resourceId }, options);
+        },
+      }),
+      { container, name: 'testTool', logger: mockMastra.logger },
+    ),
   };
 
   const generateSpy = vi.fn();
@@ -68,76 +73,6 @@ describe('MastraLLM', () => {
     });
   });
 
-  describe('convertTools', () => {
-    it('should convert tools correctly', () => {
-      const converted = aisdkText.convertTools({ tools: mockTools });
-
-      expect(converted).toHaveProperty('testTool');
-
-      expect(converted.testTool).toMatchObject({
-        description: 'Test tool description',
-        parameters: mockTools.testTool.inputSchema,
-      });
-
-      expect(typeof converted.testTool.execute).toBe('function');
-    });
-
-    it('should handle empty tools input', () => {
-      const converted = aisdkText.convertTools({ tools: {} });
-      expect(converted).toEqual({});
-    });
-
-    it('should log debug messages during tool conversion', () => {
-      aisdkText.convertTools({ tools: mockTools });
-      expect(mockMastra.logger.debug).toHaveBeenCalledWith('Starting tool conversion for LLM');
-      expect(mockMastra.logger.debug).toHaveBeenCalledWith('Converted tools for LLM');
-    });
-
-    it('should execute tool with correct context', async () => {
-      const converted = aisdkText.convertTools({ tools: mockTools });
-      expect(converted).toBeDefined();
-      expect(converted.testTool).toBeDefined();
-      if (converted.testTool.execute) {
-        await converted.testTool.execute({ test: 'value' }, { toolCallId: '1', messages: [] });
-      }
-
-      expect(mockToolExecute).toHaveBeenCalledWith({ test: 'value' }, { toolCallId: '1', messages: [] });
-    });
-
-    it('should pass threadId and resourceId to tool execution context', async () => {
-      const threadId = 'test-thread-123';
-      const resourceId = 'test-resource-456';
-      const converted = aisdkText.convertTools({ tools: mockTools, threadId, resourceId });
-
-      expect(converted).toBeDefined();
-      expect(converted.testTool).toBeDefined();
-      if (converted.testTool.execute) {
-        await converted.testTool.execute({ test: 'value' }, { toolCallId: '1', messages: [] });
-      }
-
-      expect(mockToolExecute).toHaveBeenCalledWith(
-        {
-          test: 'value',
-          threadId,
-          resourceId,
-        },
-        { toolCallId: '1', messages: [] },
-      );
-    });
-
-    it('should handle undefined threadId and resourceId', async () => {
-      const converted = aisdkText.convertTools({ tools: mockTools });
-
-      expect(converted).toBeDefined();
-      expect(converted.testTool).toBeDefined();
-      if (converted.testTool.execute) {
-        await converted.testTool.execute({ test: 'value' }, { toolCallId: '1', messages: [] });
-      }
-
-      expect(mockToolExecute).toHaveBeenCalledWith({ test: 'value' }, { toolCallId: '1', messages: [] });
-    });
-  });
-
   describe('generate', () => {
     it('should generate text output by default', async () => {
       const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
@@ -146,6 +81,7 @@ describe('MastraLLM', () => {
         tools: mockTools,
         temperature: 0.7,
         maxSteps: 5,
+        container,
       });
 
       expect(generateSpy).toHaveBeenCalled();
@@ -164,6 +100,7 @@ describe('MastraLLM', () => {
         temperature: 0.7,
         maxSteps: 5,
         output: schema,
+        container,
       });
 
       expect(generateSpy).toHaveBeenCalled();
@@ -175,6 +112,7 @@ describe('MastraLLM', () => {
         tools: mockTools,
         temperature: 0.7,
         maxSteps: 5,
+        container,
       });
 
       expect(generateSpy).toHaveBeenCalled();
@@ -186,6 +124,7 @@ describe('MastraLLM', () => {
         tools: mockTools,
         temperature: 0.7,
         maxSteps: 5,
+        container,
       });
 
       expect(generateSpy).toHaveBeenCalled();
@@ -199,6 +138,7 @@ describe('MastraLLM', () => {
         tools: mockTools,
         temperature: 0.7,
         maxSteps: 5,
+        container,
       });
 
       expect(generateSpy).toHaveBeenCalled();
@@ -213,6 +153,7 @@ describe('MastraLLM', () => {
         onStepFinish,
         temperature: 0.7,
         maxSteps: 5,
+        container,
       });
 
       expect(generateSpy).toHaveBeenCalled();
@@ -227,6 +168,7 @@ describe('MastraLLM', () => {
         tools: mockTools,
         temperature: 0.7,
         maxSteps: 5,
+        container,
       });
 
       expect(streamSpy).toHaveBeenCalled();
@@ -237,6 +179,7 @@ describe('MastraLLM', () => {
         tools: mockTools,
         temperature: 0.7,
         maxSteps: 5,
+        container,
       });
 
       expect(streamSpy).toHaveBeenCalled();
@@ -247,6 +190,7 @@ describe('MastraLLM', () => {
         tools: mockTools,
         temperature: 0.7,
         maxSteps: 5,
+        container,
       });
 
       expect(streamSpy).toHaveBeenCalled();
@@ -263,6 +207,7 @@ describe('MastraLLM', () => {
         output: schema,
         temperature: 0.7,
         maxSteps: 5,
+        container,
       });
 
       expect(streamSpy).toHaveBeenCalled();
@@ -283,6 +228,7 @@ describe('MastraLLM', () => {
         output: jsonSchema,
         temperature: 0.7,
         maxSteps: 5,
+        container,
       });
 
       expect(streamSpy).toHaveBeenCalled();
@@ -299,6 +245,7 @@ describe('MastraLLM', () => {
         onFinish,
         temperature: 0.7,
         maxSteps: 5,
+        container,
       });
 
       expect(streamSpy).toHaveBeenCalled();
@@ -319,6 +266,7 @@ describe('MastraLLM', () => {
         onFinish,
         temperature: 0.7,
         maxSteps: 5,
+        container,
       });
 
       expect(streamSpy).toHaveBeenCalled();
@@ -333,6 +281,7 @@ describe('MastraLLM', () => {
         messages,
         tools: mockTools,
         temperature: 0.7,
+        container,
         maxSteps: 5,
       });
 
@@ -349,6 +298,7 @@ describe('MastraLLM', () => {
         tools: mockTools,
         temperature: 0.7,
         maxSteps: 5,
+        container,
       });
 
       expect(generateSpy).toHaveBeenCalled();
@@ -356,11 +306,11 @@ describe('MastraLLM', () => {
 
     it('should handle pre-converted tools', async () => {
       const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
-      const convertedTools = aisdkText.convertTools({ tools: mockTools });
 
       await aisdkText.__text({
         messages,
-        convertedTools,
+        tools: mockTools,
+        container,
         temperature: 0.7,
         maxSteps: 5,
       });
@@ -374,6 +324,7 @@ describe('MastraLLM', () => {
 
       await aisdkText.__text({
         messages,
+        container,
         onStepFinish,
         temperature: 0.7,
         maxSteps: 5,
@@ -395,6 +346,7 @@ describe('MastraLLM', () => {
 
       await aisdkText.__text({
         messages,
+        container,
         onStepFinish,
         temperature: 0.7,
         maxSteps: 5,
@@ -409,6 +361,7 @@ describe('MastraLLM', () => {
 
       await aisdkText.__text({
         messages,
+        container,
         runId,
         temperature: 0.7,
         maxSteps: 5,
@@ -430,6 +383,7 @@ describe('MastraLLM', () => {
 
       await aisdkText.__text({
         messages,
+        container,
         runId,
         temperature: 0.7,
         maxSteps: 5,
@@ -445,6 +399,7 @@ describe('MastraLLM', () => {
 
       await aisdkText.__stream({
         messages,
+        container,
         tools: mockTools,
         temperature: 0.7,
         maxSteps: 5,
@@ -458,6 +413,7 @@ describe('MastraLLM', () => {
 
       await aisdkText.__stream({
         messages,
+        container,
         tools: mockTools,
         temperature: 0.7,
         maxSteps: 5,
@@ -468,11 +424,11 @@ describe('MastraLLM', () => {
 
     it('should handle pre-converted tools', async () => {
       const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
-      const convertedTools = aisdkText.convertTools({ tools: mockTools });
 
       await aisdkText.__stream({
         messages,
-        convertedTools,
+        container,
+        tools: mockTools,
         temperature: 0.7,
         maxSteps: 5,
       });
@@ -487,6 +443,7 @@ describe('MastraLLM', () => {
 
       await aisdkText.__stream({
         messages,
+        container,
         onStepFinish,
         onFinish,
         temperature: 0.7,
@@ -503,6 +460,7 @@ describe('MastraLLM', () => {
       await aisdkText.__stream({
         messages,
         runId,
+        container,
         temperature: 0.7,
         maxSteps: 5,
       });
@@ -533,6 +491,7 @@ describe('MastraLLM', () => {
       await aisdkText.__stream({
         messages,
         runId,
+        container,
         temperature: 0.7,
         maxSteps: 5,
       });
@@ -549,14 +508,15 @@ describe('MastraLLM', () => {
         content: z.string(),
       });
 
-      const result = await aisdkObject.__textObject({
+      const result = await aisdkObject.__textObject<any>({
         messages,
+        container,
         structuredOutput: schema,
         temperature: 0.7,
         maxSteps: 5,
       });
 
-      expect(result.object.content).toEqual('Custom object response');
+      expect(result?.object?.content).toEqual('Custom object response');
     });
 
     it('should handle array type schemas', async () => {
@@ -564,8 +524,9 @@ describe('MastraLLM', () => {
 
       const arraySchema = z.object({ content: z.array(z.string()) });
 
-      await aisdkArray.__textObject({
+      await aisdkArray.__textObject<any>({
         messages,
+        container,
         structuredOutput: arraySchema,
         temperature: 0.7,
         maxSteps: 5,
@@ -585,8 +546,9 @@ describe('MastraLLM', () => {
         required: ['content'],
       } as JSONSchema7;
 
-      await aisdkObject.__textObject({
+      await aisdkObject.__textObject<any>({
         messages,
+        container,
         structuredOutput: jsonSchema,
         temperature: 0.7,
         maxSteps: 5,
@@ -602,9 +564,10 @@ describe('MastraLLM', () => {
         content: z.string(),
       });
 
-      await aisdkObject.__textObject({
+      await aisdkObject.__textObject<any>({
         messages,
         tools: mockTools,
+        container,
         structuredOutput: schema,
         temperature: 0.7,
         maxSteps: 5,
@@ -619,9 +582,10 @@ describe('MastraLLM', () => {
         content: z.string(),
       });
 
-      await aisdkObject.__streamObject({
+      await aisdkObject.__streamObject<any>({
         messages,
         tools: mockTools,
+        container,
         structuredOutput: schema,
         temperature: 0.7,
         maxSteps: 5,
@@ -634,8 +598,9 @@ describe('MastraLLM', () => {
       const messages: CoreMessage[] = [{ role: 'user', content: 'test message' }];
       const arraySchema = z.object({ content: z.array(z.string()) });
 
-      await aisdkObject.__streamObject({
+      await aisdkObject.__streamObject<any>({
         messages,
+        container,
         structuredOutput: arraySchema,
         temperature: 0.7,
         maxSteps: 5,
@@ -654,8 +619,9 @@ describe('MastraLLM', () => {
         required: ['content'],
       } as JSONSchema7;
 
-      await aisdkObject.__streamObject({
+      await aisdkObject.__streamObject<any>({
         messages,
+        container,
         structuredOutput: jsonSchema,
         temperature: 0.7,
         maxSteps: 5,
@@ -672,8 +638,9 @@ describe('MastraLLM', () => {
       const onStepFinish = vi.fn();
       const onFinish = vi.fn();
 
-      await aisdkObject.__streamObject({
+      await aisdkObject.__streamObject<any>({
         messages,
+        container,
         structuredOutput: schema,
         onStepFinish,
         onFinish,
@@ -691,8 +658,9 @@ describe('MastraLLM', () => {
       });
       const runId = 'test-run';
 
-      await aisdkObject.__streamObject({
+      await aisdkObject.__streamObject<any>({
         messages,
+        container,
         structuredOutput: schema,
         runId,
         temperature: 0.7,
@@ -707,12 +675,12 @@ describe('MastraLLM', () => {
       const schema = z.object({
         content: z.string(),
       });
-      const convertedTools = aisdkObject.convertTools({ tools: mockTools });
 
-      await aisdkObject.__streamObject({
+      await aisdkObject.__streamObject<any>({
         messages,
         structuredOutput: schema,
-        convertedTools,
+        tools: mockTools,
+        container,
         temperature: 0.7,
         maxSteps: 5,
       });
@@ -727,8 +695,9 @@ describe('MastraLLM', () => {
       });
       const runId = 'test-run';
 
-      await aisdkObject.__streamObject({
+      await aisdkObject.__streamObject<any>({
         messages,
+        container,
         structuredOutput: schema,
         runId,
         temperature: 0.7,
