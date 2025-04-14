@@ -5,7 +5,7 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { Agent } from '../../agent';
 import { createStep, createWorkflow, NewWorkflow } from './workflow';
-import { Mastra, Telemetry } from '../..';
+import { createTool, Mastra, Telemetry } from '../..';
 import { DefaultStorage } from '../../storage/libsql';
 
 describe('Workflow', () => {
@@ -1505,6 +1505,60 @@ describe('Workflow', () => {
     });
   });
 
+  describe('Schema Validation', () => {
+    it.skip('should validate trigger data against schema', async () => {
+      const triggerSchema = z.object({
+        required: z.string(),
+        nested: z.object({
+          value: z.number(),
+        }),
+      });
+
+      const step1 = createStep({
+        id: 'step1',
+        execute: vi.fn<any>().mockResolvedValue({ result: 'success' }),
+        inputSchema: z.object({
+          required: z.string(),
+          nested: z.object({
+            value: z.number(),
+          }),
+        }),
+        outputSchema: z.object({
+          result: z.string(),
+        }),
+      });
+
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: triggerSchema,
+        outputSchema: z.object({}),
+        steps: [step1],
+      });
+
+      workflow.then(step1).commit();
+
+      // Should fail validation
+      await expect(
+        workflow.execute({
+          inputData: {
+            required: 'test',
+            // @ts-expect-error
+            nested: { value: 'not-a-number' },
+          },
+        }),
+      ).rejects.toThrow();
+
+      // Should pass validation
+      const run = workflow.createRun();
+      await run.start({
+        inputData: {
+          required: 'test',
+          nested: { value: 42 },
+        },
+      });
+    });
+  });
+
   describe('multiple chains', () => {
     it('should run multiple chains in parallel', async () => {
       const step1 = createStep({
@@ -1651,6 +1705,46 @@ describe('Workflow', () => {
       expect(step1.execute).toHaveBeenCalledTimes(1);
       expect(step2.execute).toHaveBeenCalledTimes(6); // 5 retries + 1 initial call
     });
+  });
+
+  describe('Interoperability (Actions)', () => {
+    it('should be able to use all action types in a workflow', async () => {
+      const step1Action = vi.fn<any>().mockResolvedValue({ name: 'step1' });
+
+      const step1 = createStep({
+        id: 'step1',
+        execute: step1Action,
+        inputSchema: z.object({}),
+        outputSchema: z.object({ name: z.string() }),
+      });
+
+      // @ts-ignore
+      const toolAction = vi.fn<any>().mockImplementation(async ({ context }) => {
+        return { name: context.name };
+      });
+
+      const randomTool = createTool({
+        id: 'random-tool',
+        execute: toolAction,
+        description: 'random-tool',
+        inputSchema: z.object({ name: z.string() }),
+        outputSchema: z.object({ name: z.string() }),
+      });
+
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+      workflow.then(step1).then(randomTool).commit();
+
+      const result = await workflow.createRun().start({ inputData: {} });
+
+      expect(step1Action).toHaveBeenCalled();
+      expect(toolAction).toHaveBeenCalled();
+      expect(result.steps.step1).toEqual({ status: 'success', output: { name: 'step1' } });
+      expect(result.steps['random-tool']).toEqual({ status: 'success', output: { name: 'step1' } });
+    }, 10000);
   });
 
   describe('Watch', () => {

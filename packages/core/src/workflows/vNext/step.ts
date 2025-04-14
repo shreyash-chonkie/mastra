@@ -6,6 +6,7 @@ import type { Mastra } from '../..';
 export type ExecuteFunction<TStepInput, TStepOutput> = (params: {
   mastra: Mastra;
   inputData: TStepInput;
+  context: TStepInput; // For backwards compatibility with tools etc.
   getStepResult<T extends NewStep<any, any, any>>(
     stepId: T,
   ): T['outputSchema'] extends undefined ? unknown : z.infer<NonNullable<T['outputSchema']>>;
