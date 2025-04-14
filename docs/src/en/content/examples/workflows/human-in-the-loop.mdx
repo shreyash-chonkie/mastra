@@ -3,7 +3,7 @@ title: "Example: Human in the Loop | Workflows | Mastra Docs"
 description: Example of using Mastra to create workflows with human intervention points.
 ---
 
-import { GithubLink } from '../../../components/github-link';
+import { GithubLink } from '@/components/github-link';
 
 # Human in the Loop Workflow
 
@@ -284,7 +284,6 @@ async function runRecommendationWorkflow() {
 
 // Invoke the workflow with interactive terminal input
 runRecommendationWorkflow().catch(console.error);
-
 ```
 
 ## Advanced Example with Multiple User Inputs
@@ -578,24 +577,27 @@ runModerationDemo().catch(console.error);
 1. **Suspension Points** - Use the `suspend()` function within a step's execute to pause workflow execution.
 
 2. **Suspension Payload** - Pass relevant data when suspending to provide context for human decision-making:
-   ```ts
+
+```ts
    await suspend({
      messageForHuman: 'Please review this data',
      data: someImportantData
    });
-   ```
+```
 
 3. **Checking Workflow Status** - After starting a workflow, check the returned status to see if it's suspended:
-   ```ts
+   
+```ts
    const result = await workflow.start({ triggerData });
    if (result.status === 'suspended' && result.suspendedStepId === 'stepId') {
      // Process suspension
      console.log('Workflow is waiting for input:', result.suspendPayload);
    }
-   ```
+```
 
 4. **Interactive Terminal Input** - Use libraries like Inquirer to create interactive prompts:
-   ```ts
+
+```ts
    import { select, input, confirm } from '@inquirer/prompts';
 
    // When the workflow is suspended
@@ -618,10 +620,11 @@ runModerationDemo().catch(console.error);
        context: { decision }
      });
    }
-   ```
+```
 
 5. **Resuming Workflow** - Use the `resume()` method to continue workflow execution with human input:
-   ```ts
+   
+```ts
    const resumeResult = await run.resume({
      stepId: 'suspendedStepId',
      context: {
@@ -630,10 +633,11 @@ runModerationDemo().catch(console.error);
        userDecision: 'approve'
      },
    });
-   ```
+```
 
 6. **Input Schema for Human Data** - Define an input schema on steps that might be resumed with human input to ensure type safety:
-   ```ts
+   
+```ts
    const myStep = new Step({
      id: 'myStep',
      inputSchema: z.object({
@@ -653,7 +657,7 @@ runModerationDemo().catch(console.error);
        await suspend();
      }
    });
-   ```
+```
 
 Human-in-the-loop workflows are powerful for building systems that blend automation with human judgment, such as:
 - Content moderation systems
