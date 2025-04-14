@@ -59,7 +59,7 @@ const voiceAgent = new Agent({
   voice,
 });
 
-const { text } = await voiceAgent.generateText('What color is the sky?');
+const { text } = await voiceAgent.generate('What color is the sky?');
 
 // Convert text to speech to an Audio Stream
 const audioStream = await voiceAgent.voice.speak(text, {
@@ -86,7 +86,7 @@ const voiceAgent = new Agent({
   voice,
 });
 
-const { text } = await voiceAgent.generateText('What color is the sky?');
+const { text } = await voiceAgent.generate('What color is the sky?');
 
 // Convert text to speech to an Audio Stream
 const audioStream = await voiceAgent.voice.speak(text, {
@@ -112,7 +112,7 @@ const voiceAgent = new Agent({
   voice,
 });
 
-const { text } = await voiceAgent.generateText('What color is the sky?');
+const { text } = await voiceAgent.generate('What color is the sky?');
 
 // Convert text to speech to an Audio Stream
 const audioStream = await voiceAgent.voice.speak(text, {
@@ -138,7 +138,7 @@ const voiceAgent = new Agent({
   voice,
 });
 
-const { text } = await voiceAgent.generateText('What color is the sky?');
+const { text } = await voiceAgent.generate('What color is the sky?');
 
 // Convert text to speech to an Audio Stream
 const audioStream = await voiceAgent.voice.speak(text, {
@@ -164,7 +164,7 @@ const voiceAgent = new Agent({
   voice,
 });
 
-const { text } = await voiceAgent.generateText('What color is the sky?');
+const { text } = await voiceAgent.generate('What color is the sky?');
 
 // Convert text to speech to an Audio Stream
 const audioStream = await voiceAgent.voice.speak(text, {
@@ -190,7 +190,7 @@ const voiceAgent = new Agent({
   voice,
 });
 
-const { text } = await voiceAgent.generateText('What color is the sky?');
+const { text } = await voiceAgent.generate('What color is the sky?');
 
 // Convert text to speech to an Audio Stream
 const audioStream = await voiceAgent.voice.speak(text, {
@@ -216,7 +216,7 @@ const voiceAgent = new Agent({
   voice,
 });
 
-const { text } = await voiceAgent.generateText('What color is the sky?');
+const { text } = await voiceAgent.generate('What color is the sky?');
 
 // Convert text to speech to an Audio Stream
 const audioStream = await voiceAgent.voice.speak(text, {
@@ -242,7 +242,7 @@ const voiceAgent = new Agent({
   voice,
 });
 
-const { text } = await voiceAgent.generateText('What color is the sky?');
+const { text } = await voiceAgent.generate('What color is the sky?');
 
 // Convert text to speech to an Audio Stream
 const audioStream = await voiceAgent.voice.speak(text, {
@@ -267,7 +267,7 @@ const voiceAgent = new Agent({
   voice,
 });
 
-const { text } = await voiceAgent.generateText('What color is the sky?');
+const { text } = await voiceAgent.generate('What color is the sky?');
 
 // Convert text to speech to an Audio Stream
 const audioStream = await voiceAgent.voice.speak(text, {
@@ -292,7 +292,7 @@ const voiceAgent = new Agent({
   voice,
 });
 
-const { text } = await voiceAgent.generateText('What color is the sky?');
+const { text } = await voiceAgent.generate('What color is the sky?');
 
 // Convert text to speech to an Audio Stream
 const audioStream = await voiceAgent.voice.speak(text, {
@@ -366,7 +366,7 @@ const transcript = await voiceAgent.voice.listen(audioStream);
 console.log(`User said: ${transcript}`);
 
 // Generate a response based on the transcript
-const { text } = await voiceAgent.generateText(transcript);
+const { text } = await voiceAgent.generate(transcript);
 ```
   </Tabs.Tab>
   <Tabs.Tab>
@@ -396,7 +396,7 @@ const transcript = await voiceAgent.voice.listen(audioStream);
 console.log(`User said: ${transcript}`);
 
 // Generate a response based on the transcript
-const { text } = await voiceAgent.generateText(transcript);
+const { text } = await voiceAgent.generate(transcript);
 ```
   </Tabs.Tab>
   <Tabs.Tab>
@@ -425,7 +425,7 @@ const transcript = await voiceAgent.voice.listen(audioStream);
 console.log(`User said: ${transcript}`);
 
 // Generate a response based on the transcript
-const { text } = await voiceAgent.generateText(transcript);
+const { text } = await voiceAgent.generate(transcript);
 ```
   </Tabs.Tab>
   <Tabs.Tab>
@@ -455,7 +455,7 @@ const transcript = await voiceAgent.voice.listen(audioStream);
 console.log(`User said: ${transcript}`);
 
 // Generate a response based on the transcript
-const { text } = await voiceAgent.generateText(transcript);
+const { text } = await voiceAgent.generate(transcript);
 ```
   </Tabs.Tab>
   <Tabs.Tab>
@@ -484,7 +484,7 @@ const transcript = await voiceAgent.voice.listen(audioStream);
 console.log(`User said: ${transcript}`);
 
 // Generate a response based on the transcript
-const { text } = await voiceAgent.generateText(transcript);
+const { text } = await voiceAgent.generate(transcript);
 ```
   </Tabs.Tab>
   <Tabs.Tab>
@@ -513,7 +513,7 @@ const transcript = await voiceAgent.voice.listen(audioStream);
 console.log(`User said: ${transcript}`);
 
 // Generate a response based on the transcript
-const { text } = await voiceAgent.generateText(transcript);
+const { text } = await voiceAgent.generate(transcript);
 ```
   </Tabs.Tab>
 </Tabs>
