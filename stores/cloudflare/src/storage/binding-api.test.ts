@@ -15,6 +15,7 @@ import { Miniflare } from 'miniflare';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import { createSampleTrace } from './test-utils';
 import type { CloudflareStoreConfig } from './types';
+
 import { CloudflareStore } from '.';
 
 export interface Env {
