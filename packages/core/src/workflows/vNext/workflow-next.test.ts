@@ -1099,6 +1099,64 @@ describe('Workflow', () => {
         },
       });
     });
+
+    it('should handle step execution errors within nested workflows', async () => {
+      const error = new Error('Step execution failed');
+      const failingAction = vi.fn<any>().mockRejectedValue(error);
+
+      const successAction = vi.fn<any>().mockResolvedValue({});
+
+      const step1 = createStep({
+        id: 'step1',
+        execute: successAction,
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+
+      const step2 = createStep({
+        id: 'step2',
+        execute: failingAction,
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+
+      const step3 = createStep({
+        id: 'step3',
+        execute: successAction,
+        inputSchema: z.object({
+          step1: z.object({}),
+          step2: z.object({}),
+        }),
+        outputSchema: z.object({}),
+      });
+
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+
+      workflow.parallel([step1, step2]).then(step3).commit();
+
+      const mainWorkflow = createWorkflow({
+        id: 'main-workflow',
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      })
+        .then(workflow)
+        .commit();
+
+      const run = mainWorkflow.createRun();
+      const result = await run.start({ inputData: {} });
+      console.dir(result, { depth: null });
+
+      expect(result.steps).toMatchObject({
+        'test-workflow': {
+          status: 'failed',
+          error: 'Step execution failed',
+        },
+      });
+    });
   });
 
   describe('Complex Conditions', () => {

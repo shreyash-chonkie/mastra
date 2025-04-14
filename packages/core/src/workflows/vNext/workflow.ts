@@ -363,6 +363,10 @@ export class NewWorkflow<
       }
     }
 
+    if (res.error) {
+      throw new Error(res.error);
+    }
+
     return res.result;
   }
 
@@ -455,6 +459,7 @@ export class Run<
         ? StepResult<unknown>
         : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
     };
+    error?: string;
   }> {
     return this.executionEngine.execute<
       z.infer<TInput>,
@@ -521,6 +526,7 @@ export class Run<
         ? StepResult<unknown>
         : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
     };
+    error?: string;
   }> {
     const steps = Array.isArray(params.step) ? params.step : [params.step];
     const snapshot = await this.#mastra?.storage?.loadWorkflowSnapshot({
