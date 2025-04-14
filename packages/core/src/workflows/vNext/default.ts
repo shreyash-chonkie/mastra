@@ -8,6 +8,10 @@ import type { StepFlowEntry } from './workflow';
 type ExecutionContext = {
   executionPath: number[];
   suspendedPaths: Record<string, number[]>;
+  retryConfig: {
+    attempts: number;
+    delay: number;
+  };
 };
 
 /**
@@ -33,8 +37,13 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       resumePath: number[];
     };
     emitter: EventEmitter;
+    retryConfig?: {
+      attempts?: number;
+      delay?: number;
+    };
   }): Promise<TOutput> {
-    const { workflowId, runId, graph, input, resume } = params;
+    const { workflowId, runId, graph, input, resume, retryConfig } = params;
+    const { attempts = 0, delay = 0 } = retryConfig ?? {};
     const steps = graph.steps;
 
     if (steps.length === 0) {
@@ -64,6 +73,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           executionContext: {
             executionPath: [i],
             suspendedPaths: {},
+            retryConfig: { attempts, delay },
           },
           emitter: params.emitter,
         });
@@ -170,7 +180,10 @@ export class DefaultExecutionEngine extends ExecutionEngine {
   }): Promise<StepResult<any>> {
     let execResults: any;
 
-    for (let i = 0; i < (step.retries ?? 1); i++) {
+    const retries = step.retries ?? executionContext.retryConfig.attempts ?? 0;
+
+    // +1 for the initial attempt
+    for (let i = 0; i < retries + 1; i++) {
       try {
         let suspended: { payload: any } | undefined;
         const result = await step.execute({
@@ -248,6 +261,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           executionContext: {
             executionPath: [...executionContext.executionPath, i],
             suspendedPaths: executionContext.suspendedPaths,
+            retryConfig: executionContext.retryConfig,
           },
           emitter,
         }),
@@ -347,6 +361,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           executionContext: {
             executionPath: [...executionContext.executionPath, index],
             suspendedPaths: executionContext.suspendedPaths,
+            retryConfig: executionContext.retryConfig,
           },
           emitter,
         }),
@@ -486,6 +501,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         executionContext: {
           executionPath: [...executionContext.executionPath, idx!],
           suspendedPaths: executionContext.suspendedPaths,
+          retryConfig: executionContext.retryConfig,
         },
         emitter,
       });

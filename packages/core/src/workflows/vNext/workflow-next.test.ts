@@ -1574,63 +1574,86 @@ describe('Workflow', () => {
     });
   });
 
-  // TODO:
-  // describe('Retry', () => {
-  //   it('should retry a step default 0 times', async () => {
-  //     const step1 = new Step({ id: 'step1', execute: vi.fn<any>().mockResolvedValue({ result: 'success' }) });
-  //     const step2 = new Step({ id: 'step2', execute: vi.fn<any>().mockRejectedValue(new Error('Step failed')) });
+  describe('Retry', () => {
+    it('should retry a step default 0 times', async () => {
+      const step1 = createStep({
+        id: 'step1',
+        execute: vi.fn<any>().mockResolvedValue({ result: 'success' }),
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+      const step2 = createStep({
+        id: 'step2',
+        execute: vi.fn<any>().mockRejectedValue(new Error('Step failed')),
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
 
-  //     const mastra = new Mastra({
-  //       logger: createLogger({
-  //         name: 'Workflow',
-  //       }),
-  //       storage,
-  //     });
+      // TODO
+      // const mastra = new Mastra({
+      //   logger: createLogger({
+      //     name: 'Workflow',
+      //   }),
+      //   storage,
+      // });
 
-  //     const workflow = new Workflow({
-  //       name: 'test-workflow',
-  //       mastra,
-  //     });
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
 
-  //     workflow.step(step1).then(step2).commit();
+      workflow.then(step1).then(step2).commit();
 
-  //     const run = workflow.createRun();
-  //     const result = await run.start();
+      const run = workflow.createRun();
+      const result = await run.start({ inputData: {} });
 
-  //     expect(result.results.step1).toEqual({ status: 'success', output: { result: 'success' } });
-  //     expect(result.results.step2).toEqual({ status: 'failed', error: 'Step failed' });
-  //     expect(step1.execute).toHaveBeenCalledTimes(1);
-  //     expect(step2.execute).toHaveBeenCalledTimes(1); // 0 retries + 1 initial call
-  //   });
+      expect(result.steps.step1).toEqual({ status: 'success', output: { result: 'success' } });
+      expect(result.steps.step2).toEqual({ status: 'failed', error: 'Step failed' });
+      expect(step1.execute).toHaveBeenCalledTimes(1);
+      expect(step2.execute).toHaveBeenCalledTimes(1); // 0 retries + 1 initial call
+    });
 
-  //   it('should retry a step with a custom retry config', async () => {
-  //     const step1 = new Step({ id: 'step1', execute: vi.fn<any>().mockResolvedValue({ result: 'success' }) });
-  //     const step2 = new Step({ id: 'step2', execute: vi.fn<any>().mockRejectedValue(new Error('Step failed')) });
+    it('should retry a step with a custom retry config', async () => {
+      const step1 = createStep({
+        id: 'step1',
+        execute: vi.fn<any>().mockResolvedValue({ result: 'success' }),
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
+      const step2 = createStep({
+        id: 'step2',
+        execute: vi.fn<any>().mockRejectedValue(new Error('Step failed')),
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+      });
 
-  //     const mastra = new Mastra({
-  //       logger: createLogger({
-  //         name: 'Workflow',
-  //       }),
-  //       storage,
-  //     });
+      // TODO
+      // const mastra = new Mastra({
+      //   logger: createLogger({
+      //     name: 'Workflow',
+      //   }),
+      //   storage,
+      // });
 
-  //     const workflow = new Workflow({
-  //       name: 'test-workflow',
-  //       mastra,
-  //       retryConfig: { attempts: 5, delay: 200 },
-  //     });
+      const workflow = createWorkflow({
+        id: 'test-workflow',
+        inputSchema: z.object({}),
+        outputSchema: z.object({}),
+        retryConfig: { attempts: 5, delay: 200 },
+      });
 
-  //     workflow.step(step1).then(step2).commit();
+      workflow.then(step1).then(step2).commit();
 
-  //     const run = workflow.createRun();
-  //     const result = await run.start();
+      const run = workflow.createRun();
+      const result = await run.start({ inputData: {} });
 
-  //     expect(result.results.step1).toEqual({ status: 'success', output: { result: 'success' } });
-  //     expect(result.results.step2).toEqual({ status: 'failed', error: 'Step failed' });
-  //     expect(step1.execute).toHaveBeenCalledTimes(1);
-  //     expect(step2.execute).toHaveBeenCalledTimes(6); // 5 retries + 1 initial call
-  //   });
-  // });
+      expect(result.steps.step1).toEqual({ status: 'success', output: { result: 'success' } });
+      expect(result.steps.step2).toEqual({ status: 'failed', error: 'Step failed' });
+      expect(step1.execute).toHaveBeenCalledTimes(1);
+      expect(step2.execute).toHaveBeenCalledTimes(6); // 5 retries + 1 initial call
+    });
+  });
 
   describe('Watch', () => {
     it('should watch workflow state changes and call onTransition', async () => {

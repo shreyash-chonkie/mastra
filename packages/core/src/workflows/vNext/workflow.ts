@@ -94,6 +94,10 @@ export type NewWorkflowConfig<
   outputSchema: TOutput;
   executionEngine?: ExecutionEngine;
   steps?: TSteps;
+  retryConfig?: {
+    attempts?: number;
+    delay?: number;
+  };
 };
 
 export class NewWorkflow<
@@ -114,6 +118,10 @@ export class NewWorkflow<
   protected executionEngine: ExecutionEngine;
   protected storage: MastraStorage;
   protected executionGraph: ExecutionGraph;
+  protected retryConfig: {
+    attempts?: number;
+    delay?: number;
+  };
 
   constructor({
     id,
@@ -121,12 +129,14 @@ export class NewWorkflow<
     outputSchema,
     description,
     executionEngine,
+    retryConfig,
   }: NewWorkflowConfig<TWorkflowId, TInput, TOutput>) {
     super({ name: id, component: RegisteredLogger.WORKFLOW });
     this.id = id;
     this.description = description;
     this.inputSchema = inputSchema;
     this.outputSchema = outputSchema;
+    this.retryConfig = retryConfig ?? { attempts: 0, delay: 0 };
     this.executionGraph = this.buildExecutionGraph();
     this.stepFlow = [];
 
@@ -295,6 +305,7 @@ export class NewWorkflow<
       executionEngine: this.executionEngine,
       executionGraph: this.executionGraph,
       storage: this.storage,
+      retryConfig: this.retryConfig,
     });
   }
 
@@ -382,12 +393,21 @@ export class Run<
    */
   public storage: MastraStorage;
 
+  protected retryConfig?: {
+    attempts?: number;
+    delay?: number;
+  };
+
   constructor(params: {
     workflowId: string;
     runId: string;
     executionEngine: ExecutionEngine;
     executionGraph: ExecutionGraph;
     storage: MastraStorage;
+    retryConfig?: {
+      attempts?: number;
+      delay?: number;
+    };
   }) {
     this.workflowId = params.workflowId;
     this.runId = params.runId;
@@ -395,6 +415,7 @@ export class Run<
     this.executionGraph = params.executionGraph;
     this.storage = params.storage;
     this.emitter = new EventEmitter();
+    this.retryConfig = params.retryConfig;
   }
 
   /**
@@ -426,6 +447,7 @@ export class Run<
       graph: this.executionGraph,
       input: inputData,
       emitter: this.emitter,
+      retryConfig: this.retryConfig,
     });
   }
 
