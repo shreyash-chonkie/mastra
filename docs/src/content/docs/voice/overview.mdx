@@ -1,13 +1,13 @@
 ---
 title: Voice in Mastra | Mastra Docs
-description: Overview of voice capabilities in Mastra, including text-to-speech, speech-to-text, and real-time voice-to-voice interactions.
+description: Overview of voice capabilities in Mastra, including text-to-speech, speech-to-text, and real-time speech-to-speech interactions.
 ---
 import { Tabs } from "nextra/components";
 import { AudioPlayback } from "@/components/audio-playback";
 
 # Voice in Mastra
 
-Mastra's Voice system provides a unified interface for voice interactions, enabling text-to-speech (TTS), speech-to-text (STT), and real-time voice-to-voice capabilities in your applications. 
+Mastra's Voice system provides a unified interface for voice interactions, enabling text-to-speech (TTS), speech-to-text (STT), and real-time speech-to-speech (STS) capabilities in your applications. 
 
 ## Adding Voice to Agents
 
@@ -327,7 +327,7 @@ Visit the [Murf Voice Reference](/reference/voice/murf) for more information on 
 Transcribe spoken content using various providers like OpenAI, ElevenLabs, and more. For detailed configuration options and more, check out [Speech to Text](./speech-to-text).
 
 You can download a sample audio file from [here](https://github.com/mastra-ai/realtime-voice-demo/raw/refs/heads/main/how_can_i_help_you.mp3).
-
+<br/>
 <AudioPlayback audio="https://github.com/mastra-ai/realtime-voice-demo/raw/refs/heads/main/how_can_i_help_you.mp3" />
 
 <Tabs items={["OpenAI", "Azure", "ElevenLabs", "Google", "Cloudflare", "Deepgram", "Sarvam"]}>
