@@ -1,10 +1,10 @@
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
-import { createStep, createWorkflow, NewWorkflow } from './workflow';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
 import { openai } from '@ai-sdk/openai';
+import { afterAll, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 import { Agent } from '../../agent';
+import { createStep, createWorkflow, NewWorkflow } from './workflow';
 
 describe('Workflow', () => {
   // Input and output schemas for testing
