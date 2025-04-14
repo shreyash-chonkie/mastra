@@ -327,6 +327,7 @@ export class NewWorkflow<
     suspend,
     resume,
     emitter,
+    mastra,
   }: {
     inputData: z.infer<TInput>;
     getStepResult<T extends NewStep<any, any, any>>(
@@ -339,7 +340,9 @@ export class NewWorkflow<
       runId?: string;
     };
     emitter: EventEmitter;
+    mastra: Mastra;
   }): Promise<z.infer<TOutput>> {
+    this.__registerMastra(mastra);
     const run = resume?.steps?.length ? this.createRun({ runId: resume.runId }) : this.createRun();
     const unwatch = run.watch(event => {
       emitter.emit('nested-watch', { event, workflowId: this.id, runId: run.runId, isResume: !!resume?.steps?.length });
