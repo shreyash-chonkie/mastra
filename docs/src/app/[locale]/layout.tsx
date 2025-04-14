@@ -2,21 +2,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
-import { Layout, Navbar } from "nextra-theme-docs";
-import { Head, Search } from "nextra/components";
-import { getPageMap } from "nextra/page-map";
-import "../globals.css";
 import "nextra-theme-docs/style.css";
 import { Head } from "nextra/components";
 import { getPageMap } from "nextra/page-map";
-import { fonts } from "./font/setup";
-import "./globals.css";
+import "../globals.css";
+import { fonts } from "../font/setup";
 
 import { PostHogProvider } from "@/analytics/posthog-provider";
 import { CookieConsent } from "@/components/cookie-consent";
 import { GTProvider } from "gt-next";
-import { T } from "gt-next/client";
-import { getSearchPlaceholder } from "@/components/search-placeholder";
+import { NextraLayout } from "@/components/nextra-layout";
 
 export const metadata: Metadata = {
   title: "Docs - The Typescript AI framework - Mastra",
@@ -31,8 +26,8 @@ export default async function RootLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }>) {
-  const pageMap = await getPageMap();
   const { locale } = await params;
+  const pageMap = await getPageMap(`/${locale || "en"}`);
   return (
     <html
       lang={locale}
@@ -57,7 +52,9 @@ export default async function RootLayout({
       <body>
         <GTProvider locale={locale}>
           <PostHogProvider>
-            <NextraLayout pageMap={pageMap}>{children}</NextraLayout>
+            <NextraLayout locale={locale} pageMap={pageMap}>
+              {children}
+            </NextraLayout>
           </PostHogProvider>
           <Toaster />
           <CookieConsent />
