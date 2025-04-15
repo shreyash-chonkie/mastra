@@ -653,7 +653,7 @@ The vNext workflow API introduces several improvements over the original impleme
    workflow.step(step1).then(step2, {
      id: 'step2',
      variables: {
-       previousValue: { step: step1, path: 'nested.value' },
+       transformedValue: { step: step1, path: 'nested.value' },
      },
    });
    ```
