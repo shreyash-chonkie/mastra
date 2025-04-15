@@ -1845,7 +1845,7 @@ describe('Workflow', () => {
       const workflow = createWorkflow({
         id: 'test-workflow',
         inputSchema: z.object({}),
-        outputSchema: z.object({}),
+        outputSchema: z.object({ name: z.string() }),
       });
       // TODO: fix types
       workflow.then(step1).then(randomTool).commit();
@@ -2350,6 +2350,15 @@ describe('Workflow', () => {
         id: 'test-workflow',
         inputSchema: z.object({ input: z.string() }),
         outputSchema: z.object({}),
+        steps: [
+          getUserInput,
+          promptAgent,
+          evaluateTone,
+          improveResponse,
+          evaluateImproved,
+          humanIntervention,
+          explainResponse,
+        ],
       });
 
       workflow
@@ -2419,13 +2428,14 @@ describe('Workflow', () => {
       expect(improvedResponseResult?.steps.humanIntervention.status).toBe('suspended');
       expect(improvedResponseResult?.steps.improveResponse.status).toBe('success');
       expect(improvedResponseResult?.steps.evaluateImprovedResponse.status).toBe('success');
-      expect(humanInterventionAction).toHaveBeenCalledTimes(2);
-      expect(explainResponseAction).toHaveBeenCalledTimes(1);
 
       const result = await resultPromise;
       if (!result) {
         throw new Error('Resume failed to return a result');
       }
+
+      expect(humanInterventionAction).toHaveBeenCalledTimes(2);
+      expect(explainResponseAction).toHaveBeenCalledTimes(1);
 
       expect(result.steps).toEqual({
         input: { input: 'test' },
