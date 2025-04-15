@@ -299,6 +299,7 @@ const result = await run.start({
 // Access the results
 console.log(result.steps); // All step results
 console.log(result.steps['step-id'].output); // Output from a specific step
+console.log(result.result); // The final result of the workflow, result of the last step (or `.map()` output, if used as last step)
 ```
 
 You can also watch workflow execution:
