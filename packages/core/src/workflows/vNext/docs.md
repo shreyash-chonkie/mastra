@@ -444,6 +444,8 @@ const weatherWorkflow = createWorkflow({
   ]);
 ```
 
+Nested workflows only have their final result (result of the last step) as their step output.
+
 ## Agent Integration
 
 vNext workflows can use Mastra agents directly as steps:
