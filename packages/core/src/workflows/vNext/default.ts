@@ -306,7 +306,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
   }: {
     workflowId: string;
     runId: string;
-    entry: { type: 'conditional'; steps: StepFlowEntry[]; conditions: ExecuteFunction<any, any>[] };
+    entry: { type: 'conditional'; steps: StepFlowEntry[]; conditions: ExecuteFunction<any, any, any, any>[] };
     prevStep: StepFlowEntry;
     prevOutput: any;
     stepResults: Record<string, StepResult<any>>;
@@ -408,7 +408,12 @@ export class DefaultExecutionEngine extends ExecutionEngine {
   }: {
     workflowId: string;
     runId: string;
-    entry: { type: 'loop'; step: NewStep; condition: ExecuteFunction<any, any>; loopType: 'dowhile' | 'dountil' };
+    entry: {
+      type: 'loop';
+      step: NewStep;
+      condition: ExecuteFunction<any, any, any, any>;
+      loopType: 'dowhile' | 'dountil';
+    };
     prevStep: StepFlowEntry;
     prevOutput: any;
     stepResults: Record<string, StepResult<any>>;

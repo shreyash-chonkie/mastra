@@ -3,7 +3,7 @@ import type { z } from 'zod';
 import type { Mastra } from '../..';
 
 // Define a type for the execute function
-export type ExecuteFunction<TStepInput, TStepOutput, TResumeSchema> = (params: {
+export type ExecuteFunction<TStepInput, TStepOutput, TResumeSchema, TSuspendSchema> = (params: {
   mastra: Mastra;
   inputData: TStepInput;
   resumeData?: TResumeSchema;
@@ -12,7 +12,7 @@ export type ExecuteFunction<TStepInput, TStepOutput, TResumeSchema> = (params: {
     stepId: T,
   ): T['outputSchema'] extends undefined ? unknown : z.infer<NonNullable<T['outputSchema']>>;
   // TODO: should this be a schema you can define on the step?
-  suspend(suspendPayload: any): Promise<void>;
+  suspend(suspendPayload: TSuspendSchema): Promise<void>;
   resume?: {
     steps: NewStep<string, any, any>[];
     resumePayload: any;
@@ -26,12 +26,14 @@ export interface NewStep<
   TSchemaIn extends z.ZodObject<any> = z.ZodObject<any>,
   TSchemaOut extends z.ZodObject<any> = z.ZodObject<any>,
   TResumeSchema extends z.ZodObject<any> = z.ZodObject<any>,
+  TSuspendSchema extends z.ZodObject<any> = z.ZodObject<any>,
 > {
   id: TStepId;
   description?: string;
   inputSchema: TSchemaIn;
   outputSchema: TSchemaOut;
   resumeSchema?: TResumeSchema;
-  execute: ExecuteFunction<z.infer<TSchemaIn>, z.infer<TSchemaOut>, z.infer<TResumeSchema>>;
+  suspendSchema?: TSuspendSchema;
+  execute: ExecuteFunction<z.infer<TSchemaIn>, z.infer<TSchemaOut>, z.infer<TResumeSchema>, z.infer<TSuspendSchema>>;
   retries?: number;
 }

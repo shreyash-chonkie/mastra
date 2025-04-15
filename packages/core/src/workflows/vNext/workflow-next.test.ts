@@ -2047,6 +2047,8 @@ describe('Workflow', () => {
         execute: promptAgentAction,
         inputSchema: z.object({ userInput: z.string() }),
         outputSchema: z.object({ modelOutput: z.string() }),
+        suspendSchema: z.object({ testPayload: z.string() }),
+        resumeSchema: z.object({ userInput: z.string() }),
       });
       const evaluateTone = createStep({
         id: 'evaluateToneConsistency',
