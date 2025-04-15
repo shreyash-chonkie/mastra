@@ -375,8 +375,6 @@ export class NewWorkflow<
 
   async getWorkflowRuns() {
     const storage = this.#mastra?.getStorage();
-    console.log('mastra', this.#mastra);
-    console.log('storage', storage);
     if (!storage) {
       this.logger.debug('Cannot get workflow runs. Mastra engine is not initialized');
       return { runs: [], total: 0 };
