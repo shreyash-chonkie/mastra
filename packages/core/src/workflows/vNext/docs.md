@@ -316,6 +316,36 @@ run.watch(event => {
 const result = await run.start({ inputData: {...} });
 ```
 
+The `event` object has the following schema:
+
+```typescript
+type WatchEvent = {
+  type: 'watch';
+  payload: {
+    currentStep: {
+      id: string;
+      status: 'running' | 'completed' | 'failed' | 'suspended';
+      output?: Record<string, any>;
+      payload?: Record<string, any>;
+    };
+    workflowState: {
+      status: 'running' | 'completed' | 'failed' | 'suspended';
+      steps: Record<
+        string,
+        {
+          status: 'running' | 'completed' | 'failed' | 'suspended';
+          output?: Record<string, any>;
+          payload?: Record<string, any>;
+        }
+      >;
+      output?: Record<string, any>;
+      payload?: Record<string, any>;
+    };
+  };
+  eventTimestamp: Date;
+};
+```
+
 ## Nested Workflows
 
 vNext supports composing workflows by nesting them:
