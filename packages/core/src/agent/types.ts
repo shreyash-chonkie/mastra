@@ -54,10 +54,7 @@ export interface AgentConfig<
   voice?: CompositeVoice;
 }
 
-export type onAfterToolExecute = ({
-  mastra,
-  runId,
-}: {
+export type onAfterToolExecute = (args: {
   mastra: (Mastra & MastraPrimitives) | MastraPrimitives;
   runId?: string;
   threadId?: string;

@@ -988,7 +988,6 @@ export class Agent<
     }
 
     if (!output) {
-      console.log({ convertedTools });
       const result = await this.llm.__text({
         messages: messageObjects,
         tools: convertedTools,

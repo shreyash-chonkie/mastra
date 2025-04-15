@@ -391,12 +391,10 @@ function createExecute(tool: ToolToConvert, options: ToolOptions, logType?: 'too
       logger.debug(start, { ...rest, args });
       const result = await execFunction(args, execOptions);
 
-      console.log(options?.onAfterToolExecute);
-
-      if (options.mastra && options.onAfterToolExecute) {
+      if (options.onAfterToolExecute) {
         await Promise.resolve(
           options.onAfterToolExecute({
-            mastra: options.mastra,
+            mastra: options.mastra!,
             result,
             context: args,
             execOptions,
