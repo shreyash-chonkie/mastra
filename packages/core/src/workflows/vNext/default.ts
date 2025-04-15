@@ -188,9 +188,9 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         let suspended: { payload: any } | undefined;
         const result = await step.execute({
           mastra: this.mastra!,
-          inputData: resume?.steps[0]!.id === step.id ? resume?.resumePayload : prevOutput,
+          inputData: prevOutput,
           resumeData: resume?.steps[0]!.id === step.id ? resume?.resumePayload : undefined,
-          context: resume?.steps[0]!.id === step.id ? resume?.resumePayload : prevOutput,
+          context: prevOutput,
           getStepResult: (step: any) => {
             const result = stepResults[step.id];
             if (result?.status === 'success') {
