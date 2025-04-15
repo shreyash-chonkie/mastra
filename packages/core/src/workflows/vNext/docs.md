@@ -97,12 +97,30 @@ const myWorkflow = createWorkflow({
 });
 ```
 
+The `steps` property in the workflow options provides type safety for accessing step results. When you declare the steps used in your workflow, TypeScript will ensure type safety when accessing `result.steps`:
+
+```typescript
+// With steps declared in workflow options
+const workflow = createWorkflow({
+  id: 'my-workflow',
+  inputSchema: z.object({}),
+  outputSchema: z.object({}),
+  steps: [step1, step2], // TypeScript knows these steps exist
+});
+
+const result = await workflow.createRun().start({ inputData: {} });
+
+// TypeScript knows these properties exist and their types
+console.log(result.steps.step1.output); // Fully typed
+console.log(result.steps.step2.output); // Fully typed
+```
+
 Workflow definition requires:
 
 - `id`: Unique identifier for the workflow
 - `inputSchema`: Zod schema defining workflow input
 - `outputSchema`: Zod schema defining workflow output
-- `steps`: Array of steps used in the workflow
+- `steps`: Array of steps used in the workflow (optional, but recommended for type safety)
 
 ### Flow Control
 
