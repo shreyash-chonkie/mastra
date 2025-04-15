@@ -191,10 +191,12 @@ export class NewWorkflow<
   map<
     TSteps extends Step<string, any, any>[],
     TMapping extends {
-      [K in keyof TMapping]: {
-        step: TSteps[number];
-        path: PathsToStringProps<ExtractSchemaType<ExtractSchemaFromStep<TSteps[number], 'outputSchema'>>>;
-      };
+      [K in keyof TMapping]:
+        | {
+            step: TSteps[number];
+            path: PathsToStringProps<ExtractSchemaType<ExtractSchemaFromStep<TSteps[number], 'outputSchema'>>>;
+          }
+        | { value: any; schema: z.ZodTypeAny };
     },
   >(mappingConfig: TMapping) {
     // Create an implicit step that handles the mapping
@@ -206,6 +208,11 @@ export class NewWorkflow<
         const result: Record<string, any> = {};
         for (const [key, mapping] of Object.entries(mappingConfig)) {
           const m: any = mapping;
+
+          if (m.value) {
+            result[key] = m.value;
+            continue;
+          }
 
           const stepResult = getStepResult(m.step);
           const pathParts = m.path.split('.');
@@ -226,9 +233,14 @@ export class NewWorkflow<
 
     type MappedOutputSchema = z.ZodObject<
       {
-        [K in keyof TMapping]: TMapping[K] extends { value: any; schema: z.ZodTypeAny }
-          ? TMapping[K]['schema']
-          : ZodPathType<TMapping[K]['step']['outputSchema'], TMapping[K]['path']>;
+        [K in keyof TMapping]: TMapping[K] extends {
+          step: TSteps[number];
+          path: PathsToStringProps<ExtractSchemaType<ExtractSchemaFromStep<TSteps[number], 'outputSchema'>>>;
+        }
+          ? ZodPathType<TMapping[K]['step']['outputSchema'], TMapping[K]['path']>
+          : TMapping[K] extends { value: any; schema: z.ZodTypeAny }
+            ? TMapping[K]['schema']
+            : never;
       },
       'strip',
       z.ZodTypeAny

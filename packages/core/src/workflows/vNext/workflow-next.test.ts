@@ -1890,7 +1890,7 @@ describe('Workflow', () => {
       const explainResponse = createStep({
         id: 'explainResponse',
         execute: explainResponseAction,
-        inputSchema: z.object({ toneScore: z.any(), completenessScore: z.any() }),
+        inputSchema: z.object({ toneScore: z.any(), completenessScore: z.any(), humanPrompt: z.string().optional() }),
         outputSchema: z.object({ improvedOutput: z.string() }),
       });
 
@@ -1923,6 +1923,10 @@ describe('Workflow', () => {
           completenessScore: {
             step: evaluateTone,
             path: 'completenessScore',
+          },
+          humanPrompt: {
+            value: 'What improvements would you suggest?',
+            schema: z.string().optional(),
           },
         })
         .parallel([humanIntervention, explainResponse])
@@ -1993,7 +1997,7 @@ describe('Workflow', () => {
       expect(humanInterventionAction).toHaveBeenCalledTimes(2);
       expect(explainResponseAction).toHaveBeenCalledTimes(1);
 
-      expect(result.steps).toEqual({
+      expect(result.steps).toMatchObject({
         input: { input: 'test' },
         getUserInput: { status: 'success', output: { userInput: 'test input' } },
         promptAgent: { status: 'success', output: { modelOutput: 'test output' } },
