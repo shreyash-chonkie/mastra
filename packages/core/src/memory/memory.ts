@@ -454,6 +454,7 @@ export abstract class MastraMemory extends MastraBase {
     toolNames,
     toolCallArgs,
     toolCallIds,
+    createdAt,
   }: {
     threadId: string;
     resourceId: string;
@@ -464,12 +465,13 @@ export abstract class MastraMemory extends MastraBase {
     toolNames?: string[];
     toolCallArgs?: Record<string, unknown>[];
     toolCallIds?: string[];
+    createdAt?: Date;
   }): Promise<MessageType> {
     const message: MessageType = {
       id: this.generateId(),
       content,
       role,
-      createdAt: new Date(),
+      createdAt: createdAt || new Date(),
       threadId,
       resourceId,
       type,
