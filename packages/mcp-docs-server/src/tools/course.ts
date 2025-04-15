@@ -7,9 +7,9 @@ import { z } from 'zod';
 import { fromPackageRoot } from '../utils';
 
 const courseDir = fromPackageRoot('.docs/raw/course');
-const courseSchema = fromPackageRoot('.docs/course/courseSchema.json');
 
-const coursePrompt = `
+// Define the prompt that wraps each lesson step
+const lessonPrompt = `
   This is a course to help a new user learn about Mastra, the open-source AI Agent framework built in Typescript.
   Please help the user through the steps of the course by walking them through the content and following the course
   to write the initial version of the code for them. The goal is to show them how the code works and explain it as they go
@@ -19,46 +19,49 @@ const coursePrompt = `
   as the course goes on. Each lesson is broken up into steps. 
 `;
 
-async function listCourseLessons(): Promise<Array<{ name: string }>> {
-  try {
-    const files = await fs.readdir(courseDir);
-    return files
-      .filter(f => !f.startsWith('.')) // Skip hidden files
-      .map(f => ({
-        name: f.replace(/^\d+-/, ''), // Remove numbering prefix
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  } catch {
-    return [];
+// Define the introduction prompt shown only when a user first starts the course
+const introductionPrompt = `
+# Welcome to the Mastra Course! 
+
+Thank you for starting the Mastra course! This interactive guide will help you learn how to build powerful AI agents with Mastra, the open-source AI Agent framework built in TypeScript.
+
+## Before We Begin
+
+If you enjoy Mastra, please consider starring the GitHub repository:
+https://github.com/mastra-ai/mastra 
+
+This helps the project grow and reach more developers like you!
+
+## How This Course Works
+
+- Each lesson is broken into multiple steps
+- I'll guide you through the code examples and explanations
+- You can ask questions at any time
+- Use the \`nextMastraCourseStep\` tool to move to the next step when you're ready. Just ask to "move to the next step" when you are ready.
+- Use the \`getMastraCourseStatus\` tool to check your progress. You can just ask "get my course progress".
+- Use the \`clearMastraCourseHistory\` tool to reset your progress and start over. You can just ask "clear my course progress".
+
+Let's get started with your first lesson!
+
+`;
+
+// Define the prompt wrapper for each course step
+function wrapContentInPrompt(content: string, isFirstStep: boolean = false, isFirstTimeUser: boolean = false): string {
+  let wrappedContent = `${lessonPrompt}\n\nHere is the content for this step: <StepContent>${content}</StepContent>`;
+
+  if (isFirstTimeUser && isFirstStep) {
+    wrappedContent = `${introductionPrompt}\n${wrappedContent}`;
   }
+
+  return `${wrappedContent}\n\nWhen you're ready to continue, use the \`nextMastraCourseStep\` tool to move to the next step.`;
 }
 
-async function listCourseSteps(lessonName: string): Promise<Array<{ name: string; path: string }>> {
-  try {
-    // Find the lesson directory that matches the name
-    const lessonDirs = await fs.readdir(courseDir);
-    const lessonDir = lessonDirs.find(dir => dir.replace(/^\d+-/, '') === lessonName);
-
-    if (!lessonDir) {
-      return [];
-    }
-
-    const lessonPath = path.join(courseDir, lessonDir);
-    const files = await fs.readdir(lessonPath);
-
-    return files
-      .filter(f => f.endsWith('.md'))
-      .map(f => ({
-        name: f.replace(/^\d+-/, '').replace('.md', ''),
-        path: path.join(lessonDir, f),
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  } catch {
-    return [];
-  }
-}
-
-async function readCourseStep(lessonName: string, stepName: string): Promise<string> {
+async function readCourseStep(
+  lessonName: string,
+  stepName: string,
+  isFirstStep: boolean = false,
+  isFirstTimeUser: boolean = false,
+): Promise<string> {
   // Find the lesson directory that matches the name
   const lessonDirs = await fs.readdir(courseDir);
   const lessonDir = lessonDirs.find(dir => dir.replace(/^\d+-/, '') === lessonName);
@@ -83,7 +86,8 @@ async function readCourseStep(lessonName: string, stepName: string): Promise<str
   const filePath = path.join(courseDir, lessonDir, stepFile);
 
   try {
-    return await fs.readFile(filePath, 'utf-8');
+    const content = await fs.readFile(filePath, 'utf-8');
+    return wrapContentInPrompt(content, isFirstStep, isFirstTimeUser);
   } catch {
     throw new Error(`Failed to read step "${stepName}" in lesson "${lessonName}".`);
   }
@@ -284,6 +288,45 @@ async function mergeCourseStates(currentState: CourseState, newState: CourseStat
   };
 }
 
+async function listCourseLessons(): Promise<Array<{ name: string }>> {
+  try {
+    const files = await fs.readdir(courseDir);
+    return files
+      .filter(f => !f.startsWith('.')) // Skip hidden files
+      .map(f => ({
+        name: f.replace(/^\d+-/, ''), // Remove numbering prefix
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    return [];
+  }
+}
+
+async function listCourseSteps(lessonName: string): Promise<Array<{ name: string; path: string }>> {
+  try {
+    // Find the lesson directory that matches the name
+    const lessonDirs = await fs.readdir(courseDir);
+    const lessonDir = lessonDirs.find(dir => dir.replace(/^\d+-/, '') === lessonName);
+
+    if (!lessonDir) {
+      return [];
+    }
+
+    const lessonPath = path.join(courseDir, lessonDir);
+    const files = await fs.readdir(lessonPath);
+
+    return files
+      .filter(f => f.endsWith('.md'))
+      .map(f => ({
+        name: f.replace(/^\d+-/, '').replace('.md', ''),
+        path: path.join(lessonDir, f),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    return [];
+  }
+}
+
 const initialLessons = await listCourseLessons();
 const _lessonsListing =
   initialLessons.length > 0
@@ -318,7 +361,7 @@ export const startMastraCourse: Tool<any> = {
         );
 
         if (newLessons.length > 0) {
-          statusMessage = `📚 Course content has been updated! ${newLessons.length} new lesson(s) have been added:\n`;
+          statusMessage = ` Course content has been updated! ${newLessons.length} new lesson(s) have been added:\n`;
           statusMessage += newLessons.map(lesson => `- ${lesson.name}`).join('\n');
           statusMessage += '\n\n';
         }
@@ -329,7 +372,7 @@ export const startMastraCourse: Tool<any> = {
         // First time user, create new state
         courseState = latestCourseState;
         await saveCourseState(courseState);
-        statusMessage = '🎉 Welcome to the Mastra Course! Starting with the first lesson.\n\n';
+        statusMessage = ' Welcome to the Mastra Course! Starting with the first lesson.\n\n';
       }
 
       // Find the current lesson and step
@@ -355,9 +398,9 @@ export const startMastraCourse: Tool<any> = {
           courseState.currentLesson = nextLesson.name;
           await saveCourseState(courseState);
 
-          return `${statusMessage}🎉 You've completed the "${currentLessonName}" lesson!\n\nMoving on to the next lesson: "${nextLesson.name}".\n\nUse the \`nextMastraCourseStep\` tool to start the first step of this lesson.`;
+          return `${statusMessage} You've completed the "${currentLessonName}" lesson!\n\nMoving on to the next lesson: "${nextLesson.name}".\n\nUse the \`nextMastraCourseStep\` tool to start the first step of this lesson.`;
         } else {
-          return `${statusMessage}🎉 Congratulations! You've completed all available lessons in the Mastra Course!\n\nIf you'd like to review any lesson, use the \`startMastraCourseLesson\` tool with the lesson name.`;
+          return `${statusMessage} Congratulations! You've completed all available lessons in the Mastra Course!\n\nIf you'd like to review any lesson, use the \`startMastraCourseLesson\` tool with the lesson name.`;
         }
       }
 
@@ -367,20 +410,20 @@ export const startMastraCourse: Tool<any> = {
       }
 
       // Mark the step as in progress
-      currentStep.status = 1;
+      currentStep.status = 1; // In progress
 
       // If the lesson is not in progress, mark it as in progress
       if (currentLesson.status === 0) {
-        currentLesson.status = 1;
+        currentLesson.status = 1; // In progress
       }
 
       // Save the updated state
       await saveCourseState(courseState);
 
       // Get the content for the current step
-      const stepContent = await readCourseStep(currentLessonName, currentStep.name);
+      const stepContent = await readCourseStep(currentLessonName, currentStep.name, true, !courseState);
 
-      return `${statusMessage}📘 Lesson: ${currentLessonName}\n📝 Step: ${currentStep.name}\n\n${stepContent}\n\nWhen you've completed this step, use the \`nextMastraCourseStep\` tool to continue.`;
+      return `${statusMessage} Lesson: ${currentLessonName}\n Step: ${currentStep.name}\n\n${stepContent}\n\nWhen you've completed this step, use the \`nextMastraCourseStep\` tool to continue.`;
     } catch (error: unknown) {
       console.error('Error starting Mastra course:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -527,20 +570,20 @@ export const startMastraCourseLesson: Tool<any> = {
       }
 
       // Mark the step as in progress
-      firstIncompleteStep.status = 1;
+      firstIncompleteStep.status = 1; // In progress
 
       // If the lesson is not in progress or completed, mark it as in progress
       if (targetLesson.status === 0) {
-        targetLesson.status = 1;
+        targetLesson.status = 1; // In progress
       }
 
       // Save the updated state
       await saveCourseState(courseState);
 
       // Get the content for the step
-      const stepContent = await readCourseStep(targetLesson.name, firstIncompleteStep.name);
+      const stepContent = await readCourseStep(targetLesson.name, firstIncompleteStep.name, true, false);
 
-      return `📘 Starting Lesson: ${targetLesson.name}\n📝 Step: ${firstIncompleteStep.name}\n\n${stepContent}\n\nWhen you've completed this step, use the \`nextMastraCourseStep\` tool to continue.`;
+      return `Starting Lesson: ${targetLesson.name}\n Step: ${firstIncompleteStep.name}\n\n${stepContent}\n\nWhen you've completed this step, use the \`nextMastraCourseStep\` tool to continue.`;
     } catch (error: unknown) {
       console.error('Error starting course lesson:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -595,9 +638,9 @@ export const nextMastraCourseStep: Tool<any> = {
 
         // Get the content for the next step
         const nextStep = currentLesson.steps[nextStepIndex];
-        const stepContent = await readCourseStep(currentLessonName, nextStep.name);
+        const stepContent = await readCourseStep(currentLessonName, nextStep.name, false, false);
 
-        return `🎉 Step "${currentLesson.steps[currentStepIndex].name}" completed!\n\n📘 Continuing Lesson: ${currentLessonName}\n📝 Next Step: ${nextStep.name}\n\n${stepContent}\n\nWhen you've completed this step, use the \`nextMastraCourseStep\` tool to continue.`;
+        return ` Step "${currentLesson.steps[currentStepIndex].name}" completed!\n\nContinuing Lesson: ${currentLessonName}\n Next Step: ${nextStep.name}\n\n${stepContent}\n\nWhen you've completed this step, use the \`nextMastraCourseStep\` tool to continue.`;
       }
 
       // All steps in the current lesson are completed
@@ -625,15 +668,15 @@ export const nextMastraCourseStep: Tool<any> = {
 
         // Get the content for the first step of the next lesson
         const firstStep = nextLesson.steps[0];
-        const stepContent = await readCourseStep(nextLesson.name, firstStep.name);
+        const stepContent = await readCourseStep(nextLesson.name, firstStep.name, true, false);
 
-        return `🎉 Congratulations! You've completed the "${currentLessonName}" lesson!\n\n📘 Starting New Lesson: ${nextLesson.name}\n📝 First Step: ${firstStep.name}\n\n${stepContent}\n\nWhen you've completed this step, use the \`nextMastraCourseStep\` tool to continue.`;
+        return ` Congratulations! You've completed the "${currentLessonName}" lesson!\n\nStarting New Lesson: ${nextLesson.name}\n First Step: ${firstStep.name}\n\n${stepContent}\n\nWhen you've completed this step, use the \`nextMastraCourseStep\` tool to continue.`;
       }
 
       // All lessons are completed
       await saveCourseState(courseState);
 
-      return `🎉 Congratulations! You've completed all available lessons in the Mastra Course!\n\nIf you'd like to review any lesson, use the \`startMastraCourseLesson\` tool with the lesson name.`;
+      return ` Congratulations! You've completed all available lessons in the Mastra Course!\n\nIf you'd like to review any lesson, use the \`startMastraCourseLesson\` tool with the lesson name.`;
     } catch (error: unknown) {
       console.error('Error advancing course step:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -660,7 +703,7 @@ export const clearMastraCourseHistory: Tool<any> = {
     try {
       // Check if the user has confirmed the action
       if (!args.confirm) {
-        return '⚠️ This action will delete all your course progress and cannot be undone. To proceed, please run this tool again with the confirm parameter set to true.';
+        return ' This action will delete all your course progress and cannot be undone. To proceed, please run this tool again with the confirm parameter set to true.';
       }
 
       // Get the state file path
@@ -678,7 +721,7 @@ export const clearMastraCourseHistory: Tool<any> = {
       const freshCourseState = await scanCourseContent();
 
       if (!freshCourseState.lessons.length) {
-        return '🧹 Course progress has been cleared. No course content found to start a new course.';
+        return ' Course progress has been cleared. No course content found to start a new course.';
       }
 
       // Get the first lesson and step
@@ -686,13 +729,13 @@ export const clearMastraCourseHistory: Tool<any> = {
       const firstStep = firstLesson.steps[0];
 
       if (!firstStep) {
-        return '🧹 Course progress has been cleared. The first lesson does not have any steps.';
+        return ' Course progress has been cleared. The first lesson does not have any steps.';
       }
 
       // Return a message with the first lesson and step
-      const stepContent = await readCourseStep(firstLesson.name, firstStep.name);
+      const stepContent = await readCourseStep(firstLesson.name, firstStep.name, true, true);
 
-      return `🧹 Course progress has been cleared. Starting from the beginning.\n\n📘 Lesson: ${firstLesson.name}\n📝 Step: ${firstStep.name}\n\n${stepContent}\n\nWhen you've completed this step, use the \`nextMastraCourseStep\` tool to continue.`;
+      return ` Course progress has been cleared. Starting from the beginning.\n\nLesson: ${firstLesson.name}\n Step: ${firstStep.name}\n\n${stepContent}\n\nWhen you've completed this step, use the \`nextMastraCourseStep\` tool to continue.`;
     } catch (error: unknown) {
       console.error('Error clearing course history:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
