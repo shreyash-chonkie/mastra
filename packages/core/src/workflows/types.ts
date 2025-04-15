@@ -49,7 +49,7 @@ export interface StepAction<
 > extends IAction<TId, TSchemaIn, TSchemaOut, TContext> {
   mastra?: Mastra;
   payload?: TSchemaIn extends z.ZodSchema ? Partial<z.infer<TSchemaIn>> : unknown;
-  execute: (context: TContext) => Promise<TSchemaOut extends z.ZodSchema ? z.infer<TSchemaOut> : unknown>;
+  execute?: (context: TContext) => Promise<TSchemaOut extends z.ZodSchema ? z.infer<TSchemaOut> : unknown>;
   retryConfig?: RetryConfig;
   workflow?: Workflow;
   workflowId?: string;
