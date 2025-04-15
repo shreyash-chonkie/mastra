@@ -218,11 +218,7 @@ export class NewWorkflow<
             }
           }
 
-          if (value !== null && value !== undefined) {
-            result[key] = value;
-          } else {
-            result[key] = m.defaultValue;
-          }
+          result[key] = value;
         }
         return result as z.infer<typeof mappingStep.outputSchema>;
       },
