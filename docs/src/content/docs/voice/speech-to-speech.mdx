@@ -52,6 +52,7 @@ const voice = new OpenAIRealtimeVoice();
 ```typescript
 import { Agent } from "@mastra/core/agent";
 import { OpenAIRealtimeVoice } from "@mastra/voice-openai-realtime";
+import { playAudio, getMicrophoneStream } from "@mastra/node-audio";
 
 const agent = new Agent({
   name: 'Agent',
@@ -64,7 +65,7 @@ const agent = new Agent({
 await agent.voice.connect();
 
 // Listen for agent audio responses
-agent.voice.on('speaking', ({ audio }) => {
+agent.voice.on('speaker', ({ audio }) => {
   playAudio(audio);
 });
 
