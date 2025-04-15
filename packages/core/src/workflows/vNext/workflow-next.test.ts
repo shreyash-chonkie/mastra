@@ -808,7 +808,7 @@ describe('Workflow', () => {
 
   describe('Loops', () => {
     it('should run an until loop', async () => {
-      const increment = vi.fn().mockImplementation(async ({ inputData, getStepResult }) => {
+      const increment = vi.fn().mockImplementation(async ({ inputData }) => {
         // Get the current value (either from trigger or previous increment)
         const currentValue = inputData.value;
 
@@ -1697,8 +1697,8 @@ describe('Workflow', () => {
       });
       const humanInterventionAction = vi
         .fn()
-        .mockImplementationOnce(async ({ suspend, inputData }) => {
-          if (!inputData.humanPrompt) {
+        .mockImplementationOnce(async ({ suspend, resumeData }) => {
+          if (!resumeData?.humanPrompt) {
             await suspend();
           }
         })
@@ -1731,7 +1731,7 @@ describe('Workflow', () => {
       const humanIntervention = createStep({
         id: 'humanIntervention',
         execute: humanInterventionAction,
-        inputSchema: z.object({ toneScore: z.any(), completenessScore: z.any(), humanPrompt: z.string().optional() }),
+        inputSchema: z.object({ toneScore: z.any(), completenessScore: z.any() }),
         outputSchema: z.object({ improvedOutput: z.string() }),
       });
       const explainResponse = createStep({
