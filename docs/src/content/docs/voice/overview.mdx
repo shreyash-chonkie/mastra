@@ -75,11 +75,7 @@ import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 import { AzureVoice } from "@mastra/voice-azure";
 
-const voice = new AzureVoice({
-  apiKey: process.env.AZURE_SPEECH_KEY,
-  region: process.env.AZURE_SPEECH_REGION,
-  speaker: "en-US-JennyNeural", // Optional: specify a speaker
-});
+const voice = new AzureVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -104,10 +100,7 @@ import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 import { ElevenLabsVoice } from "@mastra/voice-elevenlabs";
 
-const voice = new ElevenLabsVoice({
-  apiKey: process.env.ELEVENLABS_API_KEY,
-  voiceId: "your-voice-id", // Optional: use a specific voice
-});
+const voice = new ElevenLabsVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -132,10 +125,7 @@ import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 import { PlayAIVoice } from "@mastra/voice-playai";
 
-const voice = new PlayAIVoice({
-  apiKey: process.env.PLAYAI_API_KEY,
-  speaker: "emma", // Optional: choose a voice
-});
+const voice = new PlayAIVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -160,10 +150,7 @@ import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 import { GoogleVoice } from "@mastra/voice-google";
 
-const voice = new GoogleVoice({
-  apiKey: process.env.GOOGLE_API_KEY,
-  speaker: "en-US-Studio-O", // Optional: specify a speaker
-});
+const voice = new GoogleVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -188,10 +175,7 @@ import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 import { CloudflareVoice } from "@mastra/voice-cloudflare";
 
-const voice = new CloudflareVoice({
-  accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
-  apiToken: process.env.CLOUDFLARE_API_TOKEN,
-});
+const voice = new CloudflareVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -216,10 +200,7 @@ import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 import { DeepgramVoice } from "@mastra/voice-deepgram";
 
-const voice = new DeepgramVoice({
-  apiKey: process.env.DEEPGRAM_API_KEY,
-  speaker: "aura-english-us", // Optional: specify a speaker
-});
+const voice = new DeepgramVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -244,10 +225,7 @@ import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 import { SpeechifyVoice } from "@mastra/voice-speechify";
 
-const voice = new SpeechifyVoice({
-  apiKey: process.env.SPEECHIFY_API_KEY,
-  speaker: "matthew", // Optional: specify a speaker
-});
+const voice = new SpeechifyVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -272,9 +250,7 @@ import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 import { SarvamVoice } from "@mastra/voice-sarvam";
 
-const voice = new SarvamVoice({
-  apiKey: process.env.SARVAM_API_KEY,
-});
+const voice = new SarvamVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -299,9 +275,7 @@ import { Agent } from '@mastra/core/agent';
 import { openai } from '@ai-sdk/openai';
 import { MurfVoice } from "@mastra/voice-murf";
 
-const voice = new MurfVoice({
-  apiKey: process.env.MURF_API_KEY,
-});
+const voice = new MurfVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -368,10 +342,7 @@ import { openai } from '@ai-sdk/openai';
 import { AzureVoice } from "@mastra/voice-azure";
 import { createReadStream } from 'fs';
 
-const voice = new AzureVoice({
-  apiKey: process.env.AZURE_SPEECH_KEY,
-  region: process.env.AZURE_SPEECH_REGION,
-});
+const voice = new AzureVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -400,10 +371,7 @@ import { openai } from '@ai-sdk/openai';
 import { ElevenLabsVoice } from "@mastra/voice-elevenlabs";
 import { createReadStream } from 'fs';
 
-const voice = new ElevenLabsVoice({
-  apiKey: process.env.ELEVENLABS_API_KEY,
-  voiceId: "your-voice-id", // Optional: use a specific voice
-});
+const voice = new ElevenLabsVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -432,9 +400,7 @@ import { openai } from '@ai-sdk/openai';
 import { GoogleVoice } from "@mastra/voice-google";
 import { createReadStream } from 'fs';
 
-const voice = new GoogleVoice({
-  apiKey: process.env.GOOGLE_API_KEY,
-});
+const voice = new GoogleVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -463,10 +429,7 @@ import { openai } from '@ai-sdk/openai';
 import { CloudflareVoice } from "@mastra/voice-cloudflare";
 import { createReadStream } from 'fs';
 
-const voice = new CloudflareVoice({
-  accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
-  apiToken: process.env.CLOUDFLARE_API_TOKEN,
-});
+const voice = new CloudflareVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -495,9 +458,7 @@ import { openai } from '@ai-sdk/openai';
 import { DeepgramVoice } from "@mastra/voice-deepgram";
 import { createReadStream } from 'fs';
 
-const voice = new DeepgramVoice({
-  apiKey: process.env.DEEPGRAM_API_KEY,
-});
+const voice = new DeepgramVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -526,9 +487,7 @@ import { openai } from '@ai-sdk/openai';
 import { SarvamVoice } from "@mastra/voice-sarvam";
 import { createReadStream } from 'fs';
 
-const voice = new SarvamVoice({
-  apiKey: process.env.SARVAM_API_KEY,
-});
+const voice = new SarvamVoice();
 
 const voiceAgent = new Agent({
   name: "Voice Agent",
@@ -594,60 +553,214 @@ Visit the [OpenAI Voice Reference](/reference/voice/openai-realtime) for more in
 
 ## Voice Configuration
 
-Voice providers can be configured with different models and options:
+Each voice provider can be configured with different models and options. Below are the detailed configuration options for all supported providers:
 
-<Tabs items={["OpenAI", "Azure", "ElevenLabs", "Google", "Deepgram"]}>
+<Tabs items={["OpenAI", "Azure", "ElevenLabs", "PlayAI", "Google", "Cloudflare", "Deepgram", "Speechify", "Sarvam", "Murf", "OpenAI Realtime"]}>
   <Tabs.Tab>
 ```typescript
+// OpenAI Voice Configuration
 const voice = new OpenAIVoice({
   speechModel: {
-    name: "tts-1-hd",
-    apiKey: process.env.OPENAI_API_KEY
+    name: "gpt-3.5-turbo", // Example model name
+    apiKey: process.env.OPENAI_API_KEY,
+    language: "en-US", // Language code
+    voiceType: "neural", // Type of voice model
   },
   listeningModel: {
-    name: "whisper-1"
+    name: "whisper-1", // Example model name
+    apiKey: process.env.OPENAI_API_KEY,
+    language: "en-US", // Language code
+    format: "wav", // Audio format
   },
-  speaker: "alloy"
+  speaker: "alloy", // Example speaker name
 });
 ```
+
+Visit the [OpenAI Voice Reference](/reference/voice/openai) for more information on the OpenAI voice provider.
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
+// Azure Voice Configuration
 const voice = new AzureVoice({
-  apiKey: process.env.AZURE_SPEECH_KEY,
-  region: process.env.AZURE_SPEECH_REGION,
-  speaker: "en-US-JennyNeural",
-  language: "en-US"
+  speechModel: {
+    name: "en-US-JennyNeural", // Example model name
+    apiKey: process.env.AZURE_SPEECH_KEY,
+    region: process.env.AZURE_SPEECH_REGION,
+    language: "en-US", // Language code
+    style: "cheerful", // Voice style
+    pitch: "+0Hz", // Pitch adjustment
+    rate: "1.0", // Speech rate
+  },
+  listeningModel: {
+    name: "en-US", // Example model name
+    apiKey: process.env.AZURE_SPEECH_KEY,
+    region: process.env.AZURE_SPEECH_REGION,
+    format: "simple", // Output format
+  },
 });
 ```
+
+Visit the [Azure Voice Reference](/reference/voice/azure) for more information on the Azure voice provider.
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
+// ElevenLabs Voice Configuration
 const voice = new ElevenLabsVoice({
-  apiKey: process.env.ELEVENLABS_API_KEY,
-  voiceId: "your-voice-id",
-  model: "eleven_multilingual_v2"
+  speechModel: {
+    voiceId: "your-voice-id", // Example voice ID
+    model: "eleven_multilingual_v2", // Example model name
+    apiKey: process.env.ELEVENLABS_API_KEY,
+    language: "en", // Language code
+    emotion: "neutral", // Emotion setting
+  },
+  // ElevenLabs may not have a separate listening model
 });
 ```
+
+Visit the [ElevenLabs Voice Reference](/reference/voice/elevenlabs) for more information on the ElevenLabs voice provider.
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
+// PlayAI Voice Configuration
+const voice = new PlayAIVoice({
+  speechModel: {
+    name: "playai-voice", // Example model name
+    speaker: "emma", // Example speaker name
+    apiKey: process.env.PLAYAI_API_KEY,
+    language: "en-US", // Language code
+    speed: 1.0, // Speech speed
+  },
+  // PlayAI may not have a separate listening model
+});
+```
+
+Visit the [PlayAI Voice Reference](/reference/voice/playai) for more information on the PlayAI voice provider.
+  </Tabs.Tab>
+  <Tabs.Tab>
+```typescript
+// Google Voice Configuration
 const voice = new GoogleVoice({
-  apiKey: process.env.GOOGLE_API_KEY,
-  speaker: "en-US-Studio-O",
-  model: "en-US-Studio-O",
-  languageCode: "en-US"
+  speechModel: {
+    name: "en-US-Studio-O", // Example model name
+    apiKey: process.env.GOOGLE_API_KEY,
+    languageCode: "en-US", // Language code
+    gender: "FEMALE", // Voice gender
+    speakingRate: 1.0, // Speaking rate
+  },
+  listeningModel: {
+    name: "en-US", // Example model name
+    sampleRateHertz: 16000, // Sample rate
+  },
 });
 ```
+
+Visit the [PlayAI Voice Reference](/reference/voice/playai) for more information on the PlayAI voice provider.
   </Tabs.Tab>
   <Tabs.Tab>
 ```typescript
-const voice = new DeepgramVoice({
-  apiKey: process.env.DEEPGRAM_API_KEY,
-  speaker: "aura-english-us",
-  model: "nova-2"
+// Cloudflare Voice Configuration
+const voice = new CloudflareVoice({
+  speechModel: {
+    name: "cloudflare-voice", // Example model name
+    accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+    apiToken: process.env.CLOUDFLARE_API_TOKEN,
+    language: "en-US", // Language code
+    format: "mp3", // Audio format
+  },
+  // Cloudflare may not have a separate listening model
 });
 ```
+
+Visit the [Cloudflare Voice Reference](/reference/voice/cloudflare) for more information on the Cloudflare voice provider.
+  </Tabs.Tab>
+  <Tabs.Tab>
+```typescript
+// Deepgram Voice Configuration
+const voice = new DeepgramVoice({
+  speechModel: {
+    name: "nova-2", // Example model name
+    speaker: "aura-english-us", // Example speaker name
+    apiKey: process.env.DEEPGRAM_API_KEY,
+    language: "en-US", // Language code
+    tone: "formal", // Tone setting
+  },
+  listeningModel: {
+    name: "nova-2", // Example model name
+    format: "flac", // Audio format
+  },
+});
+```
+
+Visit the [Deepgram Voice Reference](/reference/voice/deepgram) for more information on the Deepgram voice provider.
+  </Tabs.Tab>
+  <Tabs.Tab>
+```typescript
+// Speechify Voice Configuration
+const voice = new SpeechifyVoice({
+  speechModel: {
+    name: "speechify-voice", // Example model name
+    speaker: "matthew", // Example speaker name
+    apiKey: process.env.SPEECHIFY_API_KEY,
+    language: "en-US", // Language code
+    speed: 1.0, // Speech speed
+  },
+  // Speechify may not have a separate listening model
+});
+```
+
+Visit the [Speechify Voice Reference](/reference/voice/speechify) for more information on the Speechify voice provider.
+  </Tabs.Tab>
+  <Tabs.Tab>
+```typescript
+// Sarvam Voice Configuration
+const voice = new SarvamVoice({
+  speechModel: {
+    name: "sarvam-voice", // Example model name
+    apiKey: process.env.SARVAM_API_KEY,
+    language: "en-IN", // Language code
+    style: "conversational", // Style setting
+  },
+  // Sarvam may not have a separate listening model
+});
+```
+
+Visit the [Sarvam Voice Reference](/reference/voice/sarvam) for more information on the Sarvam voice provider.
+  </Tabs.Tab>
+  <Tabs.Tab>
+```typescript
+// Murf Voice Configuration
+const voice = new MurfVoice({
+  speechModel: {
+    name: "murf-voice", // Example model name
+    apiKey: process.env.MURF_API_KEY,
+    language: "en-US", // Language code
+    emotion: "happy", // Emotion setting
+  },
+  // Murf may not have a separate listening model
+});
+```
+
+Visit the [Murf Voice Reference](/reference/voice/murf) for more information on the Murf voice provider.
+  </Tabs.Tab>
+  <Tabs.Tab>
+```typescript
+// OpenAI Realtime Voice Configuration
+const voice = new OpenAIRealtimeVoice({
+  speechModel: {
+    name: "gpt-3.5-turbo", // Example model name
+    apiKey: process.env.OPENAI_API_KEY,
+    language: "en-US", // Language code
+  },
+  listeningModel: {
+    name: "whisper-1", // Example model name
+    apiKey: process.env.OPENAI_API_KEY,
+    format: "ogg", // Audio format
+  },
+  speaker: "alloy", // Example speaker name
+});
+```
+
+For more information on the OpenAI Realtime voice provider, refer to the [OpenAI Realtime Voice Reference](/reference/voice/openai-realtime).
   </Tabs.Tab>
 </Tabs>
 
@@ -698,6 +811,8 @@ const responseAudio = await voice.speak(`You said: ${transcript}`, {
 // Play the audio response
 playAudio(responseAudio);
 ```
+
+For more information on the CompositeVoice, refer to the [CompositeVoice Reference](/reference/voice/composite-voice).
 
 ## More Resources
 
