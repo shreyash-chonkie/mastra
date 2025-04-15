@@ -876,7 +876,7 @@ describe('Workflow', () => {
     });
 
     it('should run a while loop', async () => {
-      const increment = vi.fn().mockImplementation(async ({ inputData, getStepResult }) => {
+      const increment = vi.fn().mockImplementation(async ({ inputData }) => {
         // Get the current value (either from trigger or previous increment)
         const currentValue = inputData.value;
 
@@ -1319,7 +1319,7 @@ describe('Workflow', () => {
         outputSchema: z.object({}),
       });
 
-      const mastra = new Mastra({
+      new Mastra({
         newWorkflows: {
           'test-workflow': workflow,
         },
@@ -1357,7 +1357,7 @@ describe('Workflow', () => {
         retryConfig: { attempts: 5, delay: 200 },
       });
 
-      const mastra = new Mastra({
+      new Mastra({
         newWorkflows: {
           'test-workflow': workflow,
         },
@@ -1639,7 +1639,7 @@ describe('Workflow', () => {
       });
       await initialStorage.init();
 
-      const mastra = new Mastra({
+      new Mastra({
         storage: initialStorage,
         newWorkflows: { 'test-workflow': promptEvalWorkflow },
       });
@@ -1758,7 +1758,7 @@ describe('Workflow', () => {
         ])
         .commit();
 
-      const mastra = new Mastra({
+      new Mastra({
         newWorkflows: { 'test-workflow': workflow },
       });
 
@@ -1929,7 +1929,7 @@ describe('Workflow', () => {
         .parallel([humanIntervention, explainResponse])
         .commit();
 
-      const mastra = new Mastra({
+      new Mastra({
         newWorkflows: { 'test-workflow': workflow },
       });
 
@@ -2089,7 +2089,7 @@ describe('Workflow', () => {
         .then(evaluateImproved)
         .commit();
 
-      const mastra = new Mastra({
+      new Mastra({
         newWorkflows: { 'test-workflow': promptEvalWorkflow },
       });
 
@@ -2191,7 +2191,7 @@ describe('Workflow', () => {
       const workflow = createWorkflow({ id: 'test-workflow', inputSchema: z.object({}), outputSchema: z.object({}) });
       workflow.then(step1).then(step2).commit();
 
-      const mastra = new Mastra({
+      new Mastra({
         newWorkflows: {
           'test-workflow': workflow,
         },
@@ -2230,7 +2230,7 @@ describe('Workflow', () => {
       const workflow = createWorkflow({ id: 'test-workflow', inputSchema: z.object({}), outputSchema: z.object({}) });
       workflow.then(step1).commit();
 
-      const mastra = new Mastra({
+      new Mastra({
         newWorkflows: { 'test-workflow': workflow },
       });
 
@@ -2281,7 +2281,7 @@ describe('Workflow', () => {
         },
       });
 
-      const mastra = new Mastra({
+      new Mastra({
         newWorkflows: { 'test-workflow': workflow },
         agents: { 'test-agent-1': agent, 'test-agent-2': agent2 },
       });
@@ -2373,7 +2373,7 @@ describe('Workflow', () => {
         },
       });
 
-      const mastra = new Mastra({
+      new Mastra({
         newWorkflows: { 'test-workflow': workflow },
         agents: { 'test-agent-1': agent, 'test-agent-2': agent2 },
       });
@@ -2610,6 +2610,7 @@ describe('Workflow', () => {
         .then(startStep)
         .branch([
           [async () => false, otherStep],
+          // @ts-ignore
           [async () => true, finalStep],
         ])
         .map({
@@ -3102,7 +3103,7 @@ describe('Workflow', () => {
           const otherVal = getStepResult(otherStep)?.other ?? 0;
           return { finalValue: startVal + otherVal };
         });
-        const last = vi.fn().mockImplementation(async ({ inputData }) => {
+        const last = vi.fn().mockImplementation(async ({}) => {
           return { success: true };
         });
         const begin = vi.fn().mockImplementation(async ({ inputData }) => {
@@ -3157,7 +3158,7 @@ describe('Workflow', () => {
           )
           .commit();
 
-        const mastra = new Mastra({
+        new Mastra({
           newWorkflows: { counterWorkflow },
         });
 
