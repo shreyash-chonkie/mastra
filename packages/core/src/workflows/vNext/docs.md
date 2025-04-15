@@ -57,6 +57,12 @@ const myStep = createStep({
   outputSchema: z.object({
     outputValue: z.string(),
   }),
+  resumeSchema: z.object({
+    resumeValue: z.string(),
+  }),
+  suspendSchema: z.object({
+    suspendValue: z.string(),
+  }),
   execute: async ({ inputData, mastra }) => {
     // Process inputData and return output
     return {
@@ -71,11 +77,14 @@ Each step requires:
 - `id`: Unique identifier for the step
 - `inputSchema`: Zod schema defining expected input
 - `outputSchema`: Zod schema defining output shape
+- `resumeSchema`: Optional. Zod schema defining resume input
+- `suspendSchema`: Optional. Zod schema defining suspend input
 - `execute`: Async function that performs the step's work
 
 The `execute` function receives a context object with:
 
 - `inputData`: The input data matching the inputSchema
+- `resumeData`: The resume data matching the resumeSchema, when resuming the step from a suspended state. Only exists if the step is being resumed.
 - `mastra`: Access to mastra services (agents, tools, etc.)
 - `getStepResult`: Function to access results from other steps
 - `suspend`: Function to pause workflow execution (for user interaction)
@@ -238,23 +247,26 @@ vNext workflows support pausing and resuming execution for user interaction:
 ```typescript
 const userInputStep = createStep({
   id: 'get-user-input',
-  inputSchema: z.object({
-    // Input schema
+  inputSchema: z.object({}),
+  resumeSchema: z.object({
+    userSelection: z.string(),
+  }),
+  suspendSchema: z.object({
+    suspendContext: z.string(),
   }),
   outputSchema: z.object({
     userSelection: z.string(),
   }),
-  execute: async ({ inputData, suspend }) => {
-    if (!inputData.userSelection) {
+  execute: async ({ resumeData, suspend }) => {
+    if (!resumeData?.userSelection) {
       // Suspend the workflow until user provides input
       await suspend({
-        // Optional payload with context for resumption
         suspendContext: 'Waiting for user selection',
       });
       return { userSelection: '' }; // This return is not used when suspended
     }
     // If userSelection exists, continue with it
-    return { userSelection: inputData.userSelection };
+    return { userSelection: resumeData.userSelection };
   },
 });
 ```
@@ -265,14 +277,17 @@ const humanInputStep = createStep({
   inputSchema: z.object({
     suggestions: z.array(z.string()),
     vacationDescription: z.string(),
-    selection: z.string().optional().describe('The selection of the user'),
   }),
+  resumeSchema: z.object({
+    selection: z.string(),
+  }),
+  suspendSchema: z.object({}),
   outputSchema: z.object({
     selection: z.string().describe('The selection of the user'),
     vacationDescription: z.string(),
   }),
-  execute: async ({ inputData, suspend }) => {
-    if (!inputData?.selection) {
+  execute: async ({ inputData, resumeData, suspend }) => {
+    if (!resumeData?.selection) {
       await suspend({});
       return {
         selection: '',
@@ -280,7 +295,7 @@ const humanInputStep = createStep({
       };
     }
     return {
-      selection: inputData?.selection,
+      selection: resumeData.selection,
       vacationDescription: inputData?.vacationDescription,
     };
   },
@@ -293,9 +308,9 @@ To resume a suspended workflow:
 // After getting user input
 const result = await workflowRun.resume({
   step: userInputStep,
-  inputData: {
-    userSelection: 'User's choice'
-  }
+  resumeData: {
+    userSelection: "User's choice",
+  },
 });
 ```
 
@@ -651,7 +666,7 @@ The vNext workflow API introduces several improvements over the original impleme
    // vNext
    const result = await run.resume({
      step: userInputStep,
-     inputData: { userSelection: 'User choice' },
+     resumeData: { userSelection: 'User choice' },
    });
 
    // Original Mastra API
@@ -783,22 +798,28 @@ const humanInputStep = createStep({
   inputSchema: z.object({
     suggestions: z.array(z.string()),
     vacationDescription: z.string(),
-    selection: z.string().optional().describe('The selection of the user'),
   }),
   outputSchema: z.object({
     selection: z.string().describe('The selection of the user'),
     vacationDescription: z.string(),
   }),
-  execute: async ({ inputData, suspend }) => {
-    if (!inputData?.selection) {
-      await suspend({});
+  resumeSchema: z.object({
+    selection: z.string().describe('The selection of the user'),
+  }),
+  suspendSchema: z.object({
+    suggestions: z.array(z.string()),
+  }),
+  execute: async ({ inputData, resumeData, suspend }) => {
+    if (!resumeData?.selection) {
+      await suspend({ suggestions: inputData?.suggestions });
       return {
         selection: '',
         vacationDescription: inputData?.vacationDescription,
       };
     }
+
     return {
-      selection: inputData?.selection,
+      selection: resumeData?.selection,
       vacationDescription: inputData?.vacationDescription,
     };
   },
