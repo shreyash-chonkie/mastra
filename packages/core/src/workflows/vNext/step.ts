@@ -3,9 +3,10 @@ import type { z } from 'zod';
 import type { Mastra } from '../..';
 
 // Define a type for the execute function
-export type ExecuteFunction<TStepInput, TStepOutput> = (params: {
+export type ExecuteFunction<TStepInput, TStepOutput, TResumeSchema> = (params: {
   mastra: Mastra;
   inputData: TStepInput;
+  resumeData?: TResumeSchema;
   context: TStepInput; // For backwards compatibility with tools etc.
   getStepResult<T extends NewStep<any, any, any>>(
     stepId: T,
@@ -24,11 +25,13 @@ export interface NewStep<
   TStepId extends string = string,
   TSchemaIn extends z.ZodObject<any> = z.ZodObject<any>,
   TSchemaOut extends z.ZodObject<any> = z.ZodObject<any>,
+  TResumeSchema extends z.ZodObject<any> = z.ZodObject<any>,
 > {
   id: TStepId;
   description?: string;
   inputSchema: TSchemaIn;
   outputSchema: TSchemaOut;
-  execute: ExecuteFunction<z.infer<TSchemaIn>, z.infer<TSchemaOut>>;
+  resumeSchema?: TResumeSchema;
+  execute: ExecuteFunction<z.infer<TSchemaIn>, z.infer<TSchemaOut>, z.infer<TResumeSchema>>;
   retries?: number;
 }

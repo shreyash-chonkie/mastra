@@ -1666,7 +1666,7 @@ describe('Workflow', () => {
 
       // Wait for the workflow to be ready to resume
       const resumeData = await workflowSuspended;
-      const resumeResult = await run.resume({ inputData: resumeData as any, step: promptAgent });
+      const resumeResult = await run.resume({ resumeData: resumeData as any, step: promptAgent });
 
       if (!resumeResult) {
         throw new Error('Resume failed to return a result');
@@ -1778,7 +1778,7 @@ describe('Workflow', () => {
               try {
                 const resumed = await run.resume({
                   step: humanIntervention,
-                  inputData: {
+                  resumeData: {
                     humanPrompt: 'What improvements would you suggest?',
                   },
                 });
@@ -1838,7 +1838,8 @@ describe('Workflow', () => {
         .mockImplementationOnce(async ({ suspend }) => {
           await suspend();
         })
-        .mockImplementationOnce(() => {
+        .mockImplementationOnce(({ resumeData }) => {
+          console.log('resumeData', resumeData);
           return { improvedOutput: 'human intervention output' };
         });
       const explainResponseAction = vi.fn().mockResolvedValue({
@@ -1884,13 +1885,13 @@ describe('Workflow', () => {
       const humanIntervention = createStep({
         id: 'humanIntervention',
         execute: humanInterventionAction,
-        inputSchema: z.object({ toneScore: z.any(), completenessScore: z.any(), humanPrompt: z.string().optional() }),
+        inputSchema: z.object({ toneScore: z.any(), completenessScore: z.any() }),
         outputSchema: z.object({ improvedOutput: z.string() }),
       });
       const explainResponse = createStep({
         id: 'explainResponse',
         execute: explainResponseAction,
-        inputSchema: z.object({ toneScore: z.any(), completenessScore: z.any(), humanPrompt: z.string().optional() }),
+        inputSchema: z.object({ toneScore: z.any(), completenessScore: z.any() }),
         outputSchema: z.object({ improvedOutput: z.string() }),
       });
 
@@ -1924,10 +1925,6 @@ describe('Workflow', () => {
             step: evaluateTone,
             path: 'completenessScore',
           },
-          humanPrompt: {
-            value: 'What improvements would you suggest?',
-            schema: z.string().optional(),
-          },
         })
         .parallel([humanIntervention, explainResponse])
         .commit();
@@ -1956,7 +1953,7 @@ describe('Workflow', () => {
               try {
                 const resumed = await run.resume({
                   step: humanIntervention,
-                  inputData: {
+                  resumeData: {
                     humanPrompt: 'What improvements would you suggest?',
                   },
                 });
@@ -1970,7 +1967,7 @@ describe('Workflow', () => {
               hasResumedImproveResponse = true;
               const resumed = run.resume({
                 step: improveResponse,
-                inputData: {
+                resumeData: {
                   ...data.payload.workflowState.steps,
                 },
               });
@@ -2115,7 +2112,7 @@ describe('Workflow', () => {
       expect(initialResult.steps.promptAgent.status).toBe('suspended');
       expect(promptAgentAction).toHaveBeenCalledTimes(1);
 
-      const firstResumeResult = await run.resume({ step: promptAgent, inputData: newCtx });
+      const firstResumeResult = await run.resume({ step: promptAgent, resumeData: newCtx });
 
       if (!firstResumeResult) {
         throw new Error('Resume failed to return a result');
@@ -2139,7 +2136,7 @@ describe('Workflow', () => {
 
       const secondResumeResult = await run.resume({
         step: improveResponse,
-        inputData: {
+        resumeData: {
           toneScore: { score: 0.8 },
           completenessScore: { score: 0.7 },
         },
@@ -3085,10 +3082,8 @@ describe('Workflow', () => {
           execute: start,
         });
 
-        let wasSuspended = false;
-        const other = vi.fn().mockImplementation(async ({ suspend }) => {
-          if (!wasSuspended) {
-            wasSuspended = true;
+        const other = vi.fn().mockImplementation(async ({ suspend, resumeData }) => {
+          if (!resumeData) {
             await suspend();
           }
           return { other: 26 };
@@ -3180,7 +3175,7 @@ describe('Workflow', () => {
         expect(result.steps['last-step']).toEqual(undefined);
 
         vi.clearAllMocks();
-        const resumedResults = await run.resume({ step: [wfA, otherStep], inputData: { newValue: 0 } });
+        const resumedResults = await run.resume({ step: [wfA, otherStep], resumeData: { newValue: 0 } });
 
         // @ts-ignore
         expect(resumedResults.steps['nested-workflow-a'].output).toEqual({

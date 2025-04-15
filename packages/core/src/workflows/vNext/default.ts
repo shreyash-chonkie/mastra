@@ -189,6 +189,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         const result = await step.execute({
           mastra: this.mastra!,
           inputData: resume?.steps[0]!.id === step.id ? resume?.resumePayload : prevOutput,
+          resumeData: resume?.steps[0]!.id === step.id ? resume?.resumePayload : undefined,
           context: resume?.steps[0]!.id === step.id ? resume?.resumePayload : prevOutput,
           getStepResult: (step: any) => {
             const result = stepResults[step.id];

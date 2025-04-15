@@ -31,12 +31,12 @@ export type StepFlowEntry =
   | {
       type: 'conditional';
       steps: StepFlowEntry[];
-      conditions: ExecuteFunction<any, any>[];
+      conditions: ExecuteFunction<any, any, any>[];
     }
   | {
       type: 'loop';
       step: Step;
-      condition: ExecuteFunction<any, any>;
+      condition: ExecuteFunction<any, any, any>;
       loopType: 'dowhile' | 'dountil';
     };
 
@@ -54,18 +54,21 @@ export function createStep<
   TStepId extends string,
   TStepInput extends z.ZodObject<any>,
   TStepOutput extends z.ZodObject<any>,
+  TResumeSchema extends z.ZodObject<any>,
 >(params: {
   id: TStepId;
   description?: string;
   inputSchema: TStepInput;
   outputSchema: TStepOutput;
-  execute: ExecuteFunction<z.infer<TStepInput>, z.infer<TStepOutput>>;
-}): Step<TStepId, TStepInput, TStepOutput> {
+  resumeSchema?: TResumeSchema;
+  execute: ExecuteFunction<z.infer<TStepInput>, z.infer<TStepOutput>, z.infer<TResumeSchema>>;
+}): Step<TStepId, TStepInput, TStepOutput, TResumeSchema> {
   return {
     id: params.id,
     description: params.description,
     inputSchema: params.inputSchema,
     outputSchema: params.outputSchema,
+    resumeSchema: params.resumeSchema,
     execute: params.execute,
   };
 }
@@ -358,6 +361,7 @@ export class NewWorkflow<
 
   async execute({
     inputData,
+    resumeData,
     suspend,
     resume,
     emitter,
@@ -382,7 +386,7 @@ export class NewWorkflow<
       emitter.emit('nested-watch', { event, workflowId: this.id, runId: run.runId, isResume: !!resume?.steps?.length });
     });
     const res = resume?.steps?.length
-      ? await run.resume({ inputData, step: resume.steps as any })
+      ? await run.resume({ resumeData, step: resume.steps as any })
       : await run.start({ inputData });
     unwatch();
     const suspendedSteps = Object.entries(res.steps).filter(([stepName, stepResult]) => {
@@ -552,8 +556,8 @@ export class Run<
   }
 
   async resume<TInput extends z.ZodObject<any>>(params: {
-    inputData?: z.infer<TInput>;
-    step: Step<string, TInput, any> | [...Step<string, any, any>[], Step<string, TInput, any>];
+    resumeData?: z.infer<TInput>;
+    step: Step<string, any, any, TInput> | [...Step<string, any, any>[], Step<string, TInput, any>];
   }): Promise<{
     result: TOutput;
     steps: {
@@ -583,11 +587,11 @@ export class Run<
       workflowId: this.workflowId,
       runId: this.runId,
       graph: this.executionGraph,
-      input: params.inputData,
+      input: params.resumeData,
       resume: {
         steps,
         stepResults: snapshot?.context as any,
-        resumePayload: params.inputData,
+        resumePayload: params.resumeData,
         resumePath: snapshot?.suspendedPaths?.[steps?.[0]?.id!] as any,
       },
       emitter: this.emitter,
