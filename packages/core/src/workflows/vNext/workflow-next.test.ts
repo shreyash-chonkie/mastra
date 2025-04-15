@@ -1924,10 +1924,6 @@ describe('Workflow', () => {
             step: evaluateTone,
             path: 'completenessScore',
           },
-          // humanPrompt: {
-          //   value: 'What improvements would you suggest?',
-          //   schema: z.string().optional(),
-          // },
         })
         .parallel([humanIntervention, explainResponse])
         .commit();

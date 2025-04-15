@@ -47,11 +47,12 @@ export type VariableReference<
     | PathsToStringProps<ExtractSchemaType<ExtractSchemaFromStep<TStep, 'outputSchema'>>>
     | ''
     | '.',
-> = {
-  step: TStep;
-  path: TVarPath;
-};
-// | { value: any; schema: z.ZodTypeAny };
+> =
+  | {
+      step: TStep;
+      path: TVarPath;
+    }
+  | { value: any; schema: z.ZodTypeAny };
 
 export type WatchEvent = {
   type: 'watch';

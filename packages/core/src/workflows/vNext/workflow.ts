@@ -207,11 +207,6 @@ export class NewWorkflow<
         for (const [key, mapping] of Object.entries(mappingConfig)) {
           const m: any = mapping;
 
-          if (m.value) {
-            result[key] = m.value;
-            continue;
-          }
-
           const stepResult = getStepResult(m.step);
           const pathParts = m.path.split('.');
           let value: any = stepResult;
@@ -222,7 +217,12 @@ export class NewWorkflow<
               throw new Error(`Invalid path ${m.path} in step ${m.step.id}`);
             }
           }
-          result[key] = value;
+
+          if (value !== null && value !== undefined) {
+            result[key] = value;
+          } else {
+            result[key] = m.defaultValue;
+          }
         }
         return result as z.infer<typeof mappingStep.outputSchema>;
       },
@@ -230,7 +230,9 @@ export class NewWorkflow<
 
     type MappedOutputSchema = z.ZodObject<
       {
-        [K in keyof TMapping]: ZodPathType<TMapping[K]['step']['outputSchema'], TMapping[K]['path']>;
+        [K in keyof TMapping]: TMapping[K] extends { value: any; schema: z.ZodTypeAny }
+          ? TMapping[K]['schema']
+          : ZodPathType<TMapping[K]['step']['outputSchema'], TMapping[K]['path']>;
       },
       'strip',
       z.ZodTypeAny
