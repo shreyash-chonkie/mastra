@@ -1915,6 +1915,20 @@ describe('Workflow', () => {
         .then(evaluateTone)
         .then(improveResponse)
         .then(evaluateImproved)
+        .map({
+          toneScore: {
+            step: evaluateTone,
+            path: 'toneScore',
+          },
+          completenessScore: {
+            step: evaluateTone,
+            path: 'completenessScore',
+          },
+          // humanPrompt: {
+          //   value: 'What improvements would you suggest?',
+          //   schema: z.string().optional(),
+          // },
+        })
         .parallel([humanIntervention, explainResponse])
         .commit();
 

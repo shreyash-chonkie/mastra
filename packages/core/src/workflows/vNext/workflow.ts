@@ -9,7 +9,15 @@ import { DefaultStorage } from '../../storage/libsql';
 import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
-import type { StepsRecord, StepResult, WatchEvent, ExtractSchemaType, ExtractSchemaFromStep } from './types';
+import type {
+  StepsRecord,
+  StepResult,
+  WatchEvent,
+  ExtractSchemaType,
+  ExtractSchemaFromStep,
+  PathsToStringProps,
+  ZodPathType,
+} from './types';
 import type { VariableReference } from './types';
 import type { Mastra } from '../..';
 import type { MastraPrimitives } from '../../action';
@@ -180,7 +188,15 @@ export class NewWorkflow<
     return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
   }
 
-  map<TMapping extends { [K in keyof TMapping]: VariableReference<TSteps[number]> }>(mappingConfig: TMapping) {
+  map<
+    TSteps extends Step<string, any, any>[],
+    TMapping extends {
+      [K in keyof TMapping]: {
+        step: TSteps[number];
+        path: PathsToStringProps<ExtractSchemaType<ExtractSchemaFromStep<TSteps[number], 'outputSchema'>>>;
+      };
+    },
+  >(mappingConfig: TMapping) {
     // Create an implicit step that handles the mapping
     const mappingStep: any = createStep({
       id: `mapping_${randomUUID()}`,
@@ -190,6 +206,12 @@ export class NewWorkflow<
         const result: Record<string, any> = {};
         for (const [key, mapping] of Object.entries(mappingConfig)) {
           const m: any = mapping;
+
+          if (m.value) {
+            result[key] = m.value;
+            continue;
+          }
+
           const stepResult = getStepResult(m.step);
           const pathParts = m.path.split('.');
           let value: any = stepResult;
@@ -206,18 +228,20 @@ export class NewWorkflow<
       },
     });
 
-    this.stepFlow.push({ type: 'step', step: mappingStep as any });
-    return this as unknown as NewWorkflow<
-      TSteps,
-      TWorkflowId,
-      TInput,
-      TOutput,
-      z.infer<typeof mappingStep.outputSchema>
+    type MappedOutputSchema = z.ZodObject<
+      {
+        [K in keyof TMapping]: ZodPathType<TMapping[K]['step']['outputSchema'], TMapping[K]['path']>;
+      },
+      'strip',
+      z.ZodTypeAny
     >;
+
+    this.stepFlow.push({ type: 'step', step: mappingStep as any });
+    return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, MappedOutputSchema>;
   }
 
   // TODO: make typing better here
-  parallel<TParallelSteps extends Step<string, any, any>[]>(steps: TParallelSteps) {
+  parallel<TParallelSteps extends Step<string, TPrevSchema, any>[]>(steps: TParallelSteps) {
     this.stepFlow.push({ type: 'parallel', steps: steps.map(step => ({ type: 'step', step: step as any })) });
     return this as unknown as NewWorkflow<
       TSteps,
@@ -226,7 +250,7 @@ export class NewWorkflow<
       TOutput,
       z.ZodObject<
         {
-          [K in keyof StepsRecord<TParallelSteps>]: StepsRecord<TParallelSteps>[K]['outputSchema'];
+          [K in keyof StepsRecord<TParallelSteps>]: StepsRecord<TParallelSteps>[K]['outputSchema']['path'];
         },
         'strip',
         z.ZodTypeAny
@@ -235,7 +259,7 @@ export class NewWorkflow<
   }
 
   // TODO: make typing better here
-  branch<TBranchSteps extends Array<[ExecuteFunction<z.infer<any>, any>, Step<string, any, any>]>>(
+  branch<TBranchSteps extends Array<[ExecuteFunction<z.infer<TPrevSchema>, any>, Step<string, TPrevSchema, any>]>>(
     steps: TBranchSteps,
   ) {
     this.stepFlow.push({
