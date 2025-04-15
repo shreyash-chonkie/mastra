@@ -1388,6 +1388,7 @@ describe('Workflow', () => {
 
       // @ts-ignore
       const toolAction = vi.fn<any>().mockImplementation(async ({ context }) => {
+        console.log('tool call context', context);
         return { name: context.name };
       });
 
@@ -1404,7 +1405,7 @@ describe('Workflow', () => {
         inputSchema: z.object({}),
         outputSchema: z.object({ name: z.string() }),
       });
-      // TODO: fix types
+
       workflow.then(step1).then(randomTool).commit();
 
       const result = await workflow.createRun().start({ inputData: {} });
