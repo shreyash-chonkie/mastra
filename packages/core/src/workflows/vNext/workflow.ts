@@ -368,6 +368,7 @@ export class NewWorkflow<
     mastra,
   }: {
     inputData: z.infer<TInput>;
+    resumeData?: any;
     getStepResult<T extends NewStep<any, any, any>>(
       stepId: T,
     ): T['outputSchema'] extends undefined ? unknown : z.infer<NonNullable<T['outputSchema']>>;
