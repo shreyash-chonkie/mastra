@@ -1,8 +1,47 @@
 # Mastra vNext Workflows
 
-The vNext workflow API is a new, enhanced approach to creating and managing workflows in Mastra. This guide explains how to use the new API and highlights key differences from the original workflow implementation.
+Hi everyone! 
 
-The core design principles are to make workflows more composable, make their control flow more explicit and easier to reason about, and to make re-use and workflow nesting more natural.
+We've made some significant improvements to our framework based on real-world usage and your feedback.
+
+## The Problem
+Our original architecture had limitations:
+- We first started Workflows before Mastra when we were building a CRM and those design patterns restricted its potential
+- The `.after([])` pattern created unnecessary complexity
+- Users want to bring their own Workflow engines to Mastra (Temporal, Inngest, Cloudflare Workflows)
+- Complex control flows became difficult to reason about and manage
+- Our attempts to patch the shortcomings with nested workflows and conditional branching highlighted deeper design issues
+
+We are opening up this `vNext` version of Workflows in a specific version tag to get feedback from the ground up. We hope you like the improvements so without further ado, let's dive in.
+
+## What's new
+
+### Streamlined Control Flow
+- Nested Workflows are now first-class citizens and the first primitive to reach for when composing complex workflows
+- Looping (`while` or `until`) accepts a single Step or Workflow and repeats until conditions are met
+  - For infinite loops, you can loop a Nested Workflow from your "main workflow"
+- `.branch()` replaces if/else, providing clearer conditional paths. Each truthy condition executes in parallel.
+  - Branching creates a visual mental model of forking paths in a tree, which accurately represents workflow conditions 
+- `.parallel()` for simple concurrent execution
+- `.then()` is now the universal connector (`.step()` has been retired)
+
+### Better Type Safety
+- All steps require input and output schemas
+- A step's input is:
+  - For the first step: the input provided to the workflow
+  - For subsequent steps: the output of the previous step
+- Parallel and branching operations return a union of the step results `{ [stepId]: output }`
+- Workflow outputs are defined as the final executed step's output
+- You can pass a resumeSchema argument for type safety when resuming a step
+  - The payload is passed into the execute function as resumeData
+  - Makes it easier to identify when a step is being resumed
+  - Helps separate inputs from previous steps and the resume context
+
+### Improved Development Experience
+- Agents and tools can be easily integrated with `createStep()`
+
+## Docs
+This guide explains how to use the new API and highlights key differences from the original workflow implementation.
 
 ## Table of Contents
 
