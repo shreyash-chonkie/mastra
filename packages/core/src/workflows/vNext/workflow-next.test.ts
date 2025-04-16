@@ -1406,7 +1406,7 @@ describe('Workflow', () => {
         outputSchema: z.object({ name: z.string() }),
       });
 
-      workflow.then(step1).then(randomTool).commit();
+      workflow.then(step1).then(createStep(randomTool)).commit();
 
       const result = await workflow.createRun().start({ inputData: {} });
 
@@ -2287,6 +2287,9 @@ describe('Workflow', () => {
         agents: { 'test-agent-1': agent, 'test-agent-2': agent2 },
       });
 
+      const agentStep1 = createStep(agent);
+      const agentStep2 = createStep(agent2);
+
       workflow
         .then(startStep)
         .map({
@@ -2295,14 +2298,14 @@ describe('Workflow', () => {
             path: 'prompt1',
           },
         })
-        .then(agent)
+        .then(agentStep1)
         .map({
           prompt: {
             step: startStep,
             path: 'prompt2',
           },
         })
-        .then(agent2)
+        .then(agentStep2)
         .commit();
 
       const run = workflow.createRun();
@@ -2391,7 +2394,7 @@ describe('Workflow', () => {
             path: 'prompt1',
           },
         })
-        .then(agent)
+        .then(createStep(agent))
         .commit();
 
       const nestedWorkflow2 = createWorkflow({
@@ -2406,7 +2409,7 @@ describe('Workflow', () => {
             path: 'prompt2',
           },
         })
-        .then(agent2)
+        .then(createStep(agent2))
         .commit();
 
       workflow.parallel([nestedWorkflow1, nestedWorkflow2]).then(finalStep).commit();

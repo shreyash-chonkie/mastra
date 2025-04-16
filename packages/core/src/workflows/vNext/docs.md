@@ -448,7 +448,7 @@ Nested workflows only have their final result (result of the last step) as their
 
 ## Agent Integration
 
-vNext workflows can use Mastra agents directly as steps:
+vNext workflows can use Mastra agents directly as steps using `createStep(agent)`:
 
 ```typescript
 // Agent defined elsewhere
@@ -477,9 +477,27 @@ myWorkflow
       path: 'formattedPrompt',
     },
   })
-  .then(myAgent) // Use agent directly as a step
+  .then(createStep(myAgent)) // Use agent directly as a step
   .then(processResultStep)
   .commit();
+```
+
+## Tools integration
+
+vNext workflows can use Mastra tools directly as steps using `createStep(tool)`:
+
+```typescript
+const myTool = createTool({
+  id: 'my-tool',
+  description: 'My tool',
+  inputSchema: z.object({}),
+  outputSchema: z.object({}),
+  execute: async ({ inputData }) => {
+    return { result: 'success' };
+  },
+});
+
+myWorkflow.then(createStep(myTool)).then(finalStep).commit();
 ```
 
 ## Differences from Original Workflow API

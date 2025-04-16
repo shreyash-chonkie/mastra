@@ -21,6 +21,11 @@ import type {
 import type { VariableReference } from './types';
 import type { Mastra } from '../..';
 import type { MastraPrimitives } from '../../action';
+import { Agent } from '../../agent';
+import type { ToolsInput } from '../../agent/types';
+import type { Metric } from '../../eval';
+import { Tool } from '../../tools';
+import type { ToolExecutionContext } from '../../tools/types';
 
 export type StepFlowEntry =
   | { type: 'step'; step: Step }
@@ -64,7 +69,103 @@ export function createStep<
   resumeSchema?: TResumeSchema;
   suspendSchema?: TSuspendSchema;
   execute: ExecuteFunction<z.infer<TStepInput>, z.infer<TStepOutput>, z.infer<TResumeSchema>, z.infer<TSuspendSchema>>;
-}): Step<TStepId, TStepInput, TStepOutput, TResumeSchema, TSuspendSchema> {
+}): Step<TStepId, TStepInput, TStepOutput, TResumeSchema, TSuspendSchema>;
+
+export function createStep<
+  TStepId extends string,
+  TStepInput extends z.ZodObject<{ prompt: z.ZodString }>,
+  TStepOutput extends z.ZodObject<{ text: z.ZodString }>,
+  TResumeSchema extends z.ZodObject<any>,
+  TSuspendSchema extends z.ZodObject<any>,
+>(agent: Agent<TStepId, any, any>): Step<TStepId, TStepInput, TStepOutput, TResumeSchema, TSuspendSchema>;
+
+export function createStep<
+  TSchemaIn extends z.ZodObject<any>,
+  TSchemaOut extends z.ZodObject<any>,
+  TContext extends ToolExecutionContext<TSchemaIn>,
+>(
+  tool: Tool<TSchemaIn, TSchemaOut, TContext> & {
+    inputSchema: TSchemaIn;
+    outputSchema: TSchemaOut;
+    execute: (context: TContext) => Promise<any>;
+  },
+): Step<string, TSchemaIn, TSchemaOut, z.ZodObject<any>, z.ZodObject<any>>;
+
+export function createStep<
+  TStepId extends string,
+  TStepInput extends z.ZodObject<any>,
+  TStepOutput extends z.ZodObject<any>,
+  TResumeSchema extends z.ZodObject<any>,
+  TSuspendSchema extends z.ZodObject<any>,
+>(
+  params:
+    | {
+        id: TStepId;
+        description?: string;
+        inputSchema: TStepInput;
+        outputSchema: TStepOutput;
+        resumeSchema?: TResumeSchema;
+        suspendSchema?: TSuspendSchema;
+        execute: ExecuteFunction<
+          z.infer<TStepInput>,
+          z.infer<TStepOutput>,
+          z.infer<TResumeSchema>,
+          z.infer<TSuspendSchema>
+        >;
+      }
+    | Agent<any, any, any>
+    | (Tool<TStepInput, TStepOutput, any> & {
+        inputSchema: TStepInput;
+        outputSchema: TStepOutput;
+        execute: (context: ToolExecutionContext<TStepInput>) => Promise<any>;
+      }),
+): Step<TStepId, TStepInput, TStepOutput, TResumeSchema, TSuspendSchema> {
+  if (params instanceof Agent) {
+    return {
+      id: params.name,
+      // @ts-ignore
+      inputSchema: z.object({
+        prompt: z.string(),
+        // resourceId: z.string().optional(),
+        // threadId: z.string().optional(),
+      }),
+      // @ts-ignore
+      outputSchema: z.object({
+        text: z.string(),
+      }),
+      execute: async ({ inputData }) => {
+        const result = await params.generate(inputData.prompt, {
+          // resourceId: inputData.resourceId,
+          // threadId: inputData.threadId,
+        });
+
+        return {
+          text: result.text,
+        };
+      },
+    };
+  }
+
+  if (params instanceof Tool) {
+    if (!params.inputSchema || !params.outputSchema) {
+      throw new Error('Tool must have input and output schemas defined');
+    }
+
+    return {
+      // TODO: tool probably should have strong id type
+      // @ts-ignore
+      id: params.id,
+      inputSchema: params.inputSchema,
+      outputSchema: params.outputSchema,
+      execute: async ({ inputData, mastra }) => {
+        return await params.execute({
+          context: inputData,
+          mastra,
+        });
+      },
+    };
+  }
+
   return {
     id: params.id,
     description: params.description,
@@ -248,7 +349,7 @@ export class NewWorkflow<
             ? TMapping[K]['schema']
             : never;
       },
-      'strip',
+      any,
       z.ZodTypeAny
     >;
 

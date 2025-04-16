@@ -47,26 +47,15 @@ import type {
 
 export * from './types';
 
-const inputSchema = z.object({
-  prompt: z.string(),
-});
-
-const outputSchema = z.object({
-  text: z.string(),
-});
-
 @InstrumentClass({
   prefix: 'agent',
   excludeMethods: ['hasOwnMemory', 'getMemory', '__primitive', '__setTools', '__setLogger', '__setTelemetry', 'log'],
 })
 export class Agent<
-    TAgentId extends string = string,
-    TTools extends ToolsInput = ToolsInput,
-    TMetrics extends Record<string, Metric> = Record<string, Metric>,
-  >
-  extends MastraBase
-  implements NewStep<TAgentId, typeof inputSchema, typeof outputSchema>
-{
+  TAgentId extends string = string,
+  TTools extends ToolsInput = ToolsInput,
+  TMetrics extends Record<string, Metric> = Record<string, Metric>,
+> extends MastraBase {
   public id: TAgentId;
   public name: TAgentId;
   readonly llm: MastraLLMBase;
@@ -136,33 +125,6 @@ export class Agent<
     } else {
       this.voice = new DefaultVoice();
     }
-  }
-
-  inputSchema = inputSchema;
-  outputSchema = outputSchema;
-
-  async execute({
-    inputData,
-    // suspend,
-    // resume,
-    // emitter,
-  }: {
-    inputData: z.infer<typeof inputSchema>;
-    getStepResult<T extends NewStep<any, any, any>>(
-      stepId: T,
-    ): T['outputSchema'] extends undefined ? unknown : z.infer<NonNullable<T['outputSchema']>>;
-    suspend: (suspendPayload: any) => Promise<void>;
-    resume?: {
-      steps: NewStep<string, any, any>[];
-      resumePayload: any;
-      runId?: string;
-    };
-    emitter: EventEmitter;
-  }): Promise<z.infer<typeof outputSchema>> {
-    const result = await this.generate([{ role: 'user', content: inputData.prompt }]);
-    return {
-      text: result.text,
-    };
   }
 
   public hasOwnMemory(): boolean {
