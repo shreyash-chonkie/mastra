@@ -1320,7 +1320,7 @@ describe('Workflow', () => {
       });
 
       new Mastra({
-        newWorkflows: {
+        vnext_workflows: {
           'test-workflow': workflow,
         },
       });
@@ -1358,7 +1358,7 @@ describe('Workflow', () => {
       });
 
       new Mastra({
-        newWorkflows: {
+        vnext_workflows: {
           'test-workflow': workflow,
         },
       });
@@ -1642,7 +1642,7 @@ describe('Workflow', () => {
 
       new Mastra({
         storage: initialStorage,
-        newWorkflows: { 'test-workflow': promptEvalWorkflow },
+        vnext_workflows: { 'test-workflow': promptEvalWorkflow },
       });
 
       const run = promptEvalWorkflow.createRun();
@@ -1760,7 +1760,7 @@ describe('Workflow', () => {
         .commit();
 
       new Mastra({
-        newWorkflows: { 'test-workflow': workflow },
+        vnext_workflows: { 'test-workflow': workflow },
       });
 
       const run = workflow.createRun();
@@ -1931,7 +1931,7 @@ describe('Workflow', () => {
         .commit();
 
       new Mastra({
-        newWorkflows: { 'test-workflow': workflow },
+        vnext_workflows: { 'test-workflow': workflow },
       });
 
       const run = workflow.createRun();
@@ -2091,7 +2091,7 @@ describe('Workflow', () => {
         .commit();
 
       new Mastra({
-        newWorkflows: { 'test-workflow': promptEvalWorkflow },
+        vnext_workflows: { 'test-workflow': promptEvalWorkflow },
       });
 
       const run = promptEvalWorkflow.createRun();
@@ -2193,16 +2193,16 @@ describe('Workflow', () => {
       workflow.then(step1).then(step2).commit();
 
       new Mastra({
-        newWorkflows: {
+        vnext_workflows: {
           'test-workflow': workflow,
         },
       });
 
       // Create a few runs
-      const run1 = await workflow.createRun();
+      const run1 = workflow.createRun();
       await run1.start({ inputData: {} });
 
-      const run2 = await workflow.createRun();
+      const run2 = workflow.createRun();
       await run2.start({ inputData: {} });
 
       const { runs, total } = await workflow.getWorkflowRuns();
@@ -2232,7 +2232,7 @@ describe('Workflow', () => {
       workflow.then(step1).commit();
 
       new Mastra({
-        newWorkflows: { 'test-workflow': workflow },
+        vnext_workflows: { 'test-workflow': workflow },
       });
 
       // Access new instance properties directly - should work without warning
@@ -2283,7 +2283,7 @@ describe('Workflow', () => {
       });
 
       new Mastra({
-        newWorkflows: { 'test-workflow': workflow },
+        vnext_workflows: { 'test-workflow': workflow },
         agents: { 'test-agent-1': agent, 'test-agent-2': agent2 },
       });
 
@@ -2378,7 +2378,7 @@ describe('Workflow', () => {
       });
 
       new Mastra({
-        newWorkflows: { 'test-workflow': workflow },
+        vnext_workflows: { 'test-workflow': workflow },
         agents: { 'test-agent-1': agent, 'test-agent-2': agent2 },
       });
 
@@ -3163,7 +3163,7 @@ describe('Workflow', () => {
           .commit();
 
         new Mastra({
-          newWorkflows: { counterWorkflow },
+          vnext_workflows: { counterWorkflow },
         });
 
         const run = counterWorkflow.createRun();

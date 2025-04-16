@@ -29,7 +29,7 @@ export interface Config<
   vectors?: TVectors;
   logger?: TLogger | false;
   workflows?: TWorkflows;
-  newWorkflows?: TNewWorkflows;
+  vnext_workflows?: TNewWorkflows;
   tts?: TTTS;
   telemetry?: OtelConfig;
   deployer?: MastraDeployer;
@@ -66,7 +66,7 @@ export class Mastra<
   #agents: TAgents;
   #logger: TLogger;
   #workflows: TWorkflows;
-  #newWorkflows: TNewWorkflows;
+  #vnext_workflows: TNewWorkflows;
   #tts?: TTTS;
   #deployer?: MastraDeployer;
   #serverMiddleware: Array<{
@@ -284,9 +284,9 @@ This is a warning for now, but will throw an error in the future
       });
     }
 
-    this.#newWorkflows = {} as TNewWorkflows;
-    if (config?.newWorkflows) {
-      Object.entries(config.newWorkflows).forEach(([key, workflow]) => {
+    this.#vnext_workflows = {} as TNewWorkflows;
+    if (config?.vnext_workflows) {
+      Object.entries(config.vnext_workflows).forEach(([key, workflow]) => {
         workflow.__registerMastra(this);
         workflow.__registerPrimitives({
           logger: this.getLogger(),
@@ -298,7 +298,7 @@ This is a warning for now, but will throw an error in the future
           vectors: this.#vectors,
         });
         // @ts-ignore
-        this.#newWorkflows[key] = workflow;
+        this.#vnext_workflows[key] = workflow;
       });
     }
 
@@ -353,11 +353,11 @@ This is a warning for now, but will throw an error in the future
     return workflow;
   }
 
-  public getNewWorkflow<TWorkflowId extends keyof TNewWorkflows>(
+  public vnext_getWorkflow<TWorkflowId extends keyof TNewWorkflows>(
     id: TWorkflowId,
     { serialized }: { serialized?: boolean } = {},
   ): TNewWorkflows[TWorkflowId] {
-    const workflow = this.#newWorkflows?.[id];
+    const workflow = this.#vnext_workflows?.[id];
     if (!workflow) {
       throw new Error(`Workflow with ID ${String(id)} not found`);
     }
