@@ -138,7 +138,7 @@ export class OpenAIRealtimeVoice extends MastraVoice {
    * ```
    */
   constructor(
-    options: {
+    private options: {
       model?: string;
       url?: string;
       apiKey?: string;
@@ -148,15 +148,6 @@ export class OpenAIRealtimeVoice extends MastraVoice {
     } = {},
   ) {
     super();
-
-    const url = `${options.url || DEFAULT_URL}?model=${options.model || DEFAULT_MODEL}`;
-    const apiKey = options.apiKey || process.env.OPENAI_API_KEY;
-    this.ws = new WebSocket(url, undefined, {
-      headers: {
-        Authorization: 'Bearer ' + apiKey,
-        'OpenAI-Beta': 'realtime=v1',
-      },
-    });
 
     this.client = new EventEmitter();
     this.state = 'close';
@@ -378,6 +369,15 @@ export class OpenAIRealtimeVoice extends MastraVoice {
    * ```
    */
   async connect() {
+    const url = `${this.options.url || DEFAULT_URL}?model=${this.options.model || DEFAULT_MODEL}`;
+    const apiKey = this.options.apiKey || process.env.OPENAI_API_KEY;
+    this.ws = new WebSocket(url, undefined, {
+      headers: {
+        Authorization: 'Bearer ' + apiKey,
+        'OpenAI-Beta': 'realtime=v1',
+      },
+    });
+
     await this.waitForOpen();
     await this.waitForSessionCreated();
 
