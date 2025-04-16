@@ -394,11 +394,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
   }
 
   async executeLoop({
-    workflowId,
-    runId,
     entry,
     prevOutput,
-    prevStep,
     stepResults,
     resume,
     executionContext,

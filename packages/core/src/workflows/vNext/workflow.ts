@@ -701,6 +701,7 @@ export class Run<
         steps,
         stepResults: snapshot?.context as any,
         resumePayload: params.resumeData,
+        // @ts-ignore
         resumePath: snapshot?.suspendedPaths?.[steps?.[0]?.id!] as any,
       },
       emitter: this.emitter,
