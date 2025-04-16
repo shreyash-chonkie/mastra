@@ -155,7 +155,6 @@ export class OpenAIRealtimeVoice extends MastraVoice {
     this.speaker = options.speaker || DEFAULT_VOICE;
     this.transcriber = options.transcriber || DEFAULT_TRANSCRIBER;
     this.debug = options.debug || false;
-    this.setupEventListeners();
   }
 
   /**
@@ -378,6 +377,7 @@ export class OpenAIRealtimeVoice extends MastraVoice {
       },
     });
 
+    this.setupEventListeners();
     await this.waitForOpen();
     await this.waitForSessionCreated();
 
