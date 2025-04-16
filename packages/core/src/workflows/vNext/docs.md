@@ -104,6 +104,14 @@ const myWorkflow = createWorkflow({
   }),
   steps: [step1, step2, step3], // Declare steps used in this workflow
 });
+
+const mastra = new Mastra({
+  vnext_workflows: {
+    myWorkflow,
+  },
+});
+
+const run = mastra.vnext_getWorkflow('myWorkflow').createRun();
 ```
 
 The `steps` property in the workflow options provides type safety for accessing step results. When you declare the steps used in your workflow, TypeScript will ensure type safety when accessing `result.steps`:
@@ -463,7 +471,7 @@ const mastra = new Mastra({
   agents: {
     myAgent,
   },
-  newWorkflows: {
+  vnext_workflows: {
     myWorkflow,
   },
 });
