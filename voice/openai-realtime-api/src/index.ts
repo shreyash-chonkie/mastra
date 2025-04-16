@@ -106,7 +106,7 @@ type RealtimeClientServerEventMap = {
  * ```
  */
 export class OpenAIRealtimeVoice extends MastraVoice {
-  private ws: WebSocket;
+  private ws?: WebSocket;
   private state: 'close' | 'open';
   private client: EventEmitter<RealtimeClientServerEventMap>;
   private events: EventMap;
@@ -346,7 +346,7 @@ export class OpenAIRealtimeVoice extends MastraVoice {
 
   waitForOpen() {
     return new Promise(resolve => {
-      this.ws.on('open', resolve);
+      this.ws?.on('open', resolve);
     });
   }
 
@@ -534,6 +534,10 @@ export class OpenAIRealtimeVoice extends MastraVoice {
   private setupEventListeners(): void {
     const speakerStreams = new Map<string, StreamWithId>();
 
+    if (!this.ws) {
+      throw new Error('WebSocket not initialized');
+    }
+
     this.ws.on('message', message => {
       const data = JSON.parse(message.toString());
       this.client.emit(data.type, data);
@@ -549,7 +553,7 @@ export class OpenAIRealtimeVoice extends MastraVoice {
 
       const queue = this.queue.splice(0, this.queue.length);
       for (const ev of queue) {
-        this.ws.send(JSON.stringify(ev));
+        this.ws?.send(JSON.stringify(ev));
       }
     });
     this.client.on('session.updated', ev => {
@@ -669,10 +673,10 @@ export class OpenAIRealtimeVoice extends MastraVoice {
   }
 
   private sendEvent(type: string, data: any) {
-    if (this.ws.readyState !== this.ws.OPEN) {
+    if (!this.ws || this.ws.readyState !== this.ws.OPEN) {
       this.queue.push({ type: type, ...data });
     } else {
-      this.ws.send(
+      this.ws?.send(
         JSON.stringify({
           type: type,
           ...data,
