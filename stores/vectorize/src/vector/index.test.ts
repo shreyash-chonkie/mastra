@@ -730,7 +730,7 @@ describe('CloudflareVector', () => {
       }
       try {
         await vectorDB.deleteIndex(testIndexName2);
-      } catch (_error) {
+      } catch {
         // Ignore errors if index doesn't exist
       }
     });
