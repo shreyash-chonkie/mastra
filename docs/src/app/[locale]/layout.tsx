@@ -27,10 +27,11 @@ export default async function RootLayout({
   params: Promise<{ locale: string }>;
 }>) {
   const { locale } = await params;
-  const pageMap = await getPageMap(`/${locale || "en"}`);
+  // const pageMap = await getPageMap(`/${locale || "en"}`);
+  const pageMap = await getPageMap(`/en`);
   return (
     <html
-      lang={locale}
+      lang={locale || "en"}
       dir="ltr"
       className={cn(
         "antialiased",
