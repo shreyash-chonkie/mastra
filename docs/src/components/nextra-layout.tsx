@@ -1,6 +1,4 @@
 "use client";
-import { SubscribeForm } from "./subscribe-form";
-import { TabSwitcher } from "./tab-switcher";
 import { T } from "gt-next/client";
 import { usePathname } from "next/navigation";
 import { PageMapItem } from "nextra";
@@ -8,13 +6,13 @@ import { Layout } from "nextra-theme-docs";
 import { Search } from "nextra/components";
 import { Footer } from "./footer";
 import { Nav } from "./navbar";
-import { getSearchPlaceholder } from "./search-placeholder";
+import { SubscribeForm } from "./subscribe-form";
+import { TabSwitcher } from "./tab-switcher";
 const footer = <Footer />;
 
 export const NextraLayout = ({
   pageMap,
   children,
-  locale,
 }: {
   pageMap: PageMapItem[];
   children: React.ReactNode;
