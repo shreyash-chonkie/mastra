@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
-import type { AgentConfig } from '@mastra/core/agent';
-import { Agent } from '@mastra/core/agent';
+import type { Agent } from '@mastra/core/agent';
+import { Container } from '@mastra/core/di';
 import { Mastra } from '@mastra/core/mastra';
 import type { MastraStorage } from '@mastra/core/storage';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -13,28 +13,7 @@ import {
   generateHandler,
   streamGenerateHandler,
 } from './agents';
-
-class MockAgent extends Agent {
-  constructor(config: AgentConfig) {
-    super(config);
-
-    this.generate = vi.fn();
-    this.stream = vi.fn();
-    this.__updateInstructions = vi.fn();
-  }
-
-  generate(args: any) {
-    return this.generate(args);
-  }
-
-  stream(args: any) {
-    return this.stream(args);
-  }
-
-  __updateInstructions(args: any) {
-    return this.__updateInstructions(args);
-  }
-}
+import { MockAgent } from './test-utils';
 
 describe('Agent Handlers', () => {
   let mockMastra: Mastra;
@@ -53,6 +32,7 @@ describe('Agent Handlers', () => {
         'test-agent': mockAgent,
       },
       storage: {
+        init: vi.fn(),
         __setTelemetry: vi.fn(),
         __setLogger: vi.fn(),
         getEvalsByAgentName: vi.fn(),
@@ -100,8 +80,9 @@ describe('Agent Handlers', () => {
 
   describe('getEvalsByAgentIdHandler', () => {
     it('should return agent evals', async () => {
-      const mockEvals = [{ id: 1, data: 'test' }];
-      vi.spyOn(mockMastra.getStorage(), 'getEvalsByAgentName').mockResolvedValue(mockEvals);
+      const mockEvals = [{ id: 1, data: 'test' }] as any;
+      const storage = mockMastra.getStorage() as unknown as MastraStorage;
+      vi.spyOn(storage, 'getEvalsByAgentName').mockResolvedValue(mockEvals);
 
       const result = await getEvalsByAgentIdHandler({ mastra: mockMastra, agentId: 'test-agent' });
 
@@ -116,8 +97,9 @@ describe('Agent Handlers', () => {
 
   describe('getLiveEvalsByAgentIdHandler', () => {
     it('should return live agent evals', async () => {
-      const mockEvals = [{ id: 1, data: 'test' }];
-      vi.spyOn(mockMastra.getStorage(), 'getEvalsByAgentName').mockResolvedValue(mockEvals);
+      const mockEvals = [{ id: 1, data: 'test' }] as any;
+      const storage = mockMastra.getStorage() as unknown as MastraStorage;
+      vi.spyOn(storage, 'getEvalsByAgentName').mockResolvedValue(mockEvals);
 
       const result = await getLiveEvalsByAgentIdHandler({ mastra: mockMastra, agentId: 'test-agent' });
 
@@ -144,6 +126,7 @@ describe('Agent Handlers', () => {
           threadId: 'test-thread',
           experimental_output: undefined,
         },
+        container: new Container(),
       });
 
       expect(result).toEqual(mockResult);
@@ -160,6 +143,7 @@ describe('Agent Handlers', () => {
             threadId: 'test-thread',
             experimental_output: undefined,
           },
+          container: new Container(),
         }),
       ).rejects.toThrow(new HTTPException(404, { message: 'Agent with name non-existing not found' }));
     });
@@ -182,6 +166,7 @@ describe('Agent Handlers', () => {
           threadId: 'test-thread',
           experimental_output: undefined,
         },
+        container: new Container(),
       });
 
       expect(result).toBeInstanceOf(Response);
@@ -198,6 +183,7 @@ describe('Agent Handlers', () => {
             threadId: 'test-thread',
             experimental_output: undefined,
           },
+          container: new Container(),
         }),
       ).rejects.toThrow(new HTTPException(404, { message: 'Agent with name non-existing not found' }));
     });

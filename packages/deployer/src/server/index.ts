@@ -3,6 +3,7 @@ import { readFile } from 'fs/promises';
 import { dirname } from 'path';
 import { join } from 'path/posix';
 import { fileURLToPath, pathToFileURL } from 'url';
+
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { swaggerUI } from '@hono/swagger-ui';
@@ -16,6 +17,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { timeout } from 'hono/timeout';
 import { describeRoute, openAPISpecs } from 'hono-openapi';
+import { handleA2ARequestEndpoint, handleAgentCardEndpoint } from './handlers/a2a';
 import {
   generateHandler,
   getAgentByIdHandler,
@@ -45,6 +47,7 @@ import {
   streamGenerateHandler as streamGenerateNetworkHandler,
 } from './handlers/network';
 import { generateSystemPromptHandler } from './handlers/prompt';
+
 import { rootHandler } from './handlers/root';
 import { getTelemetryHandler, storeTelemetryHandler } from './handlers/telemetry';
 import { executeAgentToolHandler, executeToolHandler, getToolByIdHandler, getToolsHandler } from './handlers/tools';
@@ -2137,6 +2140,52 @@ export async function createHonoServer(
   if (options?.swaggerUI) {
     app.get('/swagger-ui', swaggerUI({ url: '/openapi.json' }));
   }
+
+  // A2A Protocol endpoints
+  app.post(
+    '/api/a2a',
+    describeRoute({
+      description: 'A2A Protocol endpoint for agent-to-agent communication',
+      tags: ['a2a'],
+      requestBody: {
+        content: {
+          'application/json': {
+            schema: { type: 'object' },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: 'A2A response',
+          content: {
+            'application/json': {
+              schema: { type: 'object' },
+            },
+          },
+        },
+      },
+    }),
+    handleA2ARequestEndpoint,
+  );
+
+  app.get(
+    '/api/a2a/agent-card',
+    describeRoute({
+      description: 'Get the A2A agent card for this agent',
+      tags: ['a2a'],
+      responses: {
+        200: {
+          description: 'Agent card',
+          content: {
+            'application/json': {
+              schema: { type: 'object' },
+            },
+          },
+        },
+      },
+    }),
+    handleAgentCardEndpoint,
+  );
 
   if (options?.playground) {
     // SSE endpoint for refresh notifications
