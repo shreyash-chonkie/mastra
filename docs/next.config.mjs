@@ -135,6 +135,14 @@ export default withGT(
             source: "/docs/_next/:path+",
             destination: "/_next/:path+",
           },
+          {
+            source: "/:locale/docs/:path*.rsc",
+            destination: "/:locale/docs/:path*",
+          },
+          {
+            source: "/docs/:path*.rsc",
+            destination: "/docs/:path*",
+          },
         ],
       };
     },
