@@ -1,11 +1,13 @@
 # Mastra vNext Workflows
 
-Hi everyone! 
+Hi everyone!
 
 We've made some significant improvements to our framework based on real-world usage and your feedback.
 
 ## The Problem
+
 Our original architecture had limitations:
+
 - We first started Workflows before Mastra when we were building a CRM and those design patterns restricted its potential
 - The `.after([])` pattern created unnecessary complexity
 - Users want to bring their own Workflow engines to Mastra (Temporal, Inngest, Cloudflare Workflows)
@@ -17,15 +19,17 @@ We are opening up this `vNext` version of Workflows in a specific version tag to
 ## What's new
 
 ### Streamlined Control Flow
+
 - Nested Workflows are now first-class citizens and the first primitive to reach for when composing complex workflows
 - Looping (`while` or `until`) accepts a single Step or Workflow and repeats until conditions are met
   - For infinite loops, you can loop a Nested Workflow from your "main workflow"
 - `.branch()` replaces if/else, providing clearer conditional paths. Each truthy condition executes in parallel.
-  - Branching creates a visual mental model of forking paths in a tree, which accurately represents workflow conditions 
+  - Branching creates a visual mental model of forking paths in a tree, which accurately represents workflow conditions
 - `.parallel()` for simple concurrent execution
 - `.then()` is now the universal connector (`.step()` has been retired)
 
 ### Better Type Safety
+
 - All steps require input and output schemas
 - A step's input is:
   - For the first step: the input provided to the workflow
@@ -38,9 +42,11 @@ We are opening up this `vNext` version of Workflows in a specific version tag to
   - Helps separate inputs from previous steps and the resume context
 
 ### Improved Development Experience
+
 - Agents and tools can be easily integrated with `createStep()`
 
 ## Docs
+
 This guide explains how to use the new API and highlights key differences from the original workflow implementation.
 
 ## Table of Contents
@@ -102,10 +108,11 @@ const myStep = createStep({
   suspendSchema: z.object({
     suspendValue: z.string(),
   }),
-  execute: async ({ inputData, mastra }) => {
-    // Process inputData and return output
+  execute: async ({ inputData, mastra, getStepResult, getInitData }) => {
+    const otherStepOutput = getStepResult(step2);
+    const initData = getInitData<typeof workflow>(); // typed as the workflow input schema
     return {
-      outputValue: `Processed: ${inputData.inputValue}`,
+      outputValue: `Processed: ${inputData.inputValue}, ${initData.startValue}`,
     };
   },
 });
@@ -126,6 +133,7 @@ The `execute` function receives a context object with:
 - `resumeData`: The resume data matching the resumeSchema, when resuming the step from a suspended state. Only exists if the step is being resumed.
 - `mastra`: Access to mastra services (agents, tools, etc.)
 - `getStepResult`: Function to access results from other steps
+- `getInitData`: Function to access the initial input data of the workflow in any step
 - `suspend`: Function to pause workflow execution (for user interaction)
 
 ### Workflow Structure
@@ -617,8 +625,10 @@ The vNext workflow API introduces several improvements over the original impleme
 
    ```typescript
    // vNext execute function
-   execute: async ({ inputData, getStepResult }) => {
+   execute: async ({ inputData, getStepResult, getInitData }) => {
      const previousStepOutput = getStepResult(step1);
+     const initDataAny = getInitData(); // typed as any
+     const initDataTyped = getInitData<typeof workflow>(); // typed as the workflow input schema
      return {
        /* ... */
      };
@@ -627,6 +637,8 @@ The vNext workflow API introduces several improvements over the original impleme
    // Original Mastra API
    execute: async ({ context }) => {
      const previousStepOutput = context.getStepResult('step1');
+     const initDataAny = context.getStepResult('trigger'); // typed as any
+     const initDataTyped = context.getStepResult<{ myTriggerData: string }>('trigger'); // typed as the workflow input schema
      return {
        /* ... */
      };
