@@ -1,16 +1,24 @@
 import { NewWorkflow, type NewStep as Step, DefaultExecutionEngine } from '@mastra/core/workflows/vNext';
-import type {
-  NewWorkflowConfig,
-  StepFlowEntry,
-  StepResult,
-  StepSuccess,
-  StepFailure,
-} from '@mastra/core/workflows/vNext';
+import type { NewWorkflowConfig, StepResult } from '@mastra/core/workflows/vNext';
 import { Inngest } from 'inngest';
 import { connect } from 'inngest/connect';
 import EventEmitter from 'events';
-import { z } from 'zod';
-import { LibSQLStore as DefaultStorage } from '@mastra/core/storage/libsql';
+import type { Mastra } from '@mastra/core';
+import { createWorkflow as createWorkflowVNext } from '@mastra/core/workflows/vNext';
+
+export { createStep } from '@mastra/core/workflows/vNext';
+
+export function createWorkflow<
+  TWorkflowId extends string = string,
+  TInput extends z.ZodObject<any> = z.ZodObject<any>,
+  TOutput extends z.ZodObject<any> = z.ZodObject<any>,
+  TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
+>(params: NewWorkflowConfig<TWorkflowId, TInput, TOutput, TSteps>) {
+  return createWorkflowVNext<TWorkflowId, TInput, TOutput, TSteps>({
+    ...params,
+    executionEngine: new InngestExecutionEngine(params.mastra!),
+  });
+}
 
 async function getRuns(eventId: string) {
   const response = await fetch(`http://127.0.0.1:8288/v1/events/${eventId}/runs`, {
@@ -34,18 +42,16 @@ async function getRunOutput(eventId: string) {
   return runs?.[0];
 }
 
-class InngestExecutionEngine extends DefaultExecutionEngine {
+export class InngestExecutionEngine extends DefaultExecutionEngine {
   private inngest: Inngest;
   private functions: Map<string, ReturnType<Inngest['createFunction']>> = new Map();
 
-  constructor(inngest: Inngest) {
-    const storage = new DefaultStorage({
-      config: {
-        url: ':memory:',
-      },
+  constructor(mastra: Mastra) {
+    super({ mastra });
+    this.inngest = new Inngest({
+      name: 'mastra',
+      signingKey: process.env.INNGEST_SIGNING_KEY,
     });
-    super({ storage });
-    this.inngest = inngest;
   }
 
   private registerFunction(
@@ -60,7 +66,9 @@ class InngestExecutionEngine extends DefaultExecutionEngine {
       { event: `step.${step.id}` },
       async ({ event, step: inngestStep }) => {
         const result = await step.execute({
+          mastra: this.mastra!,
           inputData: event.data.inputData,
+          getInitData: () => stepResults.input as any,
           getStepResult: (s: Step<string, any, any>) => {
             const result = stepResults[s.id];
             return result?.status === 'success' ? result.output : null;
@@ -123,17 +131,5 @@ class InngestExecutionEngine extends DefaultExecutionEngine {
     } catch (e) {
       return { status: 'failed' as const, error: e instanceof Error ? e.message : 'Unknown error' };
     }
-  }
-}
-
-export class MastraInngestWorkflow<
-  TInput extends z.ZodObject<any>,
-  TOutput extends z.ZodObject<any>,
-> extends NewWorkflow<Step<string, any, any>[], string, TInput, TOutput> {
-  constructor(inngest: Inngest, props: NewWorkflowConfig<string, TInput, TOutput>) {
-    super({
-      ...props,
-      executionEngine: new InngestExecutionEngine(inngest),
-    });
   }
 }

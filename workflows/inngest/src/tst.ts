@@ -1,9 +1,7 @@
 import { z } from 'zod';
-import { createStep } from '@mastra/core/workflows/vNext';
-import { MastraInngestWorkflow } from './index';
-import { Inngest } from 'inngest';
+import { createStep, createWorkflow } from './index';
+import { Mastra } from '@mastra/core';
 
-const inngest = new Inngest({ id: 'test' });
 // Create test workflow steps
 const step1 = createStep({
   id: 'step1',
@@ -100,6 +98,10 @@ const workflow = new MastraInngestWorkflow(inngest, {
 
 // Add steps to workflow
 workflow.then(step1).then(step2).parallel([parallel1, parallel2]).then(finalStep).commit();
+
+const mastra = new Mastra({
+  vnext_workflows: [workflow],
+});
 
 async function test() {
   const run = workflow.createRun();
