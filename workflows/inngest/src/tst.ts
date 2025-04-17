@@ -86,7 +86,7 @@ const finalStep = createStep({
 });
 
 // Create workflow
-const workflow = new MastraInngestWorkflow(inngest, {
+const workflow = createWorkflow({
   id: 'test-workflow',
   inputSchema: z.object({
     message: z.string(),
@@ -100,7 +100,9 @@ const workflow = new MastraInngestWorkflow(inngest, {
 workflow.then(step1).then(step2).parallel([parallel1, parallel2]).then(finalStep).commit();
 
 const mastra = new Mastra({
-  vnext_workflows: [workflow],
+  vnext_workflows: {
+    'test-workflow': workflow,
+  },
 });
 
 async function test() {
@@ -113,6 +115,7 @@ async function test() {
   });
 
   console.log(result);
+  process.exit(0);
 }
 
 test();

@@ -5,6 +5,7 @@ import { connect } from 'inngest/connect';
 import EventEmitter from 'events';
 import type { Mastra } from '@mastra/core';
 import { createWorkflow as createWorkflowVNext } from '@mastra/core/workflows/vNext';
+import type { z } from 'zod';
 
 export { createStep } from '@mastra/core/workflows/vNext';
 
@@ -49,7 +50,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
   constructor(mastra: Mastra) {
     super({ mastra });
     this.inngest = new Inngest({
-      name: 'mastra',
+      id: 'mastra',
       signingKey: process.env.INNGEST_SIGNING_KEY,
     });
   }
