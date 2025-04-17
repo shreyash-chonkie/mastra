@@ -140,7 +140,6 @@ export default withGT(
     },
     redirects: () => [
       {
-        //automatically redirect to en docs
         source: "/docs",
         destination: "/en/docs",
         permanent: true,
@@ -148,6 +147,41 @@ export default withGT(
       {
         source: "/docs/:path*",
         destination: "/en/docs/:path*",
+        permanent: true,
+      },
+      {
+        source: "/examples",
+        destination: "/en/examples",
+        permanent: true,
+      },
+      {
+        source: "/examples/:path*",
+        destination: "/en/examples/:path*",
+        permanent: true,
+      },
+      {
+        source: "/guides",
+        destination: "/en/guides",
+        permanent: true,
+      },
+      {
+        source: "/guides/:path*",
+        destination: "/en/guides/:path*",
+        permanent: true,
+      },
+      {
+        source: "/reference",
+        destination: "/en/reference",
+        permanent: true,
+      },
+      {
+        source: "/reference/:path*",
+        destination: "/en/reference/:path*",
+        permanent: true,
+      },
+      {
+        source: "/showcase",
+        destination: "/en/showcase",
         permanent: true,
       },
       {
