@@ -140,6 +140,17 @@ export default withGT(
     },
     redirects: () => [
       {
+        //automatically redirect to en docs
+        source: "/docs",
+        destination: "/en/docs",
+        permanent: true,
+      },
+      {
+        source: "/docs/:path*",
+        destination: "/en/docs/:path*",
+        permanent: true,
+      },
+      {
         source: "/examples/memory/short-term-working-memory",
         destination: "/examples/memory/memory-with-libsql",
         permanent: true,
@@ -494,10 +505,10 @@ export default withGT(
         destination: "/reference/voice/mastra-voice",
         permanent: true,
       },
-	  {
-      source: "/docs/reference/tts/stream",
-      destination: "/reference/voice/mastra-voice",
-      permanent: true,
+      {
+        source: "/docs/reference/tts/stream",
+        destination: "/reference/voice/mastra-voice",
+        permanent: true,
       },
       {
         source: "/docs/guide",
@@ -743,12 +754,12 @@ export default withGT(
         source: "/examples/workflows/subscribed-steps",
         destination: "/examples/workflows/sequential-steps",
         permanent: true,
-    },
-    {
-      source: "/docs/voice/voice-to-voice",
-      destination: "/docs/voice/speech-to-speech",
-      permanent: true,
-    },
+      },
+      {
+        source: "/docs/voice/voice-to-voice",
+        destination: "/docs/voice/speech-to-speech",
+        permanent: true,
+      },
     ],
     trailingSlash: false,
   }),
