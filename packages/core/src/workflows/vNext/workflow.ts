@@ -9,10 +9,23 @@ import { DefaultStorage } from '../../storage/libsql';
 import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
-import type { StepsRecord, StepResult, WatchEvent, ExtractSchemaType, ExtractSchemaFromStep } from './types';
+import type {
+  StepsRecord,
+  StepResult,
+  WatchEvent,
+  ExtractSchemaType,
+  ExtractSchemaFromStep,
+  PathsToStringProps,
+  ZodPathType,
+} from './types';
 import type { VariableReference } from './types';
 import type { Mastra } from '../..';
 import type { MastraPrimitives } from '../../action';
+import { Agent } from '../../agent';
+import type { ToolsInput } from '../../agent/types';
+import type { Metric } from '../../eval';
+import { Tool } from '../../tools';
+import type { ToolExecutionContext } from '../../tools/types';
 
 export type StepFlowEntry =
   | { type: 'step'; step: Step }
@@ -23,12 +36,12 @@ export type StepFlowEntry =
   | {
       type: 'conditional';
       steps: StepFlowEntry[];
-      conditions: ExecuteFunction<any, any>[];
+      conditions: ExecuteFunction<any, any, any, any>[];
     }
   | {
       type: 'loop';
       step: Step;
-      condition: ExecuteFunction<any, any>;
+      condition: ExecuteFunction<any, any, any, any>;
       loopType: 'dowhile' | 'dountil';
     };
 
@@ -46,18 +59,120 @@ export function createStep<
   TStepId extends string,
   TStepInput extends z.ZodObject<any>,
   TStepOutput extends z.ZodObject<any>,
+  TResumeSchema extends z.ZodObject<any>,
+  TSuspendSchema extends z.ZodObject<any>,
 >(params: {
   id: TStepId;
   description?: string;
   inputSchema: TStepInput;
   outputSchema: TStepOutput;
-  execute: ExecuteFunction<z.infer<TStepInput>, z.infer<TStepOutput>>;
-}): Step<TStepId, TStepInput, TStepOutput> {
+  resumeSchema?: TResumeSchema;
+  suspendSchema?: TSuspendSchema;
+  execute: ExecuteFunction<z.infer<TStepInput>, z.infer<TStepOutput>, z.infer<TResumeSchema>, z.infer<TSuspendSchema>>;
+}): Step<TStepId, TStepInput, TStepOutput, TResumeSchema, TSuspendSchema>;
+
+export function createStep<
+  TStepId extends string,
+  TStepInput extends z.ZodObject<{ prompt: z.ZodString }>,
+  TStepOutput extends z.ZodObject<{ text: z.ZodString }>,
+  TResumeSchema extends z.ZodObject<any>,
+  TSuspendSchema extends z.ZodObject<any>,
+>(agent: Agent<TStepId, any, any>): Step<TStepId, TStepInput, TStepOutput, TResumeSchema, TSuspendSchema>;
+
+export function createStep<
+  TSchemaIn extends z.ZodObject<any>,
+  TSchemaOut extends z.ZodObject<any>,
+  TContext extends ToolExecutionContext<TSchemaIn>,
+>(
+  tool: Tool<TSchemaIn, TSchemaOut, TContext> & {
+    inputSchema: TSchemaIn;
+    outputSchema: TSchemaOut;
+    execute: (context: TContext) => Promise<any>;
+  },
+): Step<string, TSchemaIn, TSchemaOut, z.ZodObject<any>, z.ZodObject<any>>;
+
+export function createStep<
+  TStepId extends string,
+  TStepInput extends z.ZodObject<any>,
+  TStepOutput extends z.ZodObject<any>,
+  TResumeSchema extends z.ZodObject<any>,
+  TSuspendSchema extends z.ZodObject<any>,
+>(
+  params:
+    | {
+        id: TStepId;
+        description?: string;
+        inputSchema: TStepInput;
+        outputSchema: TStepOutput;
+        resumeSchema?: TResumeSchema;
+        suspendSchema?: TSuspendSchema;
+        execute: ExecuteFunction<
+          z.infer<TStepInput>,
+          z.infer<TStepOutput>,
+          z.infer<TResumeSchema>,
+          z.infer<TSuspendSchema>
+        >;
+      }
+    | Agent<any, any, any>
+    | (Tool<TStepInput, TStepOutput, any> & {
+        inputSchema: TStepInput;
+        outputSchema: TStepOutput;
+        execute: (context: ToolExecutionContext<TStepInput>) => Promise<any>;
+      }),
+): Step<TStepId, TStepInput, TStepOutput, TResumeSchema, TSuspendSchema> {
+  if (params instanceof Agent) {
+    return {
+      id: params.name,
+      // @ts-ignore
+      inputSchema: z.object({
+        prompt: z.string(),
+        // resourceId: z.string().optional(),
+        // threadId: z.string().optional(),
+      }),
+      // @ts-ignore
+      outputSchema: z.object({
+        text: z.string(),
+      }),
+      execute: async ({ inputData }) => {
+        const result = await params.generate(inputData.prompt, {
+          // resourceId: inputData.resourceId,
+          // threadId: inputData.threadId,
+        });
+
+        return {
+          text: result.text,
+        };
+      },
+    };
+  }
+
+  if (params instanceof Tool) {
+    if (!params.inputSchema || !params.outputSchema) {
+      throw new Error('Tool must have input and output schemas defined');
+    }
+
+    return {
+      // TODO: tool probably should have strong id type
+      // @ts-ignore
+      id: params.id,
+      inputSchema: params.inputSchema,
+      outputSchema: params.outputSchema,
+      execute: async ({ inputData, mastra }) => {
+        return await params.execute({
+          context: inputData,
+          mastra,
+        });
+      },
+    };
+  }
+
   return {
     id: params.id,
     description: params.description,
     inputSchema: params.inputSchema,
     outputSchema: params.outputSchema,
+    resumeSchema: params.resumeSchema,
+    suspendSchema: params.suspendSchema,
     execute: params.execute,
   };
 }
@@ -174,13 +289,23 @@ export class NewWorkflow<
    * @returns The workflow instance for chaining
    */
   then<TStepInputSchema extends TPrevSchema, TStepId extends string, TSchemaOut extends z.ZodObject<any>>(
-    step: Step<TStepId, TStepInputSchema, TSchemaOut>,
+    step: Step<TStepId, TStepInputSchema, TSchemaOut, any, any>,
   ) {
     this.stepFlow.push({ type: 'step', step: step as any });
     return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
   }
 
-  map<TMapping extends { [K in keyof TMapping]: VariableReference<TSteps[number]> }>(mappingConfig: TMapping) {
+  map<
+    TSteps extends Step<string, any, any>[],
+    TMapping extends {
+      [K in keyof TMapping]:
+        | {
+            step: TSteps[number];
+            path: PathsToStringProps<ExtractSchemaType<ExtractSchemaFromStep<TSteps[number], 'outputSchema'>>>;
+          }
+        | { value: any; schema: z.ZodTypeAny };
+    },
+  >(mappingConfig: TMapping) {
     // Create an implicit step that handles the mapping
     const mappingStep: any = createStep({
       id: `mapping_${randomUUID()}`,
@@ -190,6 +315,12 @@ export class NewWorkflow<
         const result: Record<string, any> = {};
         for (const [key, mapping] of Object.entries(mappingConfig)) {
           const m: any = mapping;
+
+          if (m.value) {
+            result[key] = m.value;
+            continue;
+          }
+
           const stepResult = getStepResult(m.step);
           const pathParts = m.path.split('.');
           let value: any = stepResult;
@@ -200,24 +331,34 @@ export class NewWorkflow<
               throw new Error(`Invalid path ${m.path} in step ${m.step.id}`);
             }
           }
+
           result[key] = value;
         }
         return result as z.infer<typeof mappingStep.outputSchema>;
       },
     });
 
-    this.stepFlow.push({ type: 'step', step: mappingStep as any });
-    return this as unknown as NewWorkflow<
-      TSteps,
-      TWorkflowId,
-      TInput,
-      TOutput,
-      z.infer<typeof mappingStep.outputSchema>
+    type MappedOutputSchema = z.ZodObject<
+      {
+        [K in keyof TMapping]: TMapping[K] extends {
+          step: TSteps[number];
+          path: PathsToStringProps<ExtractSchemaType<ExtractSchemaFromStep<TSteps[number], 'outputSchema'>>>;
+        }
+          ? ZodPathType<TMapping[K]['step']['outputSchema'], TMapping[K]['path']>
+          : TMapping[K] extends { value: any; schema: z.ZodTypeAny }
+            ? TMapping[K]['schema']
+            : never;
+      },
+      any,
+      z.ZodTypeAny
     >;
+
+    this.stepFlow.push({ type: 'step', step: mappingStep as any });
+    return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, MappedOutputSchema>;
   }
 
   // TODO: make typing better here
-  parallel<TParallelSteps extends Step<string, any, any>[]>(steps: TParallelSteps) {
+  parallel<TParallelSteps extends Step<string, TPrevSchema, any, any, any>[]>(steps: TParallelSteps) {
     this.stepFlow.push({ type: 'parallel', steps: steps.map(step => ({ type: 'step', step: step as any })) });
     return this as unknown as NewWorkflow<
       TSteps,
@@ -226,7 +367,7 @@ export class NewWorkflow<
       TOutput,
       z.ZodObject<
         {
-          [K in keyof StepsRecord<TParallelSteps>]: StepsRecord<TParallelSteps>[K]['outputSchema'];
+          [K in keyof StepsRecord<TParallelSteps>]: StepsRecord<TParallelSteps>[K]['outputSchema']['path'];
         },
         'strip',
         z.ZodTypeAny
@@ -235,9 +376,11 @@ export class NewWorkflow<
   }
 
   // TODO: make typing better here
-  branch<TBranchSteps extends Array<[ExecuteFunction<z.infer<any>, any>, Step<string, any, any>]>>(
-    steps: TBranchSteps,
-  ) {
+  branch<
+    TBranchSteps extends Array<
+      [ExecuteFunction<z.infer<TPrevSchema>, any, any, any>, Step<string, TPrevSchema, any, any, any>]
+    >,
+  >(steps: TBranchSteps) {
     this.stepFlow.push({
       type: 'conditional',
       steps: steps.map(([_cond, step]) => ({ type: 'step', step: step as any })),
@@ -267,16 +410,16 @@ export class NewWorkflow<
   }
 
   dowhile<TStepInputSchema extends TPrevSchema, TStepId extends string, TSchemaOut extends z.ZodObject<any>>(
-    step: Step<TStepId, TStepInputSchema, TSchemaOut>,
-    condition: ExecuteFunction<z.infer<TSchemaOut>, any>,
+    step: Step<TStepId, TStepInputSchema, TSchemaOut, any, any>,
+    condition: ExecuteFunction<z.infer<TSchemaOut>, any, any, any>,
   ) {
     this.stepFlow.push({ type: 'loop', step: step as any, condition, loopType: 'dowhile' });
     return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
   }
 
   dountil<TStepInputSchema extends TPrevSchema, TStepId extends string, TSchemaOut extends z.ZodObject<any>>(
-    step: Step<TStepId, TStepInputSchema, TSchemaOut>,
-    condition: ExecuteFunction<z.infer<TSchemaOut>, any>,
+    step: Step<TStepId, TStepInputSchema, TSchemaOut, any, any>,
+    condition: ExecuteFunction<z.infer<TSchemaOut>, any, any, any>,
   ) {
     this.stepFlow.push({ type: 'loop', step: step as any, condition, loopType: 'dountil' });
     return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TSchemaOut>;
@@ -324,12 +467,14 @@ export class NewWorkflow<
 
   async execute({
     inputData,
+    resumeData,
     suspend,
     resume,
     emitter,
     mastra,
   }: {
     inputData: z.infer<TInput>;
+    resumeData?: any;
     getStepResult<T extends NewStep<any, any, any>>(
       stepId: T,
     ): T['outputSchema'] extends undefined ? unknown : z.infer<NonNullable<T['outputSchema']>>;
@@ -348,7 +493,7 @@ export class NewWorkflow<
       emitter.emit('nested-watch', { event, workflowId: this.id, runId: run.runId, isResume: !!resume?.steps?.length });
     });
     const res = resume?.steps?.length
-      ? await run.resume({ inputData, step: resume.steps as any })
+      ? await run.resume({ resumeData, step: resume.steps as any })
       : await run.start({ inputData });
     unwatch();
     const suspendedSteps = Object.entries(res.steps).filter(([stepName, stepResult]) => {
@@ -375,8 +520,6 @@ export class NewWorkflow<
 
   async getWorkflowRuns() {
     const storage = this.#mastra?.getStorage();
-    console.log('mastra', this.#mastra);
-    console.log('storage', storage);
     if (!storage) {
       this.logger.debug('Cannot get workflow runs. Mastra engine is not initialized');
       return { runs: [], total: 0 };
@@ -520,8 +663,10 @@ export class Run<
   }
 
   async resume<TInput extends z.ZodObject<any>>(params: {
-    inputData?: z.infer<TInput>;
-    step: Step<string, TInput, any> | [...Step<string, any, any>[], Step<string, TInput, any>];
+    resumeData?: z.infer<TInput>;
+    step:
+      | Step<string, any, any, any, any>
+      | [...Step<string, any, any, any, any>[], Step<string, TInput, any, any, any>];
   }): Promise<{
     result: TOutput;
     steps: {
@@ -551,11 +696,12 @@ export class Run<
       workflowId: this.workflowId,
       runId: this.runId,
       graph: this.executionGraph,
-      input: params.inputData,
+      input: params.resumeData,
       resume: {
         steps,
         stepResults: snapshot?.context as any,
-        resumePayload: params.inputData,
+        resumePayload: params.resumeData,
+        // @ts-ignore
         resumePath: snapshot?.suspendedPaths?.[steps?.[0]?.id!] as any,
       },
       emitter: this.emitter,

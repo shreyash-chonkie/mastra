@@ -8,6 +8,7 @@ import { Tiktoken } from 'js-tiktoken/lite';
 import o200k_base from 'js-tiktoken/ranks/o200k_base';
 import xxhash from 'xxhash-wasm';
 import { updateWorkingMemoryTool } from './tools/working-memory';
+import { reorderToolCallsAndResults } from './utils';
 
 const encoder = new Tiktoken(o200k_base);
 
@@ -82,6 +83,12 @@ export class Memory extends MastraMemory {
 
       await Promise.all(
         embeddings.map(async embedding => {
+          if (typeof this.vector === `undefined`) {
+            throw new Error(
+              `Tried to query vector index ${indexName} but this Memory instance doesn't have an attached vector db.`,
+            );
+          }
+
           vectorResults.push(
             ...(await this.vector.query({
               indexName,
@@ -120,9 +127,14 @@ export class Memory extends MastraMemory {
       threadConfig: config,
     });
 
+    // First sort messages by date
+    const orderedByDate = rawMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    // Then reorder tool calls to be directly before their results
+    const reorderedToolCalls = reorderToolCallsAndResults(orderedByDate);
+
     // Parse and convert messages
-    const messages = this.parseMessages(rawMessages);
-    const uiMessages = this.convertToUIMessages(rawMessages);
+    const messages = this.parseMessages(reorderedToolCalls);
+    const uiMessages = this.convertToUIMessages(reorderedToolCalls);
 
     return { messages, uiMessages };
   }
@@ -219,11 +231,6 @@ export class Memory extends MastraMemory {
 
   async deleteThread(threadId: string): Promise<void> {
     await this.storage.__deleteThread({ threadId });
-
-    // TODO: Also clean up vector storage if it exists
-    // if (this.vector) {
-    //   await this.vector.deleteThread(threadId); ?? filter by thread attributes and delete all returned messages?
-    // }
   }
 
   private chunkText(text: string, size = 4096) {
@@ -268,6 +275,9 @@ export class Memory extends MastraMemory {
     if (cached) return cached;
     const chunks = this.chunkText(content);
 
+    if (typeof this.embedder === `undefined`) {
+      throw new Error(`Tried to embed message content but this Memory instance doesn't have an attached embedder.`);
+    }
     // for fastembed multiple initial calls to embed will fail if the model hasn't been downloaded yet.
     const isFastEmbed = this.embedder.provider === `fastembed`;
     if (isFastEmbed && this.firstEmbed instanceof Promise) {
@@ -320,6 +330,12 @@ export class Memory extends MastraMemory {
 
           if (typeof indexName === `undefined`) {
             indexName = this.createEmbeddingIndex(dimension).then(result => result.indexName);
+          }
+
+          if (typeof this.vector === `undefined`) {
+            throw new Error(
+              `Tried to upsert embeddings to index ${indexName} but this Memory instance doesn't have an attached vector db.`,
+            );
           }
 
           await this.vector.upsert({

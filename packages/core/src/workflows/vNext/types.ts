@@ -1,4 +1,4 @@
-import type { z } from 'zod';
+import { z } from 'zod';
 import type { NewStep } from './step';
 
 export type StepSuccess<T> = {
@@ -41,10 +41,18 @@ export type ExtractSchemaFromStep<
   TKey extends 'inputSchema' | 'outputSchema',
 > = TStep[TKey];
 
-export type VariableReference<TStep extends NewStep<string, any, any>> = {
-  step: TStep;
-  path: PathsToStringProps<ExtractSchemaType<ExtractSchemaFromStep<TStep, 'outputSchema'>>> | '' | '.';
-};
+export type VariableReference<
+  TStep extends NewStep<string, any, any> = NewStep<string, any, any>,
+  TVarPath extends PathsToStringProps<ExtractSchemaType<ExtractSchemaFromStep<TStep, 'outputSchema'>>> | '' | '.' =
+    | PathsToStringProps<ExtractSchemaType<ExtractSchemaFromStep<TStep, 'outputSchema'>>>
+    | ''
+    | '.',
+> =
+  | {
+      step: TStep;
+      path: TVarPath;
+    }
+  | { value: any; schema: z.ZodTypeAny };
 
 export type WatchEvent = {
   type: 'watch';
@@ -71,3 +79,35 @@ export type WatchEvent = {
   };
   eventTimestamp: Date;
 };
+
+// Type to get the inferred type at a specific path in a Zod schema
+export type ZodPathType<T extends z.ZodTypeAny, P extends string> =
+  T extends z.ZodObject<infer Shape>
+    ? P extends `${infer Key}.${infer Rest}`
+      ? Key extends keyof Shape
+        ? Shape[Key] extends z.ZodTypeAny
+          ? ZodPathType<Shape[Key], Rest>
+          : never
+        : never
+      : P extends keyof Shape
+        ? Shape[P]
+        : never
+    : never;
+
+// Test case
+const testSchema = z.object({
+  name: z.string(),
+  age: z.number(),
+  isActive: z.boolean(),
+  nested: z.object({
+    name: z.string(),
+    age: z.number(),
+    isActive: z.boolean(),
+  }),
+});
+
+// These should all work correctly
+type NameType = ZodPathType<typeof testSchema, 'name'>; // Should be string
+type AgeType = ZodPathType<typeof testSchema, 'age'>; // Should be number
+type IsActiveType = ZodPathType<typeof testSchema, 'isActive'>; // Should be boolean
+type NestedNameType = ZodPathType<typeof testSchema, 'nested.name'>; // Should be string

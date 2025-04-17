@@ -188,8 +188,9 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         let suspended: { payload: any } | undefined;
         const result = await step.execute({
           mastra: this.mastra!,
-          inputData: resume?.steps[0]!.id === step.id ? resume?.resumePayload : prevOutput,
-          context: resume?.steps[0]!.id === step.id ? resume?.resumePayload : prevOutput,
+          inputData: prevOutput,
+          resumeData: resume?.steps[0]!.id === step.id ? resume?.resumePayload : undefined,
+          getInitData: () => stepResults?.input as any,
           getStepResult: (step: any) => {
             const result = stepResults[step.id];
             if (result?.status === 'success') {
@@ -305,7 +306,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
   }: {
     workflowId: string;
     runId: string;
-    entry: { type: 'conditional'; steps: StepFlowEntry[]; conditions: ExecuteFunction<any, any>[] };
+    entry: { type: 'conditional'; steps: StepFlowEntry[]; conditions: ExecuteFunction<any, any, any, any>[] };
     prevStep: StepFlowEntry;
     prevOutput: any;
     stepResults: Record<string, StepResult<any>>;
@@ -326,7 +327,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             const result = await cond({
               mastra: this.mastra!,
               inputData: prevOutput,
-              context: prevOutput,
+              getInitData: () => stepResults?.input as any,
               getStepResult: (step: any) => {
                 if (!step?.id) {
                   return null;
@@ -395,11 +396,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
   }
 
   async executeLoop({
-    workflowId,
-    runId,
     entry,
     prevOutput,
-    prevStep,
     stepResults,
     resume,
     executionContext,
@@ -407,7 +405,12 @@ export class DefaultExecutionEngine extends ExecutionEngine {
   }: {
     workflowId: string;
     runId: string;
-    entry: { type: 'loop'; step: NewStep; condition: ExecuteFunction<any, any>; loopType: 'dowhile' | 'dountil' };
+    entry: {
+      type: 'loop';
+      step: NewStep;
+      condition: ExecuteFunction<any, any, any, any>;
+      loopType: 'dowhile' | 'dountil';
+    };
     prevStep: StepFlowEntry;
     prevOutput: any;
     stepResults: Record<string, StepResult<any>>;
@@ -441,7 +444,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       isTrue = await condition({
         mastra: this.mastra!,
         inputData: result.output,
-        context: result.output,
+        getInitData: () => stepResults?.input as any,
         getStepResult: (step: any) => {
           if (!step?.id) {
             return null;
