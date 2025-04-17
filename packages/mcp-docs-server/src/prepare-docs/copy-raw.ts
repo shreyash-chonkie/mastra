@@ -21,7 +21,7 @@ async function copyDir(src: string, dest: string) {
     if (entry.isDirectory()) {
       // Recursively copy directories
       await copyDir(srcPath, destPath);
-    } else if (entry.isFile() && entry.name.endsWith('.mdx')) {
+    } else if (entry.isFile() && (entry.name.endsWith('.mdx') || entry.name.endsWith('.md'))) {
       // Copy only MDX files
       await fs.copyFile(srcPath, destPath);
     }
