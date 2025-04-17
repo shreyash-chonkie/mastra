@@ -338,19 +338,19 @@ describe('CloudflareStore Workers Binding', () => {
       const thread = createSampleThread();
 
       // Save thread
-      const savedThread = await store.__saveThread({ thread });
+      const savedThread = await store.saveThread({ thread });
       expect(savedThread).toEqual(thread);
 
       // Retrieve thread
       const retrievedThread = await retryUntil(
-        async () => await store.__getThreadById({ threadId: thread.id }),
+        async () => await store.getThreadById({ threadId: thread.id }),
         retrievedThread => retrievedThread?.title === thread.title,
       );
       expect(retrievedThread?.title).toEqual(thread.title);
     });
 
     it('should return null for non-existent thread', async () => {
-      const result = await store.__getThreadById({ threadId: 'non-existent' });
+      const result = await store.getThreadById({ threadId: 'non-existent' });
       expect(result).toBeNull();
     });
 
@@ -358,11 +358,11 @@ describe('CloudflareStore Workers Binding', () => {
       const thread1 = createSampleThread();
       const thread2 = { ...createSampleThread(), resourceId: thread1.resourceId };
 
-      await store.__saveThread({ thread: thread1 });
-      await store.__saveThread({ thread: thread2 });
+      await store.saveThread({ thread: thread1 });
+      await store.saveThread({ thread: thread2 });
 
       const threads = await retryUntil(
-        async () => await store.__getThreadsByResourceId({ resourceId: thread1.resourceId }),
+        async () => await store.getThreadsByResourceId({ resourceId: thread1.resourceId }),
         threads => threads?.length === 2,
       );
       expect(threads).toHaveLength(2);
@@ -371,11 +371,11 @@ describe('CloudflareStore Workers Binding', () => {
 
     it('should update thread title and metadata', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       const updatedTitle = 'Updated Title';
       const updatedMetadata = { newKey: 'newValue' };
-      const updatedThread = await store.__updateThread({
+      const updatedThread = await store.updateThread({
         id: thread.id,
         title: updatedTitle,
         metadata: updatedMetadata,
@@ -409,23 +409,23 @@ describe('CloudflareStore Workers Binding', () => {
 
     it('should delete thread and its messages', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       // Add some messages
       const messages = [createSampleMessage(thread.id), createSampleMessage(thread.id)];
-      await store.__saveMessages({ messages });
+      await store.saveMessages({ messages });
 
-      await store.__deleteThread({ threadId: thread.id });
+      await store.deleteThread({ threadId: thread.id });
 
       // Verify thread deletion with retry
       await retryUntil(
-        async () => await store.__getThreadById({ threadId: thread.id }),
+        async () => await store.getThreadById({ threadId: thread.id }),
         thread => thread === null,
       );
 
       // Verify messages were also deleted with retry
       const retrievedMessages = await retryUntil(
-        async () => await store.__getMessages({ threadId: thread.id }),
+        async () => await store.getMessages({ threadId: thread.id }),
         messages => messages.length === 0,
       );
       expect(retrievedMessages).toHaveLength(0);
@@ -435,18 +435,18 @@ describe('CloudflareStore Workers Binding', () => {
   describe('Message Operations', () => {
     it('should save and retrieve messages', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       const messages = [createSampleMessage(thread.id), createSampleMessage(thread.id)];
 
       // Save messages
-      const savedMessages = await store.__saveMessages({ messages });
+      const savedMessages = await store.saveMessages({ messages });
       expect(savedMessages).toEqual(messages);
 
       // Retrieve messages with retry
       const retrievedMessages = await retryUntil(
         async () => {
-          const msgs = await store.__getMessages({ threadId: thread.id });
+          const msgs = await store.getMessages({ threadId: thread.id });
           return msgs;
         },
         msgs => msgs.length === 2,
@@ -456,13 +456,13 @@ describe('CloudflareStore Workers Binding', () => {
     });
 
     it('should handle empty message array', async () => {
-      const result = await store.__saveMessages({ messages: [] });
+      const result = await store.saveMessages({ messages: [] });
       expect(result).toEqual([]);
     });
 
     it('should maintain message order', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       const messages = [
         {
@@ -479,10 +479,10 @@ describe('CloudflareStore Workers Binding', () => {
         },
       ];
 
-      await store.__saveMessages({ messages });
+      await store.saveMessages({ messages });
 
       const retrievedMessages = await retryUntil(
-        async () => await store.__getMessages({ threadId: thread.id }),
+        async () => await store.getMessages({ threadId: thread.id }),
         messages => messages.length > 0,
       );
       expect(retrievedMessages).toHaveLength(3);
@@ -580,9 +580,9 @@ describe('CloudflareStore Workers Binding', () => {
         metadata: {},
       };
 
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
       const retrievedThread = await retryUntil(
-        async () => await store.__getThreadById({ threadId: thread.id }),
+        async () => await store.getThreadById({ threadId: thread.id }),
         retrievedThread => retrievedThread?.id === thread.id,
       );
       expect(retrievedThread?.createdAt).toBeInstanceOf(Date);
@@ -602,9 +602,9 @@ describe('CloudflareStore Workers Binding', () => {
         metadata: {},
       };
 
-      await store.__saveThread({ thread: thread as any });
+      await store.saveThread({ thread: thread as any });
       const retrievedThread = await retryUntil(
-        async () => await store.__getThreadById({ threadId: thread.id }),
+        async () => await store.getThreadById({ threadId: thread.id }),
         retrievedThread => retrievedThread?.id === thread.id,
       );
       expect(retrievedThread?.createdAt).toBeInstanceOf(Date);
@@ -617,7 +617,7 @@ describe('CloudflareStore Workers Binding', () => {
   describe('Message Ordering', () => {
     it('should handle duplicate timestamps gracefully', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       // Create messages with identical timestamps
       const timestamp = new Date();
@@ -626,7 +626,7 @@ describe('CloudflareStore Workers Binding', () => {
         createdAt: timestamp,
       }));
 
-      await store.__saveMessages({ messages });
+      await store.saveMessages({ messages });
 
       // Verify order is maintained based on insertion order
       const orderKey = store['getThreadMessagesKey'](thread.id);
@@ -641,7 +641,7 @@ describe('CloudflareStore Workers Binding', () => {
 
     it('should preserve write order when messages are saved concurrently', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       // Create messages with different timestamps
       const now = Date.now();
@@ -652,7 +652,7 @@ describe('CloudflareStore Workers Binding', () => {
 
       // Save messages in reverse order to verify write order is preserved
       const reversedMessages = [...messages].reverse(); // newest -> oldest
-      await Promise.all(reversedMessages.map(msg => store.__saveMessages({ messages: [msg] })));
+      await Promise.all(reversedMessages.map(msg => store.saveMessages({ messages: [msg] })));
 
       // Verify messages are saved and maintain write order (not timestamp order)
       const orderKey = store['getThreadMessagesKey'](thread.id);
@@ -673,11 +673,11 @@ describe('CloudflareStore Workers Binding', () => {
 
     it('should handle score updates correctly', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       // Create initial messages
       const messages = Array.from({ length: 3 }, () => createSampleMessage(thread.id));
-      await store.__saveMessages({ messages });
+      await store.saveMessages({ messages });
 
       // Update scores to reverse order
       const orderKey = store['getThreadMessagesKey'](thread.id);
@@ -699,7 +699,7 @@ describe('CloudflareStore Workers Binding', () => {
 
     it('should maintain message order using sorted sets', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       // Create messages with explicit timestamps to test chronological ordering
       const baseTime = new Date('2025-03-14T23:30:20.930Z').getTime();
@@ -721,7 +721,7 @@ describe('CloudflareStore Workers Binding', () => {
         },
       ] as MessageType[];
 
-      await store.__saveMessages({ messages });
+      await store.saveMessages({ messages });
 
       await new Promise(resolve => setTimeout(resolve, 5000));
 
@@ -951,11 +951,11 @@ describe('CloudflareStore Workers Binding', () => {
         ...createSampleThread(),
         metadata: undefined, // Optional field
       };
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       // Should be able to retrieve thread
       const threads = await retryUntil(
-        async () => await store.__getThreadsByResourceId({ resourceId: thread.resourceId }),
+        async () => await store.getThreadsByResourceId({ resourceId: thread.resourceId }),
         threads => threads.length > 0,
       );
       expect(threads).toHaveLength(1);
@@ -970,12 +970,12 @@ describe('CloudflareStore Workers Binding', () => {
         content: [{ type: 'text' as const, text: '特殊字符 !@#$%^&*()' }] as MessageType['content'],
       };
 
-      await store.__saveThread({ thread });
-      await store.__saveMessages({ messages: [message] });
+      await store.saveThread({ thread });
+      await store.saveMessages({ messages: [message] });
 
       // Should retrieve correctly
       const messages = await retryUntil(
-        async () => await store.__getMessages({ threadId: thread.id }),
+        async () => await store.getMessages({ threadId: thread.id }),
         messages => messages.length > 0,
       );
       expect(messages).toHaveLength(1);
@@ -989,7 +989,7 @@ describe('CloudflareStore Workers Binding', () => {
       };
 
       // Should throw on invalid data
-      await expect(store.__saveThread({ thread: invalidThread })).rejects.toThrow();
+      await expect(store.saveThread({ thread: invalidThread })).rejects.toThrow();
     });
   });
 
@@ -1034,8 +1034,8 @@ describe('CloudflareStore Workers Binding', () => {
       const message = createSampleMessage(thread.id);
 
       // Save thread and message
-      await store.__saveThread({ thread });
-      await store.__saveMessages({ messages: [message] });
+      await store.saveThread({ thread });
+      await store.saveMessages({ messages: [message] });
 
       // Verify message key format
       const msgKey = store['getKey'](TABLE_MESSAGES, { threadId: thread.id, id: message.id });
@@ -1064,7 +1064,7 @@ describe('CloudflareStore Workers Binding', () => {
   describe('Concurrent Operations', () => {
     it('should handle concurrent message updates concurrently', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       // Create messages with sequential timestamps (but write order will be preserved)
       const now = Date.now();
@@ -1074,7 +1074,7 @@ describe('CloudflareStore Workers Binding', () => {
       }));
 
       // Save messages in parallel - write order should be preserved
-      await Promise.all(messages.map(msg => store.__saveMessages({ messages: [msg] })));
+      await Promise.all(messages.map(msg => store.saveMessages({ messages: [msg] })));
 
       // Order should reflect write order, not timestamp order
       const orderKey = store['getThreadMessagesKey'](thread.id);
@@ -1091,11 +1091,11 @@ describe('CloudflareStore Workers Binding', () => {
 
     it('should maintain order with concurrent score updates', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       // Create initial messages
       const messages = Array.from({ length: 3 }, () => createSampleMessage(thread.id));
-      await store.__saveMessages({ messages });
+      await store.saveMessages({ messages });
 
       const orderKey = store['getThreadMessagesKey'](thread.id);
 
@@ -1128,8 +1128,8 @@ describe('CloudflareStore Workers Binding', () => {
       const thread = createSampleThread();
       const messages = Array.from({ length: 3 }, () => createSampleMessage(thread.id));
 
-      await store.__saveThread({ thread });
-      await store.__saveMessages({ messages });
+      await store.saveThread({ thread });
+      await store.saveMessages({ messages });
 
       // Verify messages exist
       const orderKey = store['getThreadMessagesKey'](thread.id);
@@ -1140,7 +1140,7 @@ describe('CloudflareStore Workers Binding', () => {
       expect(initialOrder).toHaveLength(messages.length);
 
       // Delete thread
-      await store.__deleteThread({ threadId: thread.id });
+      await store.deleteThread({ threadId: thread.id });
 
       await new Promise(resolve => setTimeout(resolve, 5000));
 
@@ -1152,31 +1152,31 @@ describe('CloudflareStore Workers Binding', () => {
       expect(finalOrder).toHaveLength(0);
 
       // Verify thread is gone
-      const threads = await store.__getThreadsByResourceId({ resourceId: thread.resourceId });
+      const threads = await store.getThreadsByResourceId({ resourceId: thread.resourceId });
       expect(threads).toHaveLength(0);
     });
 
     it('should handle namespace cleanup edge cases', async () => {
       // Create test data
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       // Create test messages with unique timestamps
       const testMessages = Array.from({ length: 10 }, (_, i) => ({
         ...createSampleMessage(thread.id),
         createdAt: new Date(Date.now() + i * 1000),
       }));
-      await store.__saveMessages({ messages: testMessages });
+      await store.saveMessages({ messages: testMessages });
 
       // Verify messages are saved
       const initialMessages = await retryUntil(
-        async () => await store.__getMessages({ threadId: thread.id }),
+        async () => await store.getMessages({ threadId: thread.id }),
         messages => messages.length === testMessages.length,
       );
       expect(initialMessages).toHaveLength(testMessages.length);
 
       // Delete thread
-      await store.__deleteThread({ threadId: thread.id });
+      await store.deleteThread({ threadId: thread.id });
 
       // Verify cleanup with retries
       await retryUntil(
@@ -1192,14 +1192,14 @@ describe('CloudflareStore Workers Binding', () => {
 
       // Verify all data is cleaned up
       const remainingMessages = await retryUntil(
-        async () => await store.__getMessages({ threadId: thread.id }),
+        async () => await store.getMessages({ threadId: thread.id }),
         messages => messages.length === 0,
       );
       expect(remainingMessages).toHaveLength(0);
 
       // Verify thread is gone
       const threads = await retryUntil(
-        async () => await store.__getThreadsByResourceId({ resourceId: thread.resourceId }),
+        async () => await store.getThreadsByResourceId({ resourceId: thread.resourceId }),
         threads => threads.length === 0,
       );
       expect(threads).toHaveLength(0);
@@ -1240,9 +1240,9 @@ describe('CloudflareStore Workers Binding', () => {
         metadata: largeMetadata,
       };
 
-      await store.__saveThread({ thread: threadWithLargeMetadata });
+      await store.saveThread({ thread: threadWithLargeMetadata });
       const retrieved = await retryUntil(
-        async () => await store.__getThreadById({ threadId: thread.id }),
+        async () => await store.getThreadById({ threadId: thread.id }),
         retrievedThread => retrievedThread?.id === thread.id,
       );
 
@@ -1253,10 +1253,10 @@ describe('CloudflareStore Workers Binding', () => {
       const threads = Array.from({ length: 10 }, () => createSampleThread());
 
       // Save all threads concurrently
-      await Promise.all(threads.map(thread => store.__saveThread({ thread })));
+      await Promise.all(threads.map(thread => store.saveThread({ thread })));
 
       // Retrieve all threads concurrently
-      const retrievedThreads = await Promise.all(threads.map(thread => store.__getThreadById({ threadId: thread.id })));
+      const retrievedThreads = await Promise.all(threads.map(thread => store.getThreadById({ threadId: thread.id })));
 
       expect(retrievedThreads.length).toBe(threads.length);
       retrievedThreads.forEach((retrieved, i) => {
@@ -1268,7 +1268,7 @@ describe('CloudflareStore Workers Binding', () => {
   describe('Error Handling', () => {
     it('should handle race conditions in getSortedOrder', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       // Create messages with sequential timestamps
       const now = Date.now();
@@ -1278,7 +1278,7 @@ describe('CloudflareStore Workers Binding', () => {
       }));
 
       // Save messages in parallel to create race condition
-      await Promise.all(messages.map(msg => store.__saveMessages({ messages: [msg] })));
+      await Promise.all(messages.map(msg => store.saveMessages({ messages: [msg] })));
 
       // Verify both presence and order consistency
       const orderKey = store['getThreadMessagesKey'](thread.id);
@@ -1308,7 +1308,7 @@ describe('CloudflareStore Workers Binding', () => {
 
     it('should handle invalid message data', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       // Try to save invalid message
       const invalidMessage = {
@@ -1317,7 +1317,7 @@ describe('CloudflareStore Workers Binding', () => {
       };
 
       await expect(
-        store.__saveMessages({
+        store.saveMessages({
           messages: [invalidMessage as any],
         }),
       ).rejects.toThrow();
@@ -1326,7 +1326,7 @@ describe('CloudflareStore Workers Binding', () => {
     it('should handle missing thread gracefully', async () => {
       const message = createSampleMessage('non-existent-thread');
       await expect(
-        store.__saveMessages({
+        store.saveMessages({
           messages: [message],
         }),
       ).rejects.toThrow();
@@ -1334,7 +1334,7 @@ describe('CloudflareStore Workers Binding', () => {
 
     it('should handle malformed data gracefully', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       // Test with various malformed data
       const malformedMessage = {
@@ -1342,11 +1342,11 @@ describe('CloudflareStore Workers Binding', () => {
         content: [{ type: 'text' as const, text: ''.padStart(1024 * 1024, 'x') }] as MessageType['content'], // Very large content
       };
 
-      await store.__saveMessages({ messages: [malformedMessage] });
+      await store.saveMessages({ messages: [malformedMessage] });
 
       // Should still be able to retrieve and handle the message
       const messages = await retryUntil(
-        async () => await store.__getMessages({ threadId: thread.id }),
+        async () => await store.getMessages({ threadId: thread.id }),
         messages => messages.length === 1,
       );
       expect(messages).toHaveLength(1);
@@ -1355,11 +1355,11 @@ describe('CloudflareStore Workers Binding', () => {
 
     it('should handle concurrent updates to sorted order', async () => {
       const thread = createSampleThread();
-      await store.__saveThread({ thread });
+      await store.saveThread({ thread });
 
       // Create initial messages
       const messages = Array.from({ length: 3 }, () => createSampleMessage(thread.id));
-      await store.__saveMessages({ messages });
+      await store.saveMessages({ messages });
 
       // Perform multiple concurrent updates
       const orderKey = store['getThreadMessagesKey'](thread.id);

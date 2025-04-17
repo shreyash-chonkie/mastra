@@ -494,7 +494,11 @@ export default withGT(
         destination: "/reference/voice/mastra-voice",
         permanent: true,
       },
-
+	  {
+      source: "/docs/reference/tts/stream",
+      destination: "/reference/voice/mastra-voice",
+      permanent: true,
+      },
       {
         source: "/docs/guide",
         destination: "/guides",
@@ -739,7 +743,12 @@ export default withGT(
         source: "/examples/workflows/subscribed-steps",
         destination: "/examples/workflows/sequential-steps",
         permanent: true,
-      },
+    },
+    {
+      source: "/docs/voice/voice-to-voice",
+      destination: "/docs/voice/speech-to-speech",
+      permanent: true,
+    },
     ],
     trailingSlash: false,
   }),
