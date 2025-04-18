@@ -21,7 +21,7 @@ const tasks = new Map<string, Task>();
 /**
  * Convert an agent message to A2A message format
  */
-function convertToA2AMessage(message: any, role: 'user' | 'agent'): Message {
+function convertToA2AMessage({ message, role }: { message: any; role: 'user' | 'agent' }): Message {
   // Simple conversion for text messages
   if (typeof message === 'string') {
     return {
@@ -30,6 +30,19 @@ function convertToA2AMessage(message: any, role: 'user' | 'agent'): Message {
         {
           type: 'text',
           text: message,
+        },
+      ],
+    };
+  }
+
+  // Handle Mastra agent response format with text property
+  if (message && message.text) {
+    return {
+      role,
+      parts: [
+        {
+          type: 'text',
+          text: message.text,
         },
       ],
     };
@@ -77,6 +90,23 @@ function convertToA2AMessage(message: any, role: 'user' | 'agent'): Message {
     }
   }
 
+  // If we couldn't extract any parts but we have an object, try to convert it to a text part
+  if (parts.length === 0 && typeof message === 'object' && message !== null) {
+    try {
+      const textRepresentation = JSON.stringify(message, null, 2);
+      parts.push({
+        type: 'text',
+        text: textRepresentation,
+      });
+    } catch (_e) {
+      // If JSON serialization fails, add an empty text part
+      parts.push({
+        type: 'text',
+        text: 'Unable to convert agent response to text',
+      });
+    }
+  }
+
   return {
     role,
     parts,
@@ -86,7 +116,7 @@ function convertToA2AMessage(message: any, role: 'user' | 'agent'): Message {
 /**
  * Convert A2A message format to agent message
  */
-function convertFromA2AMessage(message: Message): any {
+function convertFromA2AMessage({ message }: { message: Message }): any {
   // Simple conversion for text-only messages
   if (message.parts && message.parts.length === 1 && message.parts[0]?.type === 'text') {
     return message.parts[0]?.text || '';
@@ -122,12 +152,17 @@ function convertFromA2AMessage(message: Message): any {
 /**
  * Create a JSON-RPC error response
  */
-function createErrorResponse(
-  id: string | number | null,
-  code: ErrorCode,
-  message: string,
-  data?: any,
-): JSONRPCResponse {
+function createErrorResponse({
+  id,
+  code,
+  message,
+  data,
+}: {
+  id: string | number | null;
+  code: ErrorCode;
+  message: string;
+  data?: any;
+}): JSONRPCResponse {
   return {
     jsonrpc: '2.0',
     id,
@@ -142,7 +177,7 @@ function createErrorResponse(
 /**
  * Create a JSON-RPC success response
  */
-function createSuccessResponse(id: string | number | null, result: any): JSONRPCResponse {
+function createSuccessResponse({ id, result }: { id: string | number | null; result: any }): JSONRPCResponse {
   return {
     jsonrpc: '2.0',
     id,
@@ -153,19 +188,25 @@ function createSuccessResponse(id: string | number | null, result: any): JSONRPC
 /**
  * Handle a tasks/send request
  */
-export async function handleSendTask(request: SendTaskRequest, agent: Agent): Promise<JSONRPCResponse> {
+export async function handleSendTask({
+  request,
+  agent,
+}: {
+  request: SendTaskRequest;
+  agent: Agent;
+}): Promise<JSONRPCResponse> {
   try {
     const { id, message, sessionId } = request.params;
 
     // Convert the A2A message to the format expected by the agent
-    const agentMessage = convertFromA2AMessage(message);
+    const agentMessage = convertFromA2AMessage({ message });
 
     // Process the message with the agent
     // Note: We're using any here because Agent interface might vary
     const response = await (agent as any).generate(agentMessage);
 
     // Convert the agent response to A2A format
-    const a2aResponse = convertToA2AMessage(response, 'agent');
+    const a2aResponse = convertToA2AMessage({ message: response, role: 'agent' });
 
     // Create or update the task
     const now = new Date().toISOString();
@@ -183,11 +224,14 @@ export async function handleSendTask(request: SendTaskRequest, agent: Agent): Pr
     // Store the task
     tasks.set(id, task);
 
-    return createSuccessResponse(request.id || null, task);
+    return createSuccessResponse({ id: request.id || null, result: task });
   } catch (error) {
     console.error('Error handling send task:', error);
-    return createErrorResponse(request.id || null, ErrorCode.INTERNAL_ERROR, 'Internal error processing task', {
-      error: String(error),
+    return createErrorResponse({
+      id: request.id || null,
+      code: ErrorCode.INTERNAL_ERROR,
+      message: 'Internal error processing task',
+      data: { error: String(error) },
     });
   }
 }
@@ -195,7 +239,7 @@ export async function handleSendTask(request: SendTaskRequest, agent: Agent): Pr
 /**
  * Handle a tasks/get request
  */
-export async function handleGetTask(request: GetTaskRequest): Promise<JSONRPCResponse> {
+export async function handleGetTask({ request }: { request: GetTaskRequest }): Promise<JSONRPCResponse> {
   try {
     const { id, historyLength } = request.params;
 
@@ -203,7 +247,11 @@ export async function handleGetTask(request: GetTaskRequest): Promise<JSONRPCRes
     const task = tasks.get(id);
 
     if (!task) {
-      return createErrorResponse(request.id || null, ErrorCode.TASK_NOT_FOUND, 'Task not found');
+      return createErrorResponse({
+        id: request.id || null,
+        code: ErrorCode.TASK_NOT_FOUND,
+        message: 'Task not found',
+      });
     }
 
     // If historyLength is specified, limit the history
@@ -211,11 +259,14 @@ export async function handleGetTask(request: GetTaskRequest): Promise<JSONRPCRes
       task.history = task.history.slice(-historyLength);
     }
 
-    return createSuccessResponse(request.id || null, task);
+    return createSuccessResponse({ id: request.id || null, result: task });
   } catch (error) {
     console.error('Error handling get task:', error);
-    return createErrorResponse(request.id || null, ErrorCode.INTERNAL_ERROR, 'Internal error retrieving task', {
-      error: String(error),
+    return createErrorResponse({
+      id: request.id || null,
+      code: ErrorCode.INTERNAL_ERROR,
+      message: 'Internal error retrieving task',
+      data: { error: String(error) },
     });
   }
 }
@@ -223,7 +274,7 @@ export async function handleGetTask(request: GetTaskRequest): Promise<JSONRPCRes
 /**
  * Handle a tasks/cancel request
  */
-export async function handleCancelTask(request: CancelTaskRequest): Promise<JSONRPCResponse> {
+export async function handleCancelTask({ request }: { request: CancelTaskRequest }): Promise<JSONRPCResponse> {
   try {
     const { id } = request.params;
 
@@ -231,7 +282,11 @@ export async function handleCancelTask(request: CancelTaskRequest): Promise<JSON
     const task = tasks.get(id);
 
     if (!task) {
-      return createErrorResponse(request.id || null, ErrorCode.TASK_NOT_FOUND, 'Task not found');
+      return createErrorResponse({
+        id: request.id || null,
+        code: ErrorCode.TASK_NOT_FOUND,
+        message: 'Task not found',
+      });
     }
 
     // Check if the task can be canceled
@@ -240,7 +295,11 @@ export async function handleCancelTask(request: CancelTaskRequest): Promise<JSON
       task.status.state === TaskState.CANCELED ||
       task.status.state === TaskState.FAILED
     ) {
-      return createErrorResponse(request.id || null, ErrorCode.TASK_NOT_CANCELABLE, 'Task cannot be canceled');
+      return createErrorResponse({
+        id: request.id || null,
+        code: ErrorCode.TASK_NOT_CANCELABLE,
+        message: 'Task cannot be canceled',
+      });
     }
 
     // Update the task status
@@ -252,11 +311,14 @@ export async function handleCancelTask(request: CancelTaskRequest): Promise<JSON
     // Store the updated task
     tasks.set(id, task);
 
-    return createSuccessResponse(request.id || null, task);
+    return createSuccessResponse({ id: request.id || null, result: task });
   } catch (error) {
     console.error('Error handling cancel task:', error);
-    return createErrorResponse(request.id || null, ErrorCode.INTERNAL_ERROR, 'Internal error canceling task', {
-      error: String(error),
+    return createErrorResponse({
+      id: request.id || null,
+      code: ErrorCode.INTERNAL_ERROR,
+      message: 'Internal error canceling task',
+      data: { error: String(error) },
     });
   }
 }
@@ -267,43 +329,62 @@ export async function handleCancelTask(request: CancelTaskRequest): Promise<JSON
 export function handlePushNotification(): JSONRPCResponse {
   // This is a placeholder implementation
   // In a real implementation, this would handle push notification configuration
-  return createErrorResponse(null, ErrorCode.PUSH_NOTIFICATION_NOT_SUPPORTED, 'Push Notification is not supported');
+  return createErrorResponse({
+    id: null,
+    code: ErrorCode.PUSH_NOTIFICATION_NOT_SUPPORTED,
+    message: 'Push Notification is not supported',
+  });
 }
 
 /**
  * Handle a JSON-RPC request for the A2A protocol
  */
-export async function handleA2ARequest(request: A2ARequest, agent: Agent): Promise<JSONRPCResponse> {
+export async function handleA2ARequest({
+  request,
+  agent,
+}: {
+  request: A2ARequest;
+  agent: Agent;
+}): Promise<JSONRPCResponse> {
   try {
     // Extract the ID safely, ensuring it's treated as a valid ID or null
     const requestId = 'id' in request ? request.id : null;
 
     switch (request.method) {
       case 'tasks/send':
-        return await handleSendTask(request as SendTaskRequest, agent);
+        return await handleSendTask({ request: request as SendTaskRequest, agent });
       case 'tasks/get':
-        return await handleGetTask(request as GetTaskRequest);
+        return await handleGetTask({ request: request as GetTaskRequest });
       case 'tasks/cancel':
-        return await handleCancelTask(request as CancelTaskRequest);
+        return await handleCancelTask({ request: request as CancelTaskRequest });
       case 'tasks/pushNotification/set':
       case 'tasks/pushNotification/get':
       case 'tasks/resubscribe':
         return handlePushNotification();
       default:
-        return createErrorResponse(requestId!, ErrorCode.METHOD_NOT_FOUND, 'Method not found');
+        return createErrorResponse({
+          id: requestId!,
+          code: ErrorCode.METHOD_NOT_FOUND,
+          message: 'Method not found',
+        });
     }
   } catch (error) {
     console.error('Error handling A2A request:', error);
     // Ensure we handle the ID safely to avoid undefined values
     const errorRequestId = 'id' in request && request.id !== undefined ? request.id : null;
-    return createErrorResponse(errorRequestId, ErrorCode.INTERNAL_ERROR, 'Internal error', { error: String(error) });
+    return createErrorResponse({
+      id: errorRequestId,
+      code: ErrorCode.INTERNAL_ERROR,
+      message: 'Internal error',
+      data: { error: String(error) },
+    });
   }
 }
 
 /**
  * Generate an agent card for the A2A protocol
  */
-export function generateAgentCard(agent: Agent, baseUrl: string): AgentCard {
+export function generateAgentCard({ agent, baseUrl }: { agent: Agent; baseUrl: string }): AgentCard {
   // Extract skills from the agent
   const skills: AgentSkill[] = [];
 
@@ -351,6 +432,6 @@ export function generateAgentCard(agent: Agent, baseUrl: string): AgentCard {
 /**
  * Handle a request for the agent card
  */
-export function handleAgentCardRequest(agent: Agent, baseUrl: string): AgentCard {
-  return generateAgentCard(agent, baseUrl);
+export function handleAgentCardRequest({ agent, baseUrl }: { agent: Agent; baseUrl: string }): AgentCard {
+  return generateAgentCard({ agent, baseUrl });
 }

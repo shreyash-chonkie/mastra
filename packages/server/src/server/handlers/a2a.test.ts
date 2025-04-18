@@ -45,7 +45,7 @@ describe('A2A Protocol Handlers', () => {
 
       (mockAgent.generate as any).mockResolvedValue({ text: 'Agent response' });
 
-      const response = await handleSendTask(request as SendTaskRequest, mockAgent);
+      const response = await handleSendTask({ request: request as SendTaskRequest, agent: mockAgent });
 
       expect(response.jsonrpc).toBe('2.0');
       expect(response.id).toBe('test-id-1');
@@ -77,7 +77,7 @@ describe('A2A Protocol Handlers', () => {
 
       (mockAgent.generate as any).mockRejectedValue(new Error('Processing error'));
 
-      const response = await handleSendTask(request as SendTaskRequest, mockAgent);
+      const response = await handleSendTask({ request: request as SendTaskRequest, agent: mockAgent });
 
       expect(response.jsonrpc).toBe('2.0');
       expect(response.id).toBe('test-id-2');
@@ -121,7 +121,7 @@ describe('A2A Protocol Handlers', () => {
         },
       };
 
-      const response = await handleGetTask(getRequest as GetTaskRequest);
+      const response = await handleGetTask({ request: getRequest as GetTaskRequest });
 
       expect(response.jsonrpc).toBe('2.0');
       expect(response.id).toBe('test-id-4');
@@ -140,7 +140,7 @@ describe('A2A Protocol Handlers', () => {
         },
       };
 
-      const response = await handleGetTask(request as GetTaskRequest);
+      const response = await handleGetTask({ request: request as GetTaskRequest });
 
       expect(response.jsonrpc).toBe('2.0');
       expect(response.id).toBe('test-id-5');
@@ -189,7 +189,7 @@ describe('A2A Protocol Handlers', () => {
         },
       };
 
-      const response = await handleGetTask(getRequest as GetTaskRequest);
+      const response = await handleGetTask({ request: getRequest as GetTaskRequest });
 
       expect(response.jsonrpc).toBe('2.0');
       expect(response.id).toBe('test-id-8');
@@ -233,7 +233,7 @@ describe('A2A Protocol Handlers', () => {
         },
       };
 
-      const response = await handleCancelTask(cancelRequest as CancelTaskRequest);
+      const response = await handleCancelTask({ request: cancelRequest as CancelTaskRequest });
       console.log(response);
       // Verify we get the expected error response
       expect(response.jsonrpc).toBe('2.0');
@@ -254,7 +254,7 @@ describe('A2A Protocol Handlers', () => {
         },
       };
 
-      const response = await handleCancelTask(request as CancelTaskRequest);
+      const response = await handleCancelTask({ request: request as CancelTaskRequest });
 
       expect(response.jsonrpc).toBe('2.0');
       expect(response.id).toBe('test-id-11');
@@ -296,7 +296,7 @@ describe('A2A Protocol Handlers', () => {
         },
       };
 
-      const response = await handleCancelTask(cancelRequest as CancelTaskRequest);
+      const response = await handleCancelTask({ request: cancelRequest as CancelTaskRequest });
 
       expect(response.jsonrpc).toBe('2.0');
       expect(response.id).toBe('test-id-13');
@@ -327,7 +327,7 @@ describe('A2A Protocol Handlers', () => {
       };
 
       (mockAgent.generate as any).mockResolvedValue({ text: 'Routed successfully' });
-      const response = await handleA2ARequest(request as A2ARequest, mockAgent);
+      const response = await handleA2ARequest({ request: request as A2ARequest, agent: mockAgent });
 
       expect(response.jsonrpc).toBe('2.0');
       expect(response.id).toBe('test-id-14');
@@ -344,7 +344,7 @@ describe('A2A Protocol Handlers', () => {
         params: {},
       };
 
-      const response = await handleA2ARequest(request as A2ARequest, mockAgent);
+      const response = await handleA2ARequest({ request: request as A2ARequest, agent: mockAgent });
 
       expect(response.jsonrpc).toBe('2.0');
       expect(response.id).toBe('test-id-15');
@@ -357,7 +357,7 @@ describe('A2A Protocol Handlers', () => {
   describe('handleAgentCardRequest', () => {
     it('should generate an agent card with the correct properties', () => {
       const baseUrl = 'https://example.com';
-      const agentCard = handleAgentCardRequest(mockAgent, baseUrl);
+      const agentCard = handleAgentCardRequest({ agent: mockAgent, baseUrl });
 
       expect(agentCard.name).toBe('test-agent');
       expect(agentCard.description).toBe('test instructions');
@@ -393,7 +393,7 @@ describe('A2A Protocol Handlers', () => {
       });
 
       const baseUrl = 'https://example.com';
-      const agentCard = handleAgentCardRequest(agentWithTools, baseUrl);
+      const agentCard = handleAgentCardRequest({ agent: agentWithTools, baseUrl });
 
       console.log(agentCard);
 

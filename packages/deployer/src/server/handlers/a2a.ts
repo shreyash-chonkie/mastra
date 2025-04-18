@@ -31,7 +31,7 @@ export async function handleA2ARequestEndpoint(c: Context) {
     }
 
     const body = await c.req.json();
-    const response = await originalHandleA2ARequest(body, agent);
+    const response = await originalHandleA2ARequest({ request: body, agent });
     return c.json(response);
   } catch (error) {
     return handleError(error, 'Error handling A2A request');
@@ -52,7 +52,7 @@ export async function handleAgentCardEndpoint(c: Context) {
     }
 
     const baseUrl = `${c.req.url.split('/api/')[0]}`;
-    const agentCard = originalHandleAgentCardRequest(agent, baseUrl);
+    const agentCard = originalHandleAgentCardRequest({ agent, baseUrl });
     return c.json(agentCard);
   } catch (error) {
     return handleError(error, 'Error handling agent card request');

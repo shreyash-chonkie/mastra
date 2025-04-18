@@ -222,3 +222,123 @@ export interface GetNetworkResponse {
   };
   state?: Record<string, any>;
 }
+
+// A2A Protocol Types
+export enum TaskState {
+  PENDING = 'pending',
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  CANCELED = 'canceled',
+}
+
+export enum ErrorCode {
+  PARSE_ERROR = -32700,
+  INVALID_REQUEST = -32600,
+  METHOD_NOT_FOUND = -32601,
+  INVALID_PARAMS = -32602,
+  INTERNAL_ERROR = -32603,
+  TASK_NOT_FOUND = -32000,
+  TASK_NOT_CANCELABLE = -32001,
+}
+
+export interface A2AMessagePart {
+  type: string;
+  [key: string]: any;
+}
+
+export interface A2AMessage {
+  role: 'user' | 'agent';
+  parts: A2AMessagePart[];
+}
+
+export interface TaskStatus {
+  state: TaskState;
+  message?: A2AMessage;
+  timestamp: string;
+}
+
+export interface Task {
+  id: string;
+  sessionId: string | null;
+  status: TaskStatus;
+  history: A2AMessage[];
+}
+
+// A2A Request Types
+export interface JSONRPCRequest {
+  jsonrpc: '2.0';
+  id: string | number | null;
+  method: string;
+  params: Record<string, any>;
+}
+
+export interface SendTaskRequest extends JSONRPCRequest {
+  method: 'tasks/send';
+  params: {
+    id: string;
+    message: A2AMessage;
+    sessionId?: string;
+  };
+}
+
+export interface GetTaskRequest extends JSONRPCRequest {
+  method: 'tasks/get';
+  params: {
+    id: string;
+    historyLength?: number;
+  };
+}
+
+export interface CancelTaskRequest extends JSONRPCRequest {
+  method: 'tasks/cancel';
+  params: {
+    id: string;
+  };
+}
+
+export type A2ARequest = SendTaskRequest | GetTaskRequest | CancelTaskRequest;
+
+// A2A Response Types
+export interface JSONRPCSuccessResponse {
+  jsonrpc: '2.0';
+  id: string | number | null;
+  result: any;
+}
+
+export interface JSONRPCErrorResponse {
+  jsonrpc: '2.0';
+  id: string | number | null;
+  error: {
+    code: ErrorCode;
+    message: string;
+    data?: any;
+  };
+}
+
+export type JSONRPCResponse = JSONRPCSuccessResponse | JSONRPCErrorResponse;
+
+// Agent Card Types
+export interface AgentCapabilities {
+  tasks: {
+    send: boolean;
+    get: boolean;
+    cancel: boolean;
+  };
+  pushNotifications: boolean;
+}
+
+export interface AgentSkill {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface AgentCard {
+  name: string;
+  description: string;
+  url: string;
+  version: string;
+  capabilities: AgentCapabilities;
+  skills: AgentSkill[];
+}
