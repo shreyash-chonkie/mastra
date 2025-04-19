@@ -1,4 +1,5 @@
 import type EventEmitter from 'events';
+import type { AssistantStreamController } from 'assistant-stream';
 import type { ExecutionGraph } from './execution-engine';
 import { ExecutionEngine } from './execution-engine';
 import type { ExecuteFunction, NewStep } from './step';
@@ -41,6 +42,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       attempts?: number;
       delay?: number;
     };
+    controller?: AssistantStreamController;
   }): Promise<TOutput> {
     const { workflowId, runId, graph, input, resume, retryConfig } = params;
     const { attempts = 0, delay = 0 } = retryConfig ?? {};
@@ -48,6 +50,10 @@ export class DefaultExecutionEngine extends ExecutionEngine {
 
     if (steps.length === 0) {
       throw new Error('Workflow must have at least one step');
+    }
+
+    if (params.controller) {
+      params.controller.appendText('Initializing storage');
     }
 
     await this.mastra?.getStorage()?.init();
@@ -76,6 +82,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
             retryConfig: { attempts, delay },
           },
           emitter: params.emitter,
+          controller: params.controller,
         });
         if (lastOutput.status !== 'success') {
           if (entry.type === 'step') {
@@ -167,6 +174,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     resume,
     prevOutput,
     emitter,
+    controller,
   }: {
     step: NewStep<string, any, any>;
     stepResults: Record<string, StepResult<any>>;
@@ -177,6 +185,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     };
     prevOutput: any;
     emitter: EventEmitter;
+    controller?: AssistantStreamController;
   }): Promise<StepResult<any>> {
     let execResults: any;
 
@@ -189,6 +198,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         const result = await step.execute({
           mastra: this.mastra!,
           inputData: prevOutput,
+          controller,
           resumeData: resume?.steps[0]!.id === step.id ? resume?.resumePayload : undefined,
           getInitData: () => stepResults?.input as any,
           getStepResult: (step: any) => {
@@ -236,6 +246,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     resume,
     executionContext,
     emitter,
+    controller,
   }: {
     workflowId: string;
     runId: string;
@@ -250,12 +261,14 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     };
     executionContext: ExecutionContext;
     emitter: EventEmitter;
+    controller?: AssistantStreamController;
   }): Promise<StepResult<any>> {
     let execResults: any;
     const results: StepResult<any>[] = await Promise.all(
       entry.steps.map((step, i) =>
         this.executeEntry({
           workflowId,
+          controller,
           runId,
           entry: step,
           prevStep,
@@ -470,6 +483,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     resume,
     executionContext,
     emitter,
+    controller,
   }: {
     workflowId: string;
     runId: string;
@@ -484,12 +498,22 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     };
     executionContext: ExecutionContext;
     emitter: EventEmitter;
+    controller?: AssistantStreamController;
   }): Promise<StepResult<any>> {
     const prevOutput = this.getStepOutput(stepResults, prevStep);
     let execResults: any;
 
     if (entry.type === 'step') {
       const { step } = entry;
+      if (controller) {
+        controller.appendText(`Executing step ${step.id}`);
+        controller.enqueue({
+          type: 'step-start',
+          path: [],
+          messageId: step.id,
+        });
+      }
+
       execResults = await this.executeStep({
         step,
         stepResults,
@@ -497,7 +521,22 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         resume,
         prevOutput,
         emitter,
+        controller,
       });
+
+      if (controller) {
+        controller.appendText(`Finished step ${step.id}`);
+        controller.enqueue({
+          type: 'step-finish',
+          path: [],
+          finishReason: 'tool-calls',
+          usage: {
+            promptTokens: 0,
+            completionTokens: 0,
+          },
+          isContinued: false,
+        });
+      }
     } else if (resume?.resumePath?.length && (entry.type === 'parallel' || entry.type === 'conditional')) {
       const idx = resume.resumePath.shift();
       return this.executeEntry({
@@ -513,6 +552,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           retryConfig: executionContext.retryConfig,
         },
         emitter,
+        controller,
       });
     } else if (entry.type === 'parallel') {
       execResults = await this.executeParallel({

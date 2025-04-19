@@ -15,6 +15,7 @@
   "dependencies": {
     "@ai-sdk/openai": "latest",
     "@mastra/core": "workspace:*",
+    "assistant-stream": "^0.1.6",
     "zod": "^3.24.2"
   }
 }

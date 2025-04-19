@@ -1,4 +1,5 @@
 import type EventEmitter from 'events';
+import type { AssistantStreamController } from 'assistant-stream';
 import { MastraBase } from '../../base';
 import { RegisteredLogger } from '../../logger';
 import type { StepResult } from './types';
@@ -50,5 +51,6 @@ export abstract class ExecutionEngine extends MastraBase {
       attempts?: number;
       delay?: number;
     };
+    controller?: AssistantStreamController;
   }): Promise<TOutput>;
 }

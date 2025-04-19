@@ -1,5 +1,11 @@
 import { randomUUID } from 'crypto';
 import EventEmitter from 'events';
+import {
+  createAssistantStream,
+  createAssistantStreamResponse,
+  DataStreamEncoder,
+  type AssistantStreamChunk,
+} from 'assistant-stream';
 import path from 'path';
 import { z } from 'zod';
 import { MastraBase } from '../../base';
@@ -26,6 +32,12 @@ import type { ToolsInput } from '../../agent/types';
 import type { Metric } from '../../eval';
 import { Tool } from '../../tools';
 import type { ToolExecutionContext } from '../../tools/types';
+import type { JSONValue } from 'ai';
+
+export type StreamWorkflowResult = {
+  assistantStream: ReadableStream<AssistantStreamChunk>;
+  getDataStream: () => ReadableStream<JSONValue>;
+};
 
 export type StepFlowEntry =
   | { type: 'step'; step: Step }
@@ -706,6 +718,43 @@ export class Run<
       },
       emitter: this.emitter,
     });
+  }
+
+  stream({ inputData }: { inputData?: z.infer<TInput> }): StreamWorkflowResult {
+    const assistantStream = createAssistantStream(async controller => {
+      controller.appendText('Starting this shit');
+
+      const result = await this.executionEngine.execute<
+        z.infer<TInput>,
+        {
+          result: TOutput;
+          steps: {
+            [K in keyof StepsRecord<TSteps>]: StepsRecord<TSteps>[K]['outputSchema'] extends undefined
+              ? StepResult<unknown>
+              : StepResult<z.infer<NonNullable<StepsRecord<TSteps>[K]['outputSchema']>>>;
+          };
+        }
+      >({
+        workflowId: this.workflowId,
+        runId: this.runId,
+        graph: this.executionGraph,
+        input: inputData,
+        emitter: this.emitter,
+        retryConfig: this.retryConfig,
+        controller,
+      });
+
+      controller.enqueue({
+        type: 'data',
+        path: [],
+        data: [result] as unknown as JSONValue[],
+      });
+    });
+
+    return {
+      assistantStream: assistantStream,
+      getDataStream: () => assistantStream.pipeThrough(new DataStreamEncoder()).pipeThrough(new TextDecoderStream()),
+    };
   }
 
   /**
