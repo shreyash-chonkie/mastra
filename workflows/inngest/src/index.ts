@@ -51,7 +51,8 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     super({ mastra });
     this.inngest = new Inngest({
       id: 'mastra',
-      signingKey: process.env.INNGEST_SIGNING_KEY,
+      // signingKey: process.env.INNGEST_SIGNING_KEY,
+      baseUrl: 'http://127.0.0.1:8288',
     });
   }
 

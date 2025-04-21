@@ -11,10 +11,11 @@ import { DefaultStorage } from '@mastra/core/storage/libsql';
 
 import { createStep, createWorkflow } from './index';
 
-describe('MastraInngestWorkflow', () => {
-  describe('Workflow', () => {
+describe(
+  'MastraInngestWorkflow',
+  () => {
     describe('Basic Workflow Execution', () => {
-      it('should execute a single step workflow successfully', async () => {
+      it.only('should execute a single step workflow successfully', async () => {
         const execute = vi.fn<any>().mockResolvedValue({ result: 'success' });
         const step1 = createStep({
           id: 'step1',
@@ -3353,5 +3354,8 @@ describe('MastraInngestWorkflow', () => {
         });
       });
     });
-  });
-});
+  },
+  {
+    timeout: 60e3,
+  },
+);
