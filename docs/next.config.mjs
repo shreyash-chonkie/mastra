@@ -124,6 +124,9 @@ export default withGT(
       locales: ["en", "ja"],
       defaultLocale: "en",
     },
+    images: {
+      path: process.env.NODE_ENV === "production" ? "/docs/_next/image" : "/_next/image",
+    },
     async rewrites() {
       return {
         beforeFiles: [
