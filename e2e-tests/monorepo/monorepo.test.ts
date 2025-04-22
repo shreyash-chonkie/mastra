@@ -70,6 +70,9 @@ describe('tsconfig paths', () => {
           },
         });
 
+        proc!.stderr?.on('data', data => {
+          console.error(data?.toString());
+        });
         await new Promise<void>(resolve => {
           proc!.stdout?.on('data', data => {
             console.log(data?.toString());
@@ -115,6 +118,9 @@ describe('tsconfig paths', () => {
           },
         });
 
+        proc!.stderr?.on('data', data => {
+          console.error(data?.toString());
+        });
         await new Promise<void>(resolve => {
           proc!.stdout?.on('data', data => {
             console.log(data?.toString());
