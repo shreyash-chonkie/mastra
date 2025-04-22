@@ -62,6 +62,7 @@ import {
   getWorkflowRunsHandler,
 } from './handlers/workflows.js';
 import { html } from './welcome.js';
+import { getAgentCardHandler, getAgentCardsHandler } from './handlers/a2a';
 
 type Bindings = {};
 
@@ -230,6 +231,46 @@ export async function createHonoServer(
       },
     }),
     rootHandler,
+  );
+
+  // A2A Protocol Routes
+  app.get(
+    '/api/a2a',
+    describeRoute({
+      description: 'Get all agent cards (A2A protocol)',
+      tags: ['a2a'],
+      responses: {
+        200: {
+          description: 'List of all agent cards',
+        },
+      },
+    }),
+    getAgentCardsHandler,
+  );
+
+  app.get(
+    '/api/a2a/:agentId',
+    describeRoute({
+      description: 'Get agent card by ID (A2A protocol)',
+      tags: ['a2a'],
+      parameters: [
+        {
+          name: 'agentId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Agent card details',
+        },
+        404: {
+          description: 'Agent not found',
+        },
+      },
+    }),
+    getAgentCardHandler,
   );
 
   // Agent routes
