@@ -6,165 +6,6 @@ import path from 'node:path';
 import { z } from 'zod';
 import { fromPackageRoot } from '../utils';
 
-const courseDir = fromPackageRoot('.docs/raw/course');
-
-// Define the introduction prompt shown only when a user registers for the course
-const introductionPrompt = `
-# Welcome to the Mastra Course!
-
-Thank you for registering for the Mastra course! This interactive guide will help you learn how to build powerful AI agents with Mastra, the open-source AI Agent framework built in TypeScript.
-
-## Before We Begin
-
-If you enjoy Mastra, please consider starring the GitHub repository:
-https://github.com/mastra-ai/mastra
-
-This helps the project grow and reach more developers like you!
-
-## How This Course Works
-
-- Each lesson is broken into multiple steps
-- I'll guide you through the code examples and explanations
-- You can ask questions at any time
-- Use the \`nextMastraCourseStep\` tool to move to the next step when you're ready. Just ask to "move to the next step" when you are ready.
-- Use the \`getMastraCourseStatus\` tool to check your progress. You can just ask "get my course progress".
-- Use the \`clearMastraCourseHistory\` tool to reset your progress and start over. You can just ask "clear my course progress".
-
-Let's get started with your first lesson!
-`;
-
-// Define the prompt that wraps each lesson step
-const lessonPrompt = `
-  This is a course to help a new user learn about Mastra, the open-source AI Agent framework built in Typescript.
-  Please help the user through the steps of the course by walking them through the content and following the course
-  to write the initial version of the code for them. The goal is to show them how the code works and explain it as they go
-  as the course goes on. Each lesson is broken up into steps. You should return the content of the step and ask the user
-  to move to the next step when they are ready. If the step contains instructions to write code, you should write the code
-  for the user when possible.
-`;
-
-// Define the prompt wrapper for each course step
-function wrapContentInPrompt(content: string, _isFirstStep: boolean = false): string {
-  let wrappedContent = `${lessonPrompt}\n\nHere is the content for this step: <StepContent>${content}</StepContent>`;
-  return `${wrappedContent}\n\nWhen you're ready to continue, use the \`nextMastraCourseStep\` tool to move to the next step.`;
-}
-
-// Get the path to the device ID file
-async function getDeviceIdPath(): Promise<string> {
-  const cacheDir = path.join(os.homedir(), '.cache', 'mastra');
-  
-  // Create the directory if it doesn't exist
-  if (!existsSync(cacheDir)) {
-    mkdirSync(cacheDir, { recursive: true });
-  }
-  
-  return path.join(cacheDir, '.device_id');
-}
-
-// Check if the user is registered
-async function isUserRegistered(): Promise<boolean> {
-  const deviceIdPath = await getDeviceIdPath();
-  return existsSync(deviceIdPath);
-}
-
-// Get the device ID
-async function getDeviceId(): Promise<string | null> {
-  try {
-    const deviceIdPath = await getDeviceIdPath();
-    
-    if (!existsSync(deviceIdPath)) {
-      return null;
-    }
-    
-    const deviceId = await fs.readFile(deviceIdPath, 'utf-8');
-    return deviceId.trim();
-  } catch {
-    return null;
-  }
-}
-
-// Save the device ID
-async function saveDeviceId(deviceId: string): Promise<void> {
-  const deviceIdPath = await getDeviceIdPath();
-  await fs.writeFile(deviceIdPath, deviceId);
-}
-
-// Make an HTTP request to register the user
-function registerUser(email: string): Promise<{ success: boolean; id: string; message: string }> {
-  return new Promise((resolve, reject) => {
-    const data = JSON.stringify({
-      email,
-    });
-
-    const options = {
-      hostname: 'localhost',
-      port: 3000,
-      path: '/api/course/register',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': data.length,
-      },
-    };
-
-    const req = http.request(options, (res) => {
-      let responseData = '';
-
-      res.on('data', (chunk) => {
-        responseData += chunk;
-      });
-
-      res.on('end', () => {
-        try {
-          const parsedData = JSON.parse(responseData);
-          resolve(parsedData);
-        } catch (error) {
-          reject(new Error(`Failed to parse response: ${error}`));
-        }
-      });
-    });
-
-    req.on('error', (error) => {
-      reject(error);
-    });
-
-    req.write(data);
-    req.end();
-  });
-}
-
-async function readCourseStep(
-  lessonName: string,
-  stepName: string,
-  _isFirstStep: boolean = false,
-): Promise<string> {
-  // Find the lesson directory that matches the name
-  const lessonDirs = await fs.readdir(courseDir);
-  const lessonDir = lessonDirs.find(dir => dir.replace(/^\d+-/, '') === lessonName);
-
-  if (!lessonDir) {
-    throw new Error(`Lesson "${lessonName}" not found.`);
-  }
-
-  // Find the step file that matches the name
-  const lessonPath = path.join(courseDir, lessonDir);
-  const files = await fs.readdir(lessonPath);
-  const stepFile = files.find(f => f.endsWith('.md') && f.replace(/^\d+-/, '').replace('.md', '') === stepName);
-
-  if (!stepFile) {
-    throw new Error(`Step "${stepName}" not found in lesson "${lessonName}".`);
-  }
-
-  const filePath = path.join(courseDir, lessonDir, stepFile);
-
-  try {
-    const content = await fs.readFile(filePath, 'utf-8');
-    return wrapContentInPrompt(content);
-  } catch {
-    throw new Error(`Failed to read step "${stepName}" in lesson "${lessonName}".`);
-  }
-}
-
 // Prefix with underscore since it's only used as a type
 const _courseLessonSchema = z.object({
   lessonName: z.string().describe('Name of the specific lesson to start. It must match the exact lesson name.'),
@@ -187,6 +28,241 @@ type CourseState = {
   }>;
 };
 
+const courseDir = fromPackageRoot('.docs/raw/course');
+
+// Define the introduction prompt shown only when a user registers for the course
+const introductionPrompt = `
+This is a course to help a new user learn about Mastra, the open-source AI Agent framework built in Typescript.
+The following is the introduction content, please provide this text to the user EXACTLY as written below. Do not provide any other text or instructions:
+
+# Welcome to the Mastra Course!
+
+Thank you for registering for the Mastra course! This interactive guide will help you learn how to build powerful AI agents with Mastra, the open-source AI Agent framework built in TypeScript.
+
+## Before We Begin
+
+If you enjoy Mastra, please consider starring the GitHub repository:
+https://github.com/mastra-ai/mastra
+
+This helps the project grow and reach more developers like you!
+
+## Introduction Video
+
+You can watch the 1-minute introduction video here:
+https://www.youtube.com/watch?v=1234567890
+
+## How This Course Works
+
+- Each lesson is broken into multiple steps
+- I'll guide you through the code examples and explanations
+- You can ask questions at any time
+- If you ever leave and come back, use the \`startMastraCourse\` tool to pick up where you left off. Just ask to "start the Mastra course".
+- Use the \`nextMastraCourseStep\` tool to move to the next step when you're ready. Just ask to "move to the next step" when you are ready.
+- Use the \`getMastraCourseStatus\` tool to check your progress. You can just ask "get my course progress".
+- Use the \`clearMastraCourseHistory\` tool to reset your progress and start over. You can just ask "clear my course progress".
+
+Type "start mastra course" and let's get started with your first lesson!
+`;
+
+// Define the prompt that wraps each lesson step
+const lessonPrompt = `
+  This is a course to help a new user learn about Mastra, the open-source AI Agent framework built in Typescript.
+  Please help the user through the steps of the course by walking them through the content and following the course
+  to write the initial version of the code for them. The goal is to show them how the code works and explain it as they go
+  as the course goes on. Each lesson is broken up into steps. You should return the content of the step and ask the user
+  to move to the next step when they are ready. If the step contains instructions to write code, you should write the code
+  for the user when possible. You should always briefly explain the step before writing the code. Please ensure to 
+  return any text in markdown blockquotes exactly as written in your response.
+`;
+
+// Define the prompt wrapper for each course step
+function wrapContentInPrompt(content: string, _isFirstStep: boolean = false): string {
+  let wrappedContent = `${lessonPrompt}\n\nHere is the content for this step: <StepContent>${content}</StepContent>`;
+  return `${wrappedContent}\n\nWhen you're ready to continue, use the \`nextMastraCourseStep\` tool to move to the next step.`;
+}
+
+// Get the path to the device ID file
+async function getDeviceIdPath(): Promise<string> {
+  const cacheDir = path.join(os.homedir(), '.cache', 'mastra');
+
+  // Create the directory if it doesn't exist
+  if (!existsSync(cacheDir)) {
+    mkdirSync(cacheDir, { recursive: true });
+  }
+
+  return path.join(cacheDir, '.device_id');
+}
+
+// Get the device ID if the user is registered
+async function getDeviceId(): Promise<string | null> {
+  try {
+    const deviceIdPath = await getDeviceIdPath();
+
+    if (!existsSync(deviceIdPath)) {
+      return null;
+    }
+
+    const deviceId = await fs.readFile(deviceIdPath, 'utf-8');
+    return deviceId.trim();
+  } catch {
+    return null;
+  }
+}
+
+// Save the device ID
+async function saveDeviceId(deviceId: string): Promise<void> {
+  const deviceIdPath = await getDeviceIdPath();
+  await fs.writeFile(deviceIdPath, deviceId);
+  
+  // Set file permissions to 600 (read/write for owner only)
+  await fs.chmod(deviceIdPath, 0o600);
+}
+
+// Make an HTTP request to register the user
+function registerUser(email: string): Promise<{ success: boolean; id: string; message: string }> {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify({
+      email,
+    });
+
+    const options = {
+      hostname: 'localhost',
+      port: 3000,
+      path: '/api/course/register',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': data.length,
+      },
+    };
+
+    const req = http.request(options, res => {
+      let responseData = '';
+
+      res.on('data', chunk => {
+        responseData += chunk;
+      });
+
+      res.on('end', () => {
+        try {
+          const parsedData = JSON.parse(responseData);
+          resolve(parsedData);
+        } catch (error) {
+          reject(new Error(`Failed to parse response: ${error}`));
+        }
+      });
+    });
+
+    req.on('error', error => {
+      reject(error);
+    });
+
+    req.write(data);
+    req.end();
+  });
+}
+
+async function readCourseStep(lessonName: string, stepName: string, _isFirstStep: boolean = false): Promise<string> {
+  // Find the lesson directory that matches the name
+  const lessonDirs = await fs.readdir(courseDir);
+  const lessonDir = lessonDirs.find(dir => dir.replace(/^\d+-/, '') === lessonName);
+
+  if (!lessonDir) {
+    throw new Error(`Lesson "${lessonName}" not found.`);
+  }
+
+  // Find the step file that matches the name
+  const lessonPath = path.join(courseDir, lessonDir);
+  const files = await fs.readdir(lessonPath);
+  const stepFile = files.find(f => f.endsWith('.md') && f.replace(/^\d+-/, '').replace('.md', '') === stepName);
+
+  if (!stepFile) {
+    throw new Error(`Step "${stepName}" not found in lesson "${lessonName}".`);
+  }
+
+  const filePath = path.join(courseDir, lessonDir, stepFile);
+
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    return wrapContentInPrompt(content);
+  } catch (error) {
+    throw new Error(`Failed to read step "${stepName}" in lesson "${lessonName}": ${error}`);
+  }
+}
+
+// Create a function to update course state on the server
+function updateCourseStateOnServer(deviceId: string, state: CourseState): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify({
+      id: deviceId,
+      state: state
+    });
+
+    const options = {
+      hostname: 'localhost',
+      port: 3000,
+      path: '/api/course/update',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': data.length,
+      },
+    };
+
+    const req = http.request(options, res => {
+      let responseData = '';
+
+      res.on('data', chunk => {
+        responseData += chunk;
+      });
+
+      res.on('end', () => {
+        try {
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+            resolve();
+          } else {
+            reject(new Error(`Server returned status code ${res.statusCode}: ${responseData}`));
+          }
+        } catch (error) {
+          reject(new Error(`Failed to parse response: ${error}`));
+        }
+      });
+    });
+
+    req.on('error', error => {
+      reject(error);
+    });
+
+    req.write(data);
+    req.end();
+  });
+}
+
+async function saveCourseState(state: CourseState, deviceId: string | null): Promise<void> {
+  // If no device ID, the user isn't registered - this is an error condition
+  if (!deviceId) {
+    throw new Error('Cannot save course state: User is not registered');
+  }
+
+  const statePath = await getCourseStatePath();
+
+  try {
+    // Save to local filesystem
+    await fs.writeFile(statePath, JSON.stringify(state, null, 2), 'utf-8');
+    
+    // Sync with server
+    try {
+      await updateCourseStateOnServer(deviceId, state);
+    } catch {
+      // Silently continue if server sync fails
+      // Local save is still successful
+    }
+  } catch (error) {
+    throw new Error(`Failed to save course state: ${error}`);
+  }
+}
+
+// Get the path to the course state file
 async function getCourseStatePath(): Promise<string> {
   const stateDirPath = path.join(os.homedir(), '.cache', 'mastra', 'course');
 
@@ -207,21 +283,10 @@ async function loadCourseState(): Promise<CourseState | null> {
       return JSON.parse(stateData) as CourseState;
     }
   } catch (error) {
-    console.error('Error loading course state:', error);
+    throw new Error(`Failed to load course state: ${error}`);
   }
 
   return null;
-}
-
-async function saveCourseState(state: CourseState): Promise<void> {
-  const statePath = await getCourseStatePath();
-
-  try {
-    await fs.writeFile(statePath, JSON.stringify(state, null, 2), 'utf-8');
-  } catch (error) {
-    console.error('Error saving course state:', error);
-    throw new Error('Failed to save course state');
-  }
 }
 
 async function scanCourseContent(): Promise<CourseState> {
@@ -339,65 +404,40 @@ async function mergeCourseStates(currentState: CourseState, newState: CourseStat
   };
 }
 
-export const registerMastraCourse = {
-  name: 'registerMastraCourse',
-  description: 'Registers the user for the Mastra Course. If no email is provided, it will check if the user is already registered.',
-  parameters: z.object({
-    email: z.string().email().optional().describe('The email address to register with'),
-  }),
-  execute: async (args: { email?: string }) => {
-    try {
-      // Check if the user is already registered
-      const registered = await isUserRegistered();
-      
-      if (registered) {
-        const deviceId = await getDeviceId();
-        return `You are already registered for the Mastra Course with device ID: ${deviceId}. You can start the course using the \`startMastraCourse\` tool.`;
-      }
-      
-      // If no email is provided, prompt the user to register
-      if (!args.email) {
-        return 'To register for the Mastra Course, please provide your email address by calling this tool again with the email parameter.';
-      }
-      
-      // Register the user
-      try {
-        const response = await registerUser(args.email);
-        
-        if (response.success) {
-          // Save the device ID
-          await saveDeviceId(response.id);
-          
-          // Return the introduction prompt
-          return `${introductionPrompt}\n\nYou have been successfully registered with email: ${args.email}. You can now start the course using the \`startMastraCourse\` tool.`;
-        } else {
-          return `Registration failed: ${response.message}`;
-        }
-      } catch (error) {
-        return `Failed to register: ${error instanceof Error ? error.message : String(error)}. Please try again later.`;
-      }
-    } catch (error: unknown) {
-      console.error('Error registering for course:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      return `Error registering for the Mastra course: ${errorMessage}`;
-    }
-  },
-};
-
 export const startMastraCourse = {
   name: 'startMastraCourse',
   description:
     'Starts the Mastra Course. If the user is not registered, they will be prompted to register first. Otherwise, it will start at the first lesson or pick up where they last left off.',
-  parameters: z.object({}),
-  execute: async (_args: Record<string, never>) => {
+  parameters: z.object({
+    email: z.string().email().optional().describe('Email address for registration if not already registered'),
+  }),
+  execute: async (args: { email?: string }) => {
     try {
       // Check if the user is registered
-      const registered = await isUserRegistered();
-      
+      const deviceId = await getDeviceId();
+      const registered = deviceId !== null;
+
       if (!registered) {
-        return 'You need to register for the Mastra Course first. Please use the `registerMastraCourse` tool with your email address to register.';
+        // If not registered and no email provided, prompt for email
+        if (!args.email) {
+          return 'To start the Mastra Course, you need to register first. Please provide your email address by calling this tool again with the email parameter.';
+        }
+
+        // User provided email, register them
+        try {
+          const response = await registerUser(args.email);
+
+          if (response.success) {
+            // Save the device ID
+            await saveDeviceId(response.id);
+          } else {
+            return `Registration failed: ${response.message}. Please try again with a valid email address.`;
+          }
+        } catch (error) {
+          return `Failed to register: ${error instanceof Error ? error.message : String(error)}. Please try again later.`;
+        }
       }
-      
+
       // Try to load the user's course progress
       let courseState = await loadCourseState();
       let statusMessage = '';
@@ -426,12 +466,17 @@ export const startMastraCourse = {
         }
 
         // Save the merged state
-        await saveCourseState(courseState);
+        await saveCourseState(courseState, deviceId);
       } else {
         // First time user, create new state
         courseState = latestCourseState;
-        await saveCourseState(courseState);
-        statusMessage = '🎉 Welcome to the Mastra Course! Starting with the first lesson.\n\n';
+        await saveCourseState(courseState, deviceId);
+
+        // Check if this is a new registration
+        if (!registered && args.email) {
+          // Just return the introduction prompt.
+          return introductionPrompt;
+        }
       }
 
       // Find the current lesson and step
@@ -448,14 +493,14 @@ export const startMastraCourse = {
       if (!currentStep && currentLesson.status !== 2) {
         // Mark the lesson as completed if all steps are done
         currentLesson.status = 2;
-        await saveCourseState(courseState);
+        await saveCourseState(courseState, deviceId);
 
         // Find the next lesson that's not completed
         const nextLesson = courseState.lessons.find(lesson => lesson.status !== 2 && lesson.name !== currentLessonName);
 
         if (nextLesson) {
           courseState.currentLesson = nextLesson.name;
-          await saveCourseState(courseState);
+          await saveCourseState(courseState, deviceId);
 
           return `${statusMessage}🎉 You've completed the "${currentLessonName}" lesson!\n\nMoving on to the next lesson: "${nextLesson.name}".\n\nUse the \`nextMastraCourseStep\` tool to start the first step of this lesson.`;
         } else {
@@ -477,16 +522,14 @@ export const startMastraCourse = {
       }
 
       // Save the updated state
-      await saveCourseState(courseState);
+      await saveCourseState(courseState, deviceId);
 
       // Get the content for the current step
       const stepContent = await readCourseStep(currentLessonName, currentStep.name);
 
-      return `${statusMessage}📘 Lesson: ${currentLessonName}\n📝 Step: ${currentStep.name}\n\n${stepContent}\n\nWhen you've completed this step, use the \`nextMastraCourseStep\` tool to continue.`;
-    } catch (error: unknown) {
-      console.error('Error starting Mastra course:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      return `Error starting the Mastra course: ${errorMessage}`;
+      return `📘 Lesson: ${currentLessonName}\n📝 Step: ${currentStep.name}\n\n${stepContent}\n\nWhen you've completed this step, use the \`nextMastraCourseStep\` tool to continue.`;
+    } catch (error) {
+      return `Error starting the Mastra course: ${error instanceof Error ? error.message : String(error)}`;
     }
   },
 };
@@ -497,7 +540,14 @@ export const getMastraCourseStatus = {
   parameters: z.object({}),
   execute: async (_args: Record<string, never>) => {
     try {
-      // Load the current course state
+      // Check if the user is registered
+      const deviceId = await getDeviceId();
+
+      if (deviceId === null) {
+        return 'You need to register for the Mastra Course first. Please use the `startMastraCourse` tool to register.';
+      }
+
+      // Load the course state
       const courseState = await loadCourseState();
 
       if (!courseState) {
@@ -568,10 +618,8 @@ export const getMastraCourseStatus = {
       statusReport += `- To reset progress: \`clearMastraCourseHistory\`\n`;
 
       return statusReport;
-    } catch (error: unknown) {
-      console.error('Error getting course status:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      return `Error getting course status: ${errorMessage}`;
+    } catch (error) {
+      return `Error getting course status: ${error instanceof Error ? error.message : String(error)}`;
     }
   },
 };
@@ -583,6 +631,13 @@ export const startMastraCourseLesson = {
   parameters: _courseLessonSchema,
   execute: async (args: z.infer<typeof _courseLessonSchema>) => {
     try {
+      // Check if the user is registered
+      const deviceId = await getDeviceId();
+
+      if (deviceId === null) {
+        return 'You need to register for the Mastra Course first. Please use the `startMastraCourse` tool to register.';
+      }
+
       // Load the current course state
       let courseState = await loadCourseState();
 
@@ -620,16 +675,14 @@ export const startMastraCourseLesson = {
       }
 
       // Save the updated state
-      await saveCourseState(courseState);
+      await saveCourseState(courseState, deviceId);
 
       // Get the content for the step
       const stepContent = await readCourseStep(targetLesson.name, firstIncompleteStep.name);
 
       return `📘 Starting Lesson: ${targetLesson.name}\n📝 Step: ${firstIncompleteStep.name}\n\n${stepContent}\n\nWhen you've completed this step, use the \`nextMastraCourseStep\` tool to continue.`;
-    } catch (error: unknown) {
-      console.error('Error starting course lesson:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      return `Error starting course lesson: ${errorMessage}`;
+    } catch (error) {
+      return `Error starting course lesson: ${error instanceof Error ? error.message : String(error)}`;
     }
   },
 };
@@ -641,6 +694,13 @@ export const nextMastraCourseStep = {
   parameters: z.object({}),
   execute: async (_args: Record<string, never>) => {
     try {
+      // Check if the user is registered
+      const deviceId = await getDeviceId();
+
+      if (deviceId === null) {
+        return 'You need to register for the Mastra Course first. Please use the `startMastraCourse` tool to register.';
+      }
+
       // Load the current course state
       const courseState = await loadCourseState();
 
@@ -677,7 +737,7 @@ export const nextMastraCourseStep = {
         currentLesson.steps[nextStepIndex].status = 1; // In progress
 
         // Save the updated state
-        await saveCourseState(courseState);
+        await saveCourseState(courseState, deviceId);
 
         // Get the content for the next step
         const nextStep = currentLesson.steps[nextStepIndex];
@@ -707,7 +767,7 @@ export const nextMastraCourseStep = {
         nextLesson.status = 1; // In progress
 
         // Save the updated state
-        await saveCourseState(courseState);
+        await saveCourseState(courseState, deviceId);
 
         // Get the content for the first step of the next lesson
         const firstStep = nextLesson.steps[0];
@@ -717,13 +777,11 @@ export const nextMastraCourseStep = {
       }
 
       // All lessons are completed
-      await saveCourseState(courseState);
+      await saveCourseState(courseState, deviceId);
 
       return `🎉 Congratulations! You've completed all available lessons in the Mastra Course!\n\nIf you'd like to review any lesson, use the \`startMastraCourseLesson\` tool with the lesson name.`;
-    } catch (error: unknown) {
-      console.error('Error advancing course step:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      return `Error advancing to the next course step: ${errorMessage}`;
+    } catch (error) {
+      return `Error advancing to the next course step: ${error instanceof Error ? error.message : String(error)}`;
     }
   },
 };
@@ -735,6 +793,13 @@ export const clearMastraCourseHistory = {
   parameters: _confirmationSchema,
   execute: async (args: z.infer<typeof _confirmationSchema>) => {
     try {
+      // Check if the user is registered
+      const deviceId = await getDeviceId();
+
+      if (deviceId === null) {
+        return 'You need to register for the Mastra Course first. Please use the `startMastraCourse` tool to register.';
+      }
+
       // Check if the user has confirmed the action
       if (!args.confirm) {
         return '⚠️ This action will delete all your course progress and cannot be undone. To proceed, please run this tool again with the confirm parameter set to true.';
@@ -752,10 +817,8 @@ export const clearMastraCourseHistory = {
       await fs.unlink(statePath);
 
       return '🧹 Course progress has been cleared. You can restart the Mastra course from the beginning.';
-    } catch (error: unknown) {
-      console.error('Error clearing course history:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      return `Error clearing course history: ${errorMessage}`;
+    } catch (error) {
+      return `Error clearing course history: ${error instanceof Error ? error.message : String(error)}`;
     }
   },
 };

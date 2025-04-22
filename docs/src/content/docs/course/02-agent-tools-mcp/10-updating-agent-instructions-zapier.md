@@ -16,10 +16,6 @@ export const personalAssistantAgent = new Agent({
        - You can categorize emails by priority, identify action items, and summarize content
        - You can also use this tool to send emails
     
-    2. Typefully:
-       - Use these tools for creating and managing tweet drafts with Typefully
-       - It focuses on AI, Javascript, Typescript, and Science topics
-    
     Keep your responses concise and friendly.
   `,
   model: openai("gpt-4o"),
@@ -28,6 +24,6 @@ export const personalAssistantAgent = new Agent({
 });
 ```
 
-Updating your agent's instructions is crucial for helping it understand when and how to use the tools available to it. By explicitly mentioning the Gmail and Typefully tools in the instructions, you're giving your agent context about what these tools do and when to use them.
+Updating your agent's instructions is crucial for helping it understand when and how to use the tools available to it. By explicitly mentioning the Gmail tools in the instructions, you're giving your agent context about what these tools do and when to use them.
 
 This helps the agent make better decisions about which tools to use when responding to user requests, resulting in more helpful and accurate responses.
