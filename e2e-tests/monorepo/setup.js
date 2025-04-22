@@ -42,6 +42,13 @@ export async function setupMonorepo(pathToStoreFiles) {
     shell: true,
   });
 
+  console.log('Building native-binding-package...');
+  spawnSync('pnpm', ['run', 'build'], {
+    cwd: join(newPath, 'packages/native-binding-package'),
+    stdio: 'inherit',
+    shell: true,
+  });
+
   console.log('building mastra...');
   spawnSync('pnpm', ['build'], {
     cwd: join(newPath, 'apps', 'custom'),
