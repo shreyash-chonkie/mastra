@@ -47,9 +47,7 @@ header > * {
   background: var(--primary-bg);
 }
 
- header nav > div:nth-child(2){
-    display: none;
-}
+
 
 /* mobile nav */
 .nextra-mobile-nav{
