@@ -120,9 +120,6 @@ const withGT = initGT();
 export default withGT(
   withNextra({
     assetPrefix: process.env.NODE_ENV === "production" ? "/docs" : "",
-    images: {
-      path: process.env.NODE_ENV === "production" ? "/docs/_next/image" : "/_next/image",
-    },
     i18n: {
       locales: ["en", "ja"],
       defaultLocale: "en",
