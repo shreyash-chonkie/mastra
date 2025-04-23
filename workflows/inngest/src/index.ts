@@ -57,6 +57,8 @@ export class InngestWorkflow<
   #mastra: Mastra;
   inngest: Inngest;
 
+  private function: ReturnType<Inngest['createFunction']> | undefined;
+
   constructor(params: NewWorkflowConfig<TWorkflowId, TInput, TOutput, TSteps>, inngest: Inngest) {
     super(params);
     this.#mastra = params.mastra!;
@@ -78,7 +80,10 @@ export class InngestWorkflow<
   }
 
   getFunction() {
-    return this.inngest.createFunction(
+    if (this.function) {
+      return this.function;
+    }
+    this.function = this.inngest.createFunction(
       { id: `workflow.${this.id}` },
       { event: `workflow.${this.id}` },
       async ({ event, step }) => {
@@ -98,6 +103,7 @@ export class InngestWorkflow<
         return result;
       },
     );
+    return this.function;
   }
 
   getNestedFunctions(steps: StepFlowEntry[]): ReturnType<Inngest['createFunction']>[] {
@@ -235,6 +241,17 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     emitter: EventEmitter;
     container: RuntimeContext;
   }): Promise<StepResult<any>> {
+    if (step instanceof InngestWorkflow) {
+      const run = step.createRun();
+      return (await this.inngestStep.invoke(`workflow.${step.id}`, {
+        function: step.getFunction(),
+        data: {
+          inputData: prevOutput,
+          runId: run.runId,
+        },
+      })) as any;
+    }
+
     return this.inngestStep.run(`workflow.${executionContext.workflowId}.step.${step.id}`, async () => {
       return super.executeStep({
         step,
