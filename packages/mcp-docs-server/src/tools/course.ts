@@ -93,38 +93,39 @@ async function getDeviceIdPath(): Promise<string> {
   return path.join(cacheDir, '.device_id');
 }
 
-// Get the device ID if the user is registered
-async function getDeviceId(): Promise<string | null> {
+// Get the device credentials (deviceId and key) if the user is registered
+async function getDeviceCredentials(): Promise<{ deviceId: string; key: string } | null> {
   try {
     const deviceIdPath = await getDeviceIdPath();
-
     if (!existsSync(deviceIdPath)) {
       return null;
     }
-
-    const deviceId = await fs.readFile(deviceIdPath, 'utf-8');
-    return deviceId.trim();
+    const fileContent = await fs.readFile(deviceIdPath, 'utf-8');
+    const parsed = JSON.parse(fileContent);
+    if (typeof parsed.deviceId === 'string' && typeof parsed.key === 'string') {
+      return { deviceId: parsed.deviceId, key: parsed.key };
+    }
+    return null;
   } catch {
     return null;
   }
 }
 
-// Save the device ID
-async function saveDeviceId(deviceId: string): Promise<void> {
+// Save the device credentials (deviceId and key)
+async function saveDeviceCredentials(deviceId: string, key: string): Promise<void> {
   const deviceIdPath = await getDeviceIdPath();
-  await fs.writeFile(deviceIdPath, deviceId);
-  
+  const toWrite = JSON.stringify({ deviceId, key });
+  await fs.writeFile(deviceIdPath, toWrite, 'utf-8');
   // Set file permissions to 600 (read/write for owner only)
   await fs.chmod(deviceIdPath, 0o600);
 }
 
 // Make an HTTP request to register the user
-function registerUser(email: string): Promise<{ success: boolean; id: string; message: string }> {
+function registerUser(email: string): Promise<{ success: boolean; id: string; key: string; message: string }> {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify({
       email,
     });
-
     const options = {
       hostname: 'localhost',
       port: 3000,
@@ -135,14 +136,11 @@ function registerUser(email: string): Promise<{ success: boolean; id: string; me
         'Content-Length': data.length,
       },
     };
-
     const req = http.request(options, res => {
       let responseData = '';
-
       res.on('data', chunk => {
         responseData += chunk;
       });
-
       res.on('end', () => {
         try {
           const parsedData = JSON.parse(responseData);
@@ -152,11 +150,9 @@ function registerUser(email: string): Promise<{ success: boolean; id: string; me
         }
       });
     });
-
     req.on('error', error => {
       reject(error);
     });
-
     req.write(data);
     req.end();
   });
@@ -192,49 +188,52 @@ async function readCourseStep(lessonName: string, stepName: string, _isFirstStep
 
 // Create a function to update course state on the server
 function updateCourseStateOnServer(deviceId: string, state: CourseState): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const data = JSON.stringify({
-      id: deviceId,
-      state: state
-    });
-
-    const options = {
-      hostname: 'localhost',
-      port: 3000,
-      path: '/api/course/update',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': data.length,
-      },
-    };
-
-    const req = http.request(options, res => {
-      let responseData = '';
-
-      res.on('data', chunk => {
-        responseData += chunk;
+  return new Promise(async (resolve, reject) => {
+    try {
+      const creds = await getDeviceCredentials();
+      if (!creds) {
+        return reject(new Error('Device credentials not found.'));
+      }
+      const data = JSON.stringify({
+        id: creds.deviceId,
+        state: state,
       });
-
-      res.on('end', () => {
-        try {
-          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-            resolve();
-          } else {
-            reject(new Error(`Server returned status code ${res.statusCode}: ${responseData}`));
+      const options = {
+        hostname: 'localhost',
+        port: 3000,
+        path: '/api/course/update',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': data.length,
+          'x-mastra-course-key': creds.key,
+        },
+      };
+      const req = http.request(options, res => {
+        let responseData = '';
+        res.on('data', chunk => {
+          responseData += chunk;
+        });
+        res.on('end', () => {
+          try {
+            if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+              resolve();
+            } else {
+              reject(new Error(`Server returned status code ${res.statusCode}: ${responseData}`));
+            }
+          } catch (error) {
+            reject(new Error(`Failed to parse response: ${error}`));
           }
-        } catch (error) {
-          reject(new Error(`Failed to parse response: ${error}`));
-        }
+        });
       });
-    });
-
-    req.on('error', error => {
-      reject(error);
-    });
-
-    req.write(data);
-    req.end();
+      req.on('error', error => {
+        reject(error);
+      });
+      req.write(data);
+      req.end();
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
@@ -243,16 +242,16 @@ async function saveCourseState(state: CourseState, deviceId: string | null): Pro
   if (!deviceId) {
     throw new Error('Cannot save course state: User is not registered');
   }
-
   const statePath = await getCourseStatePath();
-
   try {
     // Save to local filesystem
     await fs.writeFile(statePath, JSON.stringify(state, null, 2), 'utf-8');
-    
     // Sync with server
     try {
-      await updateCourseStateOnServer(deviceId, state);
+      // Use getDeviceCredentials to ensure we have the key
+      const creds = await getDeviceCredentials();
+      if (!creds) throw new Error('Device credentials not found');
+      await updateCourseStateOnServer(creds.deviceId, state);
     } catch {
       // Silently continue if server sync fails
       // Local save is still successful
@@ -314,9 +313,6 @@ async function scanCourseContent(): Promise<CourseState> {
         // Build steps array
         const steps = await Promise.all(
           stepFiles.map(async file => {
-            const stepPath = path.join(lessonPath, file);
-            const _content = await fs.readFile(stepPath, 'utf-8');
-
             // Extract step name from filename (remove numbering prefix)
             const stepName = file.replace(/^\d+-/, '').replace('.md', '');
 
@@ -414,9 +410,9 @@ export const startMastraCourse = {
   execute: async (args: { email?: string }) => {
     try {
       // Check if the user is registered
-      const deviceId = await getDeviceId();
-      const registered = deviceId !== null;
-
+      const creds = await getDeviceCredentials();
+      const registered = creds !== null;
+      let deviceId = creds?.deviceId ?? null;
       if (!registered) {
         // If not registered and no email provided, prompt for email
         if (!args.email) {
@@ -428,8 +424,9 @@ export const startMastraCourse = {
           const response = await registerUser(args.email);
 
           if (response.success) {
-            // Save the device ID
-            await saveDeviceId(response.id);
+            // Save both deviceId and key
+            await saveDeviceCredentials(response.id, response.key);
+            deviceId = response.id;
           } else {
             return `Registration failed: ${response.message}. Please try again with a valid email address.`;
           }
