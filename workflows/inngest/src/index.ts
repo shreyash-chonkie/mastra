@@ -6,6 +6,7 @@ import EventEmitter from 'events';
 import type { Mastra } from '@mastra/core';
 import { createWorkflow as createWorkflowVNext } from '@mastra/core/workflows/vNext';
 import type { z } from 'zod';
+import type { RuntimeContext } from '@mastra/core/di';
 
 export { createStep } from '@mastra/core/workflows/vNext';
 
@@ -60,6 +61,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     step: Step<string, any, any>,
     stepResults: Record<string, StepResult<any>>,
     executionContext: { executionPath: number[]; suspendedPaths: Record<string, number[]> },
+    container: RuntimeContext,
   ) {
     if (this.functions.has(step.id)) return this.functions.get(step.id)!;
 
@@ -69,6 +71,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       async ({ event, step: inngestStep }) => {
         const result = await step.execute({
           mastra: this.mastra!,
+          container,
           inputData: event.data.inputData,
           getInitData: () => stepResults.input as any,
           getStepResult: (s: Step<string, any, any>) => {
@@ -102,20 +105,22 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     resume,
     prevOutput,
     emitter,
+    container,
   }: {
     step: Step<string, any, any>;
     stepResults: Record<string, StepResult<any>>;
     executionContext: { executionPath: number[]; suspendedPaths: Record<string, number[]> };
     resume?: {
-      steps: Step<string, any, any>[];
+      steps: string[];
       resumePayload: any;
     };
     prevOutput: any;
     emitter: EventEmitter;
+    container: RuntimeContext;
   }): Promise<StepResult<any>> {
     try {
       // Register the function if not already registered
-      this.registerFunction(step, stepResults, executionContext);
+      this.registerFunction(step, stepResults, executionContext, container);
 
       // Send event to trigger the function
       const event = await this.inngest.send({
