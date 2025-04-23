@@ -32,7 +32,6 @@
     "inngest": "^3.24.2"
   },
   "devDependencies": {
-    "@mastra/deployer": "workspace:^",
     "@internal/lint": "workspace:*",
     "@microsoft/api-extractor": "^7.52.2",
     "@types/node": "^20.17.27",

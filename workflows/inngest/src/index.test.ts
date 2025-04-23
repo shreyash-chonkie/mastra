@@ -8,7 +8,6 @@ import { z } from 'zod';
 import { createTool, Mastra, Telemetry } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
 import { DefaultStorage } from '@mastra/core/storage/libsql';
-import { createNodeServer } from '@mastra/deployer/server';
 
 import { createStep, createWorkflow, serve } from './index';
 
