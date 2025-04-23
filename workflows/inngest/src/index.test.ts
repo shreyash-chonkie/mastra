@@ -9,7 +9,7 @@ import { createTool, Mastra, Telemetry } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
 import { DefaultStorage } from '@mastra/core/storage/libsql';
 
-import { createStep, createWorkflow } from './index';
+import { createStep, createWorkflow, serve } from './index';
 
 describe(
   'MastraInngestWorkflow',
@@ -31,6 +31,42 @@ describe(
             result: z.string(),
           }),
           steps: [step1],
+        });
+
+        const ingest = new Inngest({
+          id: 'test-workflow',
+          baseUrl: 'http://localhost:3000',
+        });
+
+        const mastra = new Mastra({
+          storage: new DefaultStorage({
+            config: {
+              url: ':memory:',
+            },
+          }),
+          vnext_workflows: {
+            'test-workflow': workflow,
+          },
+          server: {
+            port: 3000,
+            apiRoutes: [
+              {
+                path: '/api/inngest',
+                method: 'GET',
+                handler: () => serve({ mastra, ingest }),
+              },
+              {
+                path: '/api/inngest',
+                method: 'POST',
+                handler: () => serve({ mastra, ingest }),
+              },
+              {
+                path: '/api/inngest',
+                method: 'DELETE',
+                handler: () => serve({ mastra, ingest }),
+              },
+            ],
+          },
         });
 
         workflow.then(step1).commit();

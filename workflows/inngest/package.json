@@ -21,7 +21,9 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --experimental-dts --clean --treeshake=smallest --splitting",
     "build:watch": "pnpm build --watch",
+    "pretest": "docker compose up -d && sleep 3;",
     "test": "vitest run",
+    "posttest": "docker compose down -v",
     "lint": "eslint ."
   },
   "dependencies": {

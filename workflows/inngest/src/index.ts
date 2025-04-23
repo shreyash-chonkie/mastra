@@ -9,6 +9,7 @@ import type {
   WorkflowStatus,
 } from '@mastra/core/workflows/vNext';
 import { Inngest, type BaseContext } from 'inngest';
+import { serve as inngestServe } from 'inngest/hono';
 import EventEmitter from 'events';
 import type { Mastra } from '@mastra/core';
 import type { z } from 'zod';
@@ -16,6 +17,15 @@ import { RuntimeContext } from '@mastra/core/di';
 import { randomUUID } from 'crypto';
 
 export { createStep } from '@mastra/core/workflows/vNext';
+
+export function serve({ mastra, ingest }: { mastra: Mastra; ingest: Inngest }) {
+  const wfs: any = mastra.vnext_getWorkflows();
+  const functions = wfs.flatMap(wf => wf.getFunctions());
+  return inngestServe({
+    client: ingest,
+    functions,
+  });
+}
 
 export class InngestRun<
   TSteps extends NewStep<string, any, any>[] = NewStep<string, any, any>[],
