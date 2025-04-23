@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { createTool, Mastra, Telemetry } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
 import { DefaultStorage } from '@mastra/core/storage/libsql';
+import { createNodeServer } from '@mastra/deployer/server';
 
 import { createStep, createWorkflow, serve } from './index';
 
@@ -68,8 +69,10 @@ describe(
             ],
           },
         });
-
         workflow.then(step1).commit();
+
+        const srv = await createNodeServer(mastra);
+        srv.listen(3000);
 
         const run = workflow.createRun();
         const result = await run.start({ inputData: {} });
@@ -79,6 +82,8 @@ describe(
           status: 'success',
           output: { result: 'success' },
         });
+
+        srv.close();
       });
 
       it('should execute multiple steps in parallel', async () => {
