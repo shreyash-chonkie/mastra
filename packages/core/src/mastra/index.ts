@@ -7,6 +7,7 @@ import type { AgentNetwork } from '../network';
 import type { ServerConfig } from '../server/types';
 import type { MastraStorage } from '../storage';
 import { DefaultProxyStorage } from '../storage/default-proxy-storage';
+import { augmentWithInit } from '../storage/storageWithInit';
 import { InstrumentClass, Telemetry } from '../telemetry';
 import type { OtelConfig } from '../telemetry';
 import type { MastraTTS } from '../tts';
@@ -115,7 +116,8 @@ export class Mastra<
       if (config?.logger) {
         logger = config.logger;
       } else {
-        const levleOnEnv = process.env.NODE_ENV === 'production' ? LogLevel.WARN : LogLevel.INFO;
+        const levleOnEnv =
+          process.env.NODE_ENV === 'production' && process.env.MASTRA_DEV !== 'true' ? LogLevel.WARN : LogLevel.INFO;
         logger = createLogger({ name: 'Mastra', level: levleOnEnv }) as unknown as TLogger;
       }
     }
@@ -130,6 +132,8 @@ export class Mastra<
       });
     }
 
+    storage = augmentWithInit(storage);
+
     /*
     Telemetry
     */
@@ -140,7 +144,7 @@ export class Mastra<
     */
     if (this.#telemetry) {
       this.#storage = this.#telemetry.traceClass(storage, {
-        excludeMethods: ['__setTelemetry', '__getTelemetry', '__batchTraceInsert'],
+        excludeMethods: ['__setTelemetry', '__getTelemetry', 'batchTraceInsert'],
       });
       this.#storage.__setTelemetry(this.#telemetry);
     } else {
@@ -343,7 +347,7 @@ This is a warning for now, but will throw an error in the future
   }
 
   public setStorage(storage: MastraStorage) {
-    this.#storage = storage;
+    this.#storage = augmentWithInit(storage);
   }
 
   public setLogger({ logger }: { logger: TLogger }) {
@@ -420,7 +424,7 @@ This is a warning for now, but will throw an error in the future
 
     if (this.#storage) {
       this.#storage = this.#telemetry.traceClass(this.#storage, {
-        excludeMethods: ['__setTelemetry', '__getTelemetry', '__batchTraceInsert'],
+        excludeMethods: ['__setTelemetry', '__getTelemetry'],
       });
       this.#storage.__setTelemetry(this.#telemetry);
     }

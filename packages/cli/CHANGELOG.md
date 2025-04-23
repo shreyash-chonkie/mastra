@@ -1,5 +1,206 @@
 # mastra
 
+## 0.5.0
+
+### Minor Changes
+
+- fe3ae4d: Remove \_\_ functions in storage and move to storage proxy to make sure init is called
+
+### Patch Changes
+
+- c489535: update --llm options for init command to list all providers
+- 7e92011: Include tools with deployment builds
+- 7184dc5: Add support to pass project path directly to create-mastra and improve tag handling
+- c821402: Fix table layout issue in the Agent Network section of the Playground.
+- 9c26508: Fixed an issue where "mastra dev" wouldn't always print out localhost:4111 logs due to new NODE_ENV fixes
+- 735ead7: Add support for process.env.development
+- 16a8648: Disable swaggerUI, playground for production builds, mastra instance server build config to enable swaggerUI, apiReqLogs, openAPI documentation for prod builds
+- bdbde72: Sync DS components with Cloud
+- Updated dependencies [b9122b0]
+- Updated dependencies [000a6d4]
+- Updated dependencies [08bb78e]
+- Updated dependencies [3527610]
+- Updated dependencies [ed2f549]
+- Updated dependencies [7e92011]
+- Updated dependencies [9ee4293]
+- Updated dependencies [03f3cd0]
+- Updated dependencies [c0f22b4]
+- Updated dependencies [71d9444]
+- Updated dependencies [157c741]
+- Updated dependencies [8a8a73b]
+- Updated dependencies [0a033fa]
+- Updated dependencies [fe3ae4d]
+- Updated dependencies [2538066]
+- Updated dependencies [9c26508]
+- Updated dependencies [63fe16a]
+- Updated dependencies [0f4eae3]
+- Updated dependencies [3f9d151]
+- Updated dependencies [735ead7]
+- Updated dependencies [16a8648]
+- Updated dependencies [6f92295]
+  - @mastra/deployer@0.3.0
+  - @mastra/core@0.9.0
+
+## 0.5.0-alpha.9
+
+### Patch Changes
+
+- c489535: update --llm options for init command to list all providers
+- c821402: Fix table layout issue in the Agent Network section of the Playground.
+- 9c26508: Fixed an issue where "mastra dev" wouldn't always print out localhost:4111 logs due to new NODE_ENV fixes
+- 16a8648: Disable swaggerUI, playground for production builds, mastra instance server build config to enable swaggerUI, apiReqLogs, openAPI documentation for prod builds
+- bdbde72: Sync DS components with Cloud
+- Updated dependencies [b9122b0]
+- Updated dependencies [000a6d4]
+- Updated dependencies [ed2f549]
+- Updated dependencies [c0f22b4]
+- Updated dependencies [0a033fa]
+- Updated dependencies [2538066]
+- Updated dependencies [9c26508]
+- Updated dependencies [0f4eae3]
+- Updated dependencies [16a8648]
+  - @mastra/deployer@0.3.0-alpha.9
+  - @mastra/core@0.9.0-alpha.8
+
+## 0.5.0-alpha.8
+
+### Patch Changes
+
+- Updated dependencies [71d9444]
+  - @mastra/core@0.9.0-alpha.7
+  - @mastra/deployer@0.3.0-alpha.8
+
+## 0.5.0-alpha.7
+
+### Patch Changes
+
+- 735ead7: Add support for process.env.development
+- Updated dependencies [157c741]
+- Updated dependencies [63fe16a]
+- Updated dependencies [735ead7]
+  - @mastra/core@0.9.0-alpha.6
+  - @mastra/deployer@0.3.0-alpha.7
+
+## 0.5.0-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [08bb78e]
+- Updated dependencies [3f9d151]
+  - @mastra/core@0.9.0-alpha.5
+  - @mastra/deployer@0.3.0-alpha.6
+
+## 0.5.0-alpha.5
+
+### Patch Changes
+
+- 7e92011: Include tools with deployment builds
+- Updated dependencies [7e92011]
+  - @mastra/deployer@0.3.0-alpha.5
+  - @mastra/core@0.9.0-alpha.4
+
+## 0.5.0-alpha.4
+
+### Minor Changes
+
+- fe3ae4d: Remove \_\_ functions in storage and move to storage proxy to make sure init is called
+
+### Patch Changes
+
+- Updated dependencies [fe3ae4d]
+  - @mastra/deployer@0.3.0-alpha.4
+  - @mastra/core@0.9.0-alpha.3
+
+## 0.4.10-alpha.3
+
+### Patch Changes
+
+- Updated dependencies [9ee4293]
+  - @mastra/core@0.8.4-alpha.2
+  - @mastra/deployer@0.2.10-alpha.3
+
+## 0.4.10-alpha.2
+
+### Patch Changes
+
+- 7184dc5: Add support to pass project path directly to create-mastra and improve tag handling
+- Updated dependencies [3527610]
+  - @mastra/deployer@0.2.10-alpha.2
+
+## 0.4.10-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [8a8a73b]
+- Updated dependencies [6f92295]
+  - @mastra/core@0.8.4-alpha.1
+  - @mastra/deployer@0.2.10-alpha.1
+
+## 0.4.10-alpha.0
+
+### Patch Changes
+
+- Updated dependencies [03f3cd0]
+  - @mastra/core@0.8.4-alpha.0
+  - @mastra/deployer@0.2.10-alpha.0
+
+## 0.4.9
+
+### Patch Changes
+
+- d72318f: Refactored the evals table to use the DS tables
+- 1ebbfbf: Ability to toggle stream vs generate in playground
+- a2318cd: Revamp mastra deply dx, Make mastra build command output deployment ready build
+- ea0725e: make sure to put the geoip argument in the right spot (client init) and not at the properties level
+- 37bb612: Add Elastic-2.0 licensing for packages
+- c8fe5f0: change the header of all pages with the one from the DS
+- Updated dependencies [d72318f]
+- Updated dependencies [0bcc862]
+- Updated dependencies [10a8caf]
+- Updated dependencies [359b089]
+- Updated dependencies [9f6f6dd]
+- Updated dependencies [32e7b71]
+- Updated dependencies [37bb612]
+- Updated dependencies [1ebbfbf]
+- Updated dependencies [67aff42]
+- Updated dependencies [7f1b291]
+  - @mastra/core@0.8.3
+  - @mastra/deployer@0.2.9
+
+## 0.4.9-alpha.7
+
+### Patch Changes
+
+- d72318f: Refactored the evals table to use the DS tables
+- Updated dependencies [d72318f]
+  - @mastra/core@0.8.3-alpha.5
+  - @mastra/deployer@0.2.9-alpha.7
+
+## 0.4.9-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [67aff42]
+  - @mastra/deployer@0.2.9-alpha.6
+
+## 0.4.9-alpha.5
+
+### Patch Changes
+
+- Updated dependencies [9f6f6dd]
+  - @mastra/deployer@0.2.9-alpha.5
+
+## 0.4.9-alpha.4
+
+### Patch Changes
+
+- 1ebbfbf: Ability to toggle stream vs generate in playground
+- ea0725e: make sure to put the geoip argument in the right spot (client init) and not at the properties level
+- Updated dependencies [1ebbfbf]
+- Updated dependencies [7f1b291]
+  - @mastra/deployer@0.2.9-alpha.4
+  - @mastra/core@0.8.3-alpha.4
+
 ## 0.4.9-alpha.3
 
 ### Patch Changes
