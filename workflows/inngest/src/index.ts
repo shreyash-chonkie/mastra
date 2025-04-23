@@ -26,6 +26,7 @@ export function serve({ mastra, ingest }: { mastra: Mastra; ingest: Inngest }) {
     }
     return [];
   });
+  console.log('FUNCTIONS', functions);
   return inngestServe({
     client: ingest,
     functions,
@@ -69,9 +70,11 @@ export class InngestRun<
 
   async getRunOutput(eventId: string) {
     let runs = await this.getRuns(eventId);
+    console.log('RUNS', runs);
     while (runs?.[0]?.status !== 'Completed') {
       await new Promise(resolve => setTimeout(resolve, 1000));
       runs = await this.getRuns(eventId);
+      console.log('RUNS', runs);
       if (runs?.[0]?.status === 'Failed' || runs?.[0]?.status === 'Cancelled') {
         throw new Error(`Function run ${runs?.[0]?.status}`);
       }
@@ -87,7 +90,7 @@ export class InngestRun<
     container?: RuntimeContext;
   }): Promise<WorkflowStatus<TOutput, TSteps>> {
     const eventOutput = await this.inngest.send({
-      name: `workflow.${this.runId}`,
+      name: `workflow.${this.workflowId}`,
       data: {
         inputData,
         runId: this.runId,
@@ -124,6 +127,7 @@ export class InngestWorkflow<
 
   createRun(options?: { runId?: string }): Run<TSteps, TInput, TOutput> {
     const runIdToUse = options?.runId || randomUUID();
+    console.log('CREATING RUN', this.id, runIdToUse);
 
     // Return a new Run instance with object parameters
     return new InngestRun(
