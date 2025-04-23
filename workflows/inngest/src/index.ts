@@ -93,6 +93,7 @@ export class InngestRun<
         runId: this.runId,
       },
     });
+    console.log('SENT EVENT', eventOutput);
 
     const eventId = eventOutput.ids[0];
     if (!eventId) {
@@ -147,6 +148,7 @@ export class InngestWorkflow<
       { event: `workflow.${this.id}` },
       async ({ event, step }) => {
         const { inputData, runId } = event.data;
+        console.log('RUNNING FUNCTION', this.id, runId, inputData);
 
         const engine = new InngestExecutionEngine(this.#mastra, step);
         const result = await engine.execute<z.infer<TInput>, WorkflowStatus<TOutput, TSteps>>({
@@ -222,7 +224,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     resume,
     prevOutput,
     emitter,
-    container,
+    runtimeContext,
   }: {
     step: Step<string, any, any>;
     stepResults: Record<string, StepResult<any>>;
@@ -239,7 +241,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     };
     prevOutput: any;
     emitter: EventEmitter;
-    container: RuntimeContext;
+    runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     return super.executeStep({
       step,
@@ -248,7 +250,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       resume,
       prevOutput,
       emitter,
-      container,
+      runtimeContext,
     });
   }
 
@@ -259,7 +261,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     resume,
     prevOutput,
     emitter,
-    container,
+    runtimeContext,
   }: {
     step: Step<string, any, any>;
     stepResults: Record<string, StepResult<any>>;
@@ -276,7 +278,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     };
     prevOutput: any;
     emitter: EventEmitter;
-    container: RuntimeContext;
+    runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     if (step instanceof InngestWorkflow) {
       const run = step.createRun();
@@ -297,7 +299,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
         resume,
         prevOutput,
         emitter,
-        container,
+        runtimeContext,
       });
     });
   }
