@@ -70,9 +70,6 @@ describe(
         });
         workflow.then(step1).commit();
 
-        const srv = await createNodeServer(mastra);
-        srv.listen(3000);
-
         const run = workflow.createRun();
         const result = await run.start({ inputData: {} });
 
