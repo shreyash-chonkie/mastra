@@ -8,8 +8,9 @@ import { z } from 'zod';
 import { createTool, Mastra, Telemetry } from '@mastra/core';
 import { Agent } from '@mastra/core/agent';
 import { DefaultStorage } from '@mastra/core/storage/libsql';
-
-import { createStep, createWorkflow, serve } from './index';
+import { Hono } from 'hono';
+import { serve } from '@hono/node-server';
+import { createStep, createWorkflow, serve as inngestServe } from './index';
 
 describe(
   'MastraInngestWorkflow',
@@ -47,28 +48,20 @@ describe(
           vnext_workflows: {
             'test-workflow': workflow,
           },
-          server: {
-            port: 3000,
-            apiRoutes: [
-              {
-                path: '/api/inngest',
-                method: 'GET',
-                handler: () => serve({ mastra, ingest }),
-              },
-              {
-                path: '/api/inngest',
-                method: 'POST',
-                handler: () => serve({ mastra, ingest }),
-              },
-              {
-                path: '/api/inngest',
-                method: 'DELETE',
-                handler: () => serve({ mastra, ingest }),
-              },
-            ],
-          },
         });
         workflow.then(step1).commit();
+
+        const app = new Hono();
+        app.use('*', async (ctx, next) => {
+          console.log('middleware', ctx.req.method, ctx.req.url);
+          await next();
+        });
+        app.all('/api/inngest', inngestServe({ mastra, ingest }));
+
+        const srv = serve({
+          fetch: app.fetch,
+          port: 3000,
+        });
 
         const run = workflow.createRun();
         const result = await run.start({ inputData: {} });
