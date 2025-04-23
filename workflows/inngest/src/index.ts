@@ -1,14 +1,71 @@
 import { NewWorkflow, type NewStep as Step, DefaultExecutionEngine } from '@mastra/core/workflows/vNext';
-import type { NewWorkflowConfig, StepResult } from '@mastra/core/workflows/vNext';
+import type { NewStep, NewWorkflowConfig, StepFlowEntry, StepResult } from '@mastra/core/workflows/vNext';
 import { Inngest } from 'inngest';
 import { connect } from 'inngest/connect';
 import EventEmitter from 'events';
 import type { Mastra } from '@mastra/core';
 import { createWorkflow as createWorkflowVNext } from '@mastra/core/workflows/vNext';
 import type { z } from 'zod';
-import type { RuntimeContext } from '@mastra/core/di';
+import { RuntimeContext } from '@mastra/core/di';
 
 export { createStep } from '@mastra/core/workflows/vNext';
+
+export class InngestWorkflow<
+  TSteps extends NewStep<string, any, any>[] = NewStep<string, any, any>[],
+  TWorkflowId extends string = string,
+  TInput extends z.ZodType<any> = z.ZodType<any>,
+  TOutput extends z.ZodType<any> = z.ZodType<any>,
+  TPrevSchema extends z.ZodType<any> = TInput,
+> extends NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TPrevSchema> {
+  private functions: Map<string, ReturnType<Inngest['createFunction']>> = new Map();
+  #mastra: Mastra;
+
+  constructor(params: NewWorkflowConfig<TWorkflowId, TInput, TOutput, TSteps>) {
+    super(params);
+    this.#mastra = params.mastra!;
+  }
+
+  private getStepFunction(entry: StepFlowEntry): [string, ReturnType<Inngest['createFunction']>][] {
+    const engine = this.executionEngine as InngestExecutionEngine;
+    if (entry.type === 'step' || entry.type === 'loop' || entry.type === 'foreach') {
+      const fn = engine.inngest.createFunction(
+        { id: `workflow.${this.id}.step.${entry.step.id}` },
+        { event: `workflow.${this.id}.step.${entry.step.id}` },
+        async ({ event, step: inngestStep }) => {
+          const { prevOutput, stepResults, executionContext, resume } = event.data;
+
+          return engine.executeStep({
+            step: entry.step,
+            stepResults,
+            executionContext,
+            resume,
+            prevOutput,
+            emitter: new EventEmitter(),
+            container: new RuntimeContext(), // TODO
+          });
+        },
+      );
+
+      return [[entry.step.id, fn]];
+    } else if (entry.type === 'parallel' || entry.type === 'conditional') {
+      return entry.steps.flatMap(this.getStepFunction);
+    }
+
+    return [];
+  }
+
+  commit(): NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TOutput> {
+    const fns = this.executionGraph.steps.flatMap(this.getStepFunction);
+    const map = new Map(fns);
+    this.functions = map;
+
+    return super.commit();
+  }
+
+  getFunctions() {
+    return this.functions;
+  }
+}
 
 export function createWorkflow<
   TWorkflowId extends string = string,
@@ -45,7 +102,7 @@ async function getRunOutput(eventId: string) {
 }
 
 export class InngestExecutionEngine extends DefaultExecutionEngine {
-  private inngest: Inngest;
+  public inngest: Inngest;
   private functions: Map<string, ReturnType<Inngest['createFunction']>> = new Map();
 
   constructor(mastra: Mastra) {
@@ -57,45 +114,41 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     });
   }
 
-  private registerFunction(
-    step: Step<string, any, any>,
-    stepResults: Record<string, StepResult<any>>,
-    executionContext: { executionPath: number[]; suspendedPaths: Record<string, number[]> },
-    container: RuntimeContext,
-  ) {
-    if (this.functions.has(step.id)) return this.functions.get(step.id)!;
-
-    const fn = this.inngest.createFunction(
-      { id: step.id },
-      { event: `step.${step.id}` },
-      async ({ event, step: inngestStep }) => {
-        const result = await step.execute({
-          mastra: this.mastra!,
-          container,
-          inputData: event.data.inputData,
-          getInitData: () => stepResults.input as any,
-          getStepResult: (s: Step<string, any, any>) => {
-            const result = stepResults[s.id];
-            return result?.status === 'success' ? result.output : null;
-          },
-          suspend: async (suspendPayload: unknown) => {
-            executionContext.suspendedPaths[step.id] = executionContext.executionPath;
-            return inngestStep.sleep('1s', '');
-          },
-          resume: event.data.resume,
-          emitter: event.data.emitter,
-        });
-        return result;
-      },
-    );
-
-    // Register with Inngest
-    connect({
-      apps: [{ client: this.inngest, functions: [fn] }],
+  async superExecuteStep({
+    step,
+    stepResults,
+    executionContext,
+    resume,
+    prevOutput,
+    emitter,
+    container,
+  }: {
+    step: Step<string, any, any>;
+    stepResults: Record<string, StepResult<any>>;
+    executionContext: {
+      workflowId: string;
+      runId: string;
+      executionPath: number[];
+      suspendedPaths: Record<string, number[]>;
+      retryConfig: { attempts: number; delay: number };
+    };
+    resume?: {
+      steps: string[];
+      resumePayload: any;
+    };
+    prevOutput: any;
+    emitter: EventEmitter;
+    container: RuntimeContext;
+  }): Promise<StepResult<any>> {
+    return super.executeStep({
+      step,
+      stepResults,
+      executionContext,
+      resume,
+      prevOutput,
+      emitter,
+      container,
     });
-
-    this.functions.set(step.id, fn);
-    return fn;
   }
 
   async executeStep({
@@ -109,7 +162,13 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
   }: {
     step: Step<string, any, any>;
     stepResults: Record<string, StepResult<any>>;
-    executionContext: { executionPath: number[]; suspendedPaths: Record<string, number[]> };
+    executionContext: {
+      workflowId: string;
+      runId: string;
+      executionPath: number[];
+      suspendedPaths: Record<string, number[]>;
+      retryConfig: { attempts: number; delay: number };
+    };
     resume?: {
       steps: string[];
       resumePayload: any;
@@ -119,14 +178,15 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     container: RuntimeContext;
   }): Promise<StepResult<any>> {
     try {
-      // Register the function if not already registered
-      this.registerFunction(step, stepResults, executionContext, container);
-
       // Send event to trigger the function
       const event = await this.inngest.send({
-        name: `step.${step.id}`,
+        name: `workflow.${executionContext.workflowId}.step.${step.id}`,
         data: {
-          inputData: step.id === 'step1' ? stepResults.input : prevOutput,
+          runId: executionContext.runId,
+          prevOutput,
+          stepResults,
+          executionContext,
+          resume,
         },
       });
 

@@ -6,7 +6,9 @@ import type { ExecuteFunction, NewStep } from './step';
 import type { StepResult } from './types';
 import type { StepFlowEntry } from './workflow';
 
-type ExecutionContext = {
+export type ExecutionContext = {
+  workflowId: string;
+  runId: string;
   executionPath: number[];
   suspendedPaths: Record<string, number[]>;
   retryConfig: {
@@ -101,6 +103,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           stepResults,
           resume,
           executionContext: {
+            workflowId,
+            runId,
             executionPath: [i],
             suspendedPaths: {},
             retryConfig: { attempts, delay },
@@ -292,6 +296,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           stepResults,
           resume,
           executionContext: {
+            workflowId,
+            runId,
             executionPath: [...executionContext.executionPath, i],
             suspendedPaths: executionContext.suspendedPaths,
             retryConfig: executionContext.retryConfig,
@@ -399,6 +405,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           stepResults,
           resume,
           executionContext: {
+            workflowId,
+            runId,
             executionPath: [...executionContext.executionPath, index],
             suspendedPaths: executionContext.suspendedPaths,
             retryConfig: executionContext.retryConfig,
@@ -614,6 +622,8 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         stepResults,
         resume,
         executionContext: {
+          workflowId,
+          runId,
           executionPath: [...executionContext.executionPath, idx!],
           suspendedPaths: executionContext.suspendedPaths,
           retryConfig: executionContext.retryConfig,
