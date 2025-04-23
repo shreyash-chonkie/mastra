@@ -84,10 +84,10 @@ export class InngestRun<
 
   async start({
     inputData,
-    container,
+    runtimeContext,
   }: {
     inputData?: z.infer<TInput>;
-    container?: RuntimeContext;
+    runtimeContext?: RuntimeContext;
   }): Promise<WorkflowStatus<TOutput, TSteps>> {
     const eventOutput = await this.inngest.send({
       name: `workflow.${this.workflowId}`,
