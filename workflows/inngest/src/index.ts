@@ -22,18 +22,46 @@ export class InngestRun<
   TInput extends z.ZodType<any> = z.ZodType<any>,
   TOutput extends z.ZodType<any> = z.ZodType<any>,
 > extends Run<TSteps, TInput, TOutput> {
-  constructor(params: {
-    workflowId: string;
-    runId: string;
-    executionEngine: ExecutionEngine;
-    executionGraph: ExecutionGraph;
-    mastra?: Mastra;
-    retryConfig?: {
-      attempts?: number;
-      delay?: number;
-    };
-  }) {
+  private inngest: Inngest;
+
+  constructor(
+    params: {
+      workflowId: string;
+      runId: string;
+      executionEngine: ExecutionEngine;
+      executionGraph: ExecutionGraph;
+      mastra?: Mastra;
+      retryConfig?: {
+        attempts?: number;
+        delay?: number;
+      };
+    },
+    inngest: Inngest,
+  ) {
     super(params);
+    this.inngest = inngest;
+  }
+
+  async getRuns(eventId: string) {
+    const response = await fetch(`http://127.0.0.1:8288/v1/events/${eventId}/runs`, {
+      headers: {
+        Authorization: `Bearer ${process.env.INNGEST_SIGNING_KEY}`,
+      },
+    });
+    const json = await response.json();
+    return (json as any).data;
+  }
+
+  async getRunOutput(eventId: string) {
+    let runs = await this.getRuns(eventId);
+    while (runs?.[0]?.status !== 'Completed') {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      runs = await this.getRuns(eventId);
+      if (runs?.[0]?.status === 'Failed' || runs?.[0]?.status === 'Cancelled') {
+        throw new Error(`Function run ${runs?.[0]?.status}`);
+      }
+    }
+    return runs?.[0];
   }
 
   async start({
@@ -43,7 +71,20 @@ export class InngestRun<
     inputData?: z.infer<TInput>;
     container?: RuntimeContext;
   }): Promise<WorkflowStatus<TOutput, TSteps>> {
-    return {} as any;
+    const eventOutput = await this.inngest.send({
+      name: `workflow.${this.runId}`,
+      data: {
+        inputData,
+        runId: this.runId,
+      },
+    });
+
+    const eventId = eventOutput.ids[0];
+    if (!eventId) {
+      throw new Error('Event ID is not set');
+    }
+    const runOutput = await this.getRunOutput(eventId);
+    return runOutput;
   }
 }
 
@@ -69,14 +110,17 @@ export class InngestWorkflow<
     const runIdToUse = options?.runId || randomUUID();
 
     // Return a new Run instance with object parameters
-    return new InngestRun({
-      workflowId: this.id,
-      runId: runIdToUse,
-      executionEngine: this.executionEngine,
-      executionGraph: this.executionGraph,
-      mastra: this.#mastra,
-      retryConfig: this.retryConfig,
-    });
+    return new InngestRun(
+      {
+        workflowId: this.id,
+        runId: runIdToUse,
+        executionEngine: this.executionEngine,
+        executionGraph: this.executionGraph,
+        mastra: this.#mastra,
+        retryConfig: this.retryConfig,
+      },
+      this.inngest,
+    );
   }
 
   getFunction() {
@@ -140,28 +184,6 @@ export function createWorkflow<
       baseUrl: 'http://127.0.0.1:8288',
     }),
   );
-}
-
-async function getRuns(eventId: string) {
-  const response = await fetch(`http://127.0.0.1:8288/v1/events/${eventId}/runs`, {
-    headers: {
-      Authorization: `Bearer ${process.env.INNGEST_SIGNING_KEY}`,
-    },
-  });
-  const json = await response.json();
-  return (json as any).data;
-}
-
-async function getRunOutput(eventId: string) {
-  let runs = await getRuns(eventId);
-  while (runs?.[0]?.status !== 'Completed') {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    runs = await getRuns(eventId);
-    if (runs?.[0]?.status === 'Failed' || runs?.[0]?.status === 'Cancelled') {
-      throw new Error(`Function run ${runs?.[0]?.status}`);
-    }
-  }
-  return runs?.[0];
 }
 
 export class InngestExecutionEngine extends DefaultExecutionEngine {
