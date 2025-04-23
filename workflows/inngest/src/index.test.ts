@@ -56,6 +56,7 @@ describe(
           console.log('middleware', ctx.req.method, ctx.req.url);
           await next();
         });
+        // TODO: this is received but stuck, does nothing
         app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
         const srv = serve({

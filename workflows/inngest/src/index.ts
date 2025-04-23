@@ -156,7 +156,7 @@ export class InngestWorkflow<
           input: inputData,
           emitter: new EventEmitter(), // TODO
           retryConfig: this.retryConfig,
-          container: new RuntimeContext(), // TODO
+          runtimeContext: new RuntimeContext(), // TODO
         });
 
         return result;
