@@ -1,14 +1,51 @@
-import { NewWorkflow, type NewStep as Step, DefaultExecutionEngine } from '@mastra/core/workflows/vNext';
-import type { NewStep, NewWorkflowConfig, StepFlowEntry, StepResult } from '@mastra/core/workflows/vNext';
-import { Inngest } from 'inngest';
-import { connect } from 'inngest/connect';
+import { NewWorkflow, type NewStep as Step, DefaultExecutionEngine, Run } from '@mastra/core/workflows/vNext';
+import type {
+  ExecutionEngine,
+  ExecutionGraph,
+  NewStep,
+  NewWorkflowConfig,
+  StepFlowEntry,
+  StepResult,
+  WorkflowStatus,
+} from '@mastra/core/workflows/vNext';
+import { Inngest, type BaseContext } from 'inngest';
 import EventEmitter from 'events';
 import type { Mastra } from '@mastra/core';
-import { createWorkflow as createWorkflowVNext } from '@mastra/core/workflows/vNext';
 import type { z } from 'zod';
 import { RuntimeContext } from '@mastra/core/di';
+import { randomUUID } from 'crypto';
 
 export { createStep } from '@mastra/core/workflows/vNext';
+
+export class InngestRun<
+  TSteps extends NewStep<string, any, any>[] = NewStep<string, any, any>[],
+  TInput extends z.ZodType<any> = z.ZodType<any>,
+  TOutput extends z.ZodType<any> = z.ZodType<any>,
+> extends Run<TSteps, TInput, TOutput> {
+  constructor(params: {
+    workflowId: string;
+    runId: string;
+    executionEngine: ExecutionEngine;
+    executionGraph: ExecutionGraph;
+    mastra?: Mastra;
+    retryConfig?: {
+      attempts?: number;
+      delay?: number;
+    };
+  }) {
+    super(params);
+  }
+
+  async start({
+    inputData,
+    container,
+  }: {
+    inputData?: z.infer<TInput>;
+    container?: RuntimeContext;
+  }): Promise<WorkflowStatus<TOutput, TSteps>> {
+    return {} as any;
+  }
+}
 
 export class InngestWorkflow<
   TSteps extends NewStep<string, any, any>[] = NewStep<string, any, any>[],
@@ -17,53 +54,69 @@ export class InngestWorkflow<
   TOutput extends z.ZodType<any> = z.ZodType<any>,
   TPrevSchema extends z.ZodType<any> = TInput,
 > extends NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TPrevSchema> {
-  private functions: Map<string, ReturnType<Inngest['createFunction']>> = new Map();
   #mastra: Mastra;
+  inngest: Inngest;
 
-  constructor(params: NewWorkflowConfig<TWorkflowId, TInput, TOutput, TSteps>) {
+  constructor(params: NewWorkflowConfig<TWorkflowId, TInput, TOutput, TSteps>, inngest: Inngest) {
     super(params);
     this.#mastra = params.mastra!;
+    this.inngest = inngest;
   }
 
-  private getStepFunction(entry: StepFlowEntry): [string, ReturnType<Inngest['createFunction']>][] {
-    const engine = this.executionEngine as InngestExecutionEngine;
-    if (entry.type === 'step' || entry.type === 'loop' || entry.type === 'foreach') {
-      const fn = engine.inngest.createFunction(
-        { id: `workflow.${this.id}.step.${entry.step.id}` },
-        { event: `workflow.${this.id}.step.${entry.step.id}` },
-        async ({ event, step: inngestStep }) => {
-          const { prevOutput, stepResults, executionContext, resume } = event.data;
+  createRun(options?: { runId?: string }): Run<TSteps, TInput, TOutput> {
+    const runIdToUse = options?.runId || randomUUID();
 
-          return engine.executeStep({
-            step: entry.step,
-            stepResults,
-            executionContext,
-            resume,
-            prevOutput,
-            emitter: new EventEmitter(),
-            container: new RuntimeContext(), // TODO
-          });
-        },
-      );
-
-      return [[entry.step.id, fn]];
-    } else if (entry.type === 'parallel' || entry.type === 'conditional') {
-      return entry.steps.flatMap(this.getStepFunction);
-    }
-
-    return [];
+    // Return a new Run instance with object parameters
+    return new InngestRun({
+      workflowId: this.id,
+      runId: runIdToUse,
+      executionEngine: this.executionEngine,
+      executionGraph: this.executionGraph,
+      mastra: this.#mastra,
+      retryConfig: this.retryConfig,
+    });
   }
 
-  commit(): NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TOutput> {
-    const fns = this.executionGraph.steps.flatMap(this.getStepFunction);
-    const map = new Map(fns);
-    this.functions = map;
+  getFunction() {
+    return this.inngest.createFunction(
+      { id: `workflow.${this.id}` },
+      { event: `workflow.${this.id}` },
+      async ({ event, step }) => {
+        const { inputData, runId } = event.data;
 
-    return super.commit();
+        const engine = new InngestExecutionEngine(this.#mastra, step);
+        const result = await engine.execute<z.infer<TInput>, WorkflowStatus<TOutput, TSteps>>({
+          workflowId: this.id,
+          runId,
+          graph: this.executionGraph,
+          input: inputData,
+          emitter: new EventEmitter(), // TODO
+          retryConfig: this.retryConfig,
+          container: new RuntimeContext(), // TODO
+        });
+
+        return result;
+      },
+    );
+  }
+
+  getNestedFunctions(steps: StepFlowEntry[]): ReturnType<Inngest['createFunction']>[] {
+    return steps.flatMap(step => {
+      if (step.type === 'step' || step.type === 'loop' || step.type === 'foreach') {
+        if (step.step instanceof InngestWorkflow) {
+          return step.step.getFunction();
+        }
+        return [];
+      } else if (step.type === 'parallel' || step.type === 'conditional') {
+        return this.getNestedFunctions(step.steps);
+      }
+
+      return [];
+    });
   }
 
   getFunctions() {
-    return this.functions;
+    return [this.getFunction(), ...this.getNestedFunctions(this.executionGraph.steps)];
   }
 }
 
@@ -73,10 +126,14 @@ export function createWorkflow<
   TOutput extends z.ZodObject<any> = z.ZodObject<any>,
   TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
 >(params: NewWorkflowConfig<TWorkflowId, TInput, TOutput, TSteps>) {
-  return createWorkflowVNext<TWorkflowId, TInput, TOutput, TSteps>({
-    ...params,
-    executionEngine: new InngestExecutionEngine(params.mastra!),
-  });
+  return new InngestWorkflow(
+    params,
+    new Inngest({
+      id: 'mastra',
+      // signingKey: process.env.INNGEST_SIGNING_KEY,
+      baseUrl: 'http://127.0.0.1:8288',
+    }),
+  );
 }
 
 async function getRuns(eventId: string) {
@@ -103,15 +160,16 @@ async function getRunOutput(eventId: string) {
 
 export class InngestExecutionEngine extends DefaultExecutionEngine {
   public inngest: Inngest;
-  private functions: Map<string, ReturnType<Inngest['createFunction']>> = new Map();
+  private inngestStep: BaseContext<Inngest>['step'];
 
-  constructor(mastra: Mastra) {
+  constructor(mastra: Mastra, inngestStep: BaseContext<Inngest>['step']) {
     super({ mastra });
     this.inngest = new Inngest({
       id: 'mastra',
       // signingKey: process.env.INNGEST_SIGNING_KEY,
       baseUrl: 'http://127.0.0.1:8288',
     });
+    this.inngestStep = inngestStep;
   }
 
   async superExecuteStep({
@@ -177,26 +235,16 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     emitter: EventEmitter;
     container: RuntimeContext;
   }): Promise<StepResult<any>> {
-    try {
-      // Send event to trigger the function
-      const event = await this.inngest.send({
-        name: `workflow.${executionContext.workflowId}.step.${step.id}`,
-        data: {
-          runId: executionContext.runId,
-          prevOutput,
-          stepResults,
-          executionContext,
-          resume,
-        },
+    return this.inngestStep.run(`workflow.${executionContext.workflowId}.step.${step.id}`, async () => {
+      return super.executeStep({
+        step,
+        stepResults,
+        executionContext,
+        resume,
+        prevOutput,
+        emitter,
+        container,
       });
-
-      // Wait for the run to complete and get its output
-      const run = await getRunOutput(event.ids?.[0]!);
-      const result = run.output;
-
-      return { status: 'success' as const, output: result };
-    } catch (e) {
-      return { status: 'failed' as const, error: e instanceof Error ? e.message : 'Unknown error' };
-    }
+    });
   }
 }
