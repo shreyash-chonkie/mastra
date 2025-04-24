@@ -28,7 +28,6 @@ export function serve({ mastra, ingest }: { mastra: Mastra; ingest: Inngest }): 
     }
     return [];
   });
-  console.log('FUNCTIONS', functions);
   return inngestServe({
     client: ingest,
     functions,
@@ -96,7 +95,6 @@ export class InngestRun<
         runId: this.runId,
       },
     });
-    console.log('SENT EVENT', eventOutput);
 
     const eventId = eventOutput.ids[0];
     if (!eventId) {
@@ -137,7 +135,6 @@ export class InngestWorkflow<
 
   createRun(options?: { runId?: string }): Run<TSteps, TInput, TOutput> {
     const runIdToUse = options?.runId || randomUUID();
-    console.log('CREATING RUN', this.id, runIdToUse);
 
     // Return a new Run instance with object parameters
     return new InngestRun(
@@ -163,7 +160,6 @@ export class InngestWorkflow<
       { event: `workflow.${this.id}` },
       async ({ event, step, attempt }) => {
         const { inputData, runId } = event.data;
-        console.log('RUNNING FUNCTION', this.id, runId, inputData, attempt);
 
         const engine = new InngestExecutionEngine(this.#mastra, step, attempt);
         const result = await engine.execute<z.infer<TInput>, WorkflowResult<TOutput, TSteps>>({
@@ -323,7 +319,6 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     if (step instanceof InngestWorkflow) {
-      console.log('NESTED WORKFLOW', step.id);
       const run = step.createRun();
       const result = (await this.inngestStep.invoke(`workflow.${executionContext.workflowId}.step.${step.id}`, {
         function: step.getFunction(),
@@ -332,7 +327,6 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
           runId: run.runId,
         },
       })) as any;
-      console.log('NESTED WORKFLOW RESULT', step.id, result);
 
       if (result.status === 'success') {
         return { status: 'success', output: result?.result };
@@ -343,7 +337,6 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       }
     }
 
-    console.log('EXECUTING STEP', step.id);
     return this.inngestStep.run(`workflow.${executionContext.workflowId}.step.${step.id}`, async () => {
       const result = await super.executeStep({
         step,

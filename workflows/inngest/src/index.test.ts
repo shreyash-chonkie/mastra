@@ -76,10 +76,6 @@ describe('MastraInngestWorkflow', ctx => {
       workflow.then(step1).commit();
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -149,10 +145,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -228,10 +220,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -298,10 +286,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -383,10 +367,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -448,10 +428,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -521,10 +497,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -601,10 +573,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -702,10 +670,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -776,10 +740,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -879,10 +839,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -960,10 +916,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1026,10 +978,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1108,10 +1056,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1200,10 +1144,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1326,10 +1266,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1426,10 +1362,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1527,10 +1459,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1614,10 +1542,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1765,10 +1689,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1912,10 +1832,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -2082,10 +1998,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -2146,10 +2058,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -2268,10 +2176,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -2337,10 +2241,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -3156,10 +3056,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -3257,10 +3153,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -3391,10 +3283,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -3532,10 +3420,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -3682,10 +3566,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -4639,10 +4519,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = new Hono();
-      app.use('*', async (ctx, next) => {
-        console.log('middleware', ctx.req.method, ctx.req.url);
-        await next();
-      });
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -4688,7 +4564,7 @@ describe('MastraInngestWorkflow', ctx => {
     });
   });
 
-  // TODO: fix runtime context
+  // TODO: can we support this on inngest?
   describe.skip('Dependency Injection', () => {
     it('should inject runtimeContext dependencies into steps during run', async ctx => {
       const ingest = new Inngest({
@@ -4714,8 +4590,29 @@ describe('MastraInngestWorkflow', ctx => {
       const workflow = createWorkflow({ id: 'test-workflow', inputSchema: z.object({}), outputSchema: z.object({}) });
       workflow.then(step).commit();
 
+      const mastra = new Mastra({
+        storage: new DefaultStorage({
+          config: {
+            url: ':memory:',
+          },
+        }),
+        vnext_workflows: {
+          'test-workflow': workflow,
+        },
+      });
+
+      const app = new Hono();
+      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+
+      const srv = serve({
+        fetch: app.fetch,
+        port: (ctx as any).handlerPort,
+      });
+
       const run = workflow.createRun();
       const result = await run.start({ runtimeContext });
+
+      srv.close();
 
       // @ts-ignore
       expect(result.steps.step1.output.injectedValue).toBe(testValue);
