@@ -1,5 +1,6 @@
 import { NewWorkflow, type NewStep as Step, DefaultExecutionEngine, Run } from '@mastra/core/workflows/vNext';
 import type {
+  ExecuteFunction,
   ExecutionContext,
   ExecutionEngine,
   ExecutionGraph,
@@ -174,7 +175,7 @@ export class InngestWorkflow<
     return steps.flatMap(step => {
       if (step.type === 'step' || step.type === 'loop' || step.type === 'foreach') {
         if (step.step instanceof InngestWorkflow) {
-          return step.step.getFunction();
+          return [step.step.getFunction(), ...step.step.getNestedFunctions(step.step.executionGraph.steps)];
         }
         return [];
       } else if (step.type === 'parallel' || step.type === 'conditional') {
@@ -192,8 +193,8 @@ export class InngestWorkflow<
 
 export function createWorkflow<
   TWorkflowId extends string = string,
-  TInput extends z.ZodObject<any> = z.ZodObject<any>,
-  TOutput extends z.ZodObject<any> = z.ZodObject<any>,
+  TInput extends z.ZodType<any> = z.ZodType<any>,
+  TOutput extends z.ZodType<any> = z.ZodType<any>,
   TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
 >(params: NewWorkflowConfig<TWorkflowId, TInput, TOutput, TSteps>) {
   return new InngestWorkflow(
@@ -293,8 +294,15 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
           runId: run.runId,
         },
       })) as any;
-      console.log('NESTED WORKFLOW RESULT', result);
-      return result;
+      console.log('NESTED WORKFLOW RESULT', step.id, result);
+
+      if (result.status === 'success') {
+        return { status: 'success', output: result?.result };
+      } else if (result.status === 'failed') {
+        return { status: 'failed', error: result?.error };
+      } else if (result.status === 'suspended') {
+        return { status: 'suspended', payload: result?.payload };
+      }
     }
 
     console.log('EXECUTING STEP', step.id);
