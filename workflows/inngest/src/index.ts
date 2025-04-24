@@ -8,7 +8,7 @@ import type {
   NewWorkflowConfig,
   StepFlowEntry,
   StepResult,
-  WorkflowStatus,
+  WorkflowResult,
 } from '@mastra/core/workflows/vNext';
 import { Inngest, type BaseContext } from 'inngest';
 import { serve as inngestServe } from 'inngest/hono';
@@ -18,7 +18,7 @@ import type { z } from 'zod';
 import { RuntimeContext } from '@mastra/core/di';
 import { randomUUID } from 'crypto';
 
-export { createStep } from '@mastra/core/workflows/vNext';
+import { createStep } from '@mastra/core/workflows/vNext';
 
 export function serve({ mastra, ingest }: { mastra: Mastra; ingest: Inngest }) {
   const wfs = mastra.vnext_getWorkflows();
@@ -61,7 +61,7 @@ export class InngestRun<
   }
 
   async getRuns(eventId: string) {
-    const response = await fetch(`http://127.0.0.1:8288/v1/events/${eventId}/runs`, {
+    const response = await fetch(`${this.inngest.apiBaseUrl}/v1/events/${eventId}/runs`, {
       headers: {
         Authorization: `Bearer ${process.env.INNGEST_SIGNING_KEY}`,
       },
@@ -88,7 +88,7 @@ export class InngestRun<
   }: {
     inputData?: z.infer<TInput>;
     runtimeContext?: RuntimeContext;
-  }): Promise<WorkflowStatus<TOutput, TSteps>> {
+  }): Promise<WorkflowResult<TOutput, TSteps>> {
     const eventOutput = await this.inngest.send({
       name: `workflow.${this.workflowId}`,
       data: {
@@ -155,7 +155,7 @@ export class InngestWorkflow<
         console.log('RUNNING FUNCTION', this.id, runId, inputData);
 
         const engine = new InngestExecutionEngine(this.#mastra, step);
-        const result = await engine.execute<z.infer<TInput>, WorkflowStatus<TOutput, TSteps>>({
+        const result = await engine.execute<z.infer<TInput>, WorkflowResult<TOutput, TSteps>>({
           workflowId: this.id,
           runId,
           graph: this.executionGraph,
@@ -191,33 +191,25 @@ export class InngestWorkflow<
   }
 }
 
-export function createWorkflow<
-  TWorkflowId extends string = string,
-  TInput extends z.ZodType<any> = z.ZodType<any>,
-  TOutput extends z.ZodType<any> = z.ZodType<any>,
-  TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
->(params: NewWorkflowConfig<TWorkflowId, TInput, TOutput, TSteps>) {
-  return new InngestWorkflow(
-    params,
-    new Inngest({
-      id: 'mastra',
-      // signingKey: process.env.INNGEST_SIGNING_KEY,
-      baseUrl: 'http://127.0.0.1:8288',
-    }),
-  );
+export function init(inngest: Inngest) {
+  return {
+    createWorkflow<
+      TWorkflowId extends string = string,
+      TInput extends z.ZodType<any> = z.ZodType<any>,
+      TOutput extends z.ZodType<any> = z.ZodType<any>,
+      TSteps extends Step<string, any, any>[] = Step<string, any, any>[],
+    >(params: NewWorkflowConfig<TWorkflowId, TInput, TOutput, TSteps>) {
+      return new InngestWorkflow(params, inngest);
+    },
+    createStep,
+  };
 }
 
 export class InngestExecutionEngine extends DefaultExecutionEngine {
-  public inngest: Inngest;
   private inngestStep: BaseContext<Inngest>['step'];
 
   constructor(mastra: Mastra, inngestStep: BaseContext<Inngest>['step']) {
     super({ mastra });
-    this.inngest = new Inngest({
-      id: 'mastra',
-      // signingKey: process.env.INNGEST_SIGNING_KEY,
-      baseUrl: 'http://127.0.0.1:8288',
-    });
     this.inngestStep = inngestStep;
   }
 

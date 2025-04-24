@@ -21,8 +21,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --experimental-dts --clean --treeshake=smallest --splitting",
     "build:watch": "pnpm build --watch",
-    "test": "INNGEST_DEV=1 vitest run",
-    "posttest": "docker compose down -v",
+    "test": "vitest run",
     "lint": "eslint ."
   },
   "dependencies": {
@@ -31,6 +30,7 @@
     "inngest": "^3.24.2"
   },
   "devDependencies": {
+    "get-port": "7.1.0",
     "execa": "^9.5.2",
     "hono": "^4.7.7",
     "@hono/node-server": "^1.14.1",
