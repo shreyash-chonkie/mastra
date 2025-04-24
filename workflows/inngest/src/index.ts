@@ -20,7 +20,7 @@ import { randomUUID } from 'crypto';
 
 import { createStep } from '@mastra/core/workflows/vNext';
 
-export function serve({ mastra, ingest }: { mastra: Mastra; ingest: Inngest }) {
+export function serve({ mastra, ingest }: { mastra: Mastra; ingest: Inngest }): ReturnType<typeof inngestServe> {
   const wfs = mastra.vnext_getWorkflows();
   const functions = Object.values(wfs).flatMap(wf => {
     if (wf instanceof InngestWorkflow) {
