@@ -66,6 +66,7 @@ describe(
 
         const run = workflow.createRun();
         const result = await run.start({ inputData: {} });
+        console.dir({ result }, { depth: null });
 
         expect(execute).toHaveBeenCalled();
         expect(result.steps['step1']).toEqual({

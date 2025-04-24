@@ -70,11 +70,11 @@ export class InngestRun<
 
   async getRunOutput(eventId: string) {
     let runs = await this.getRuns(eventId);
-    console.log('RUNS', runs);
+    console.dir({ runs }, { depth: null });
     while (runs?.[0]?.status !== 'Completed') {
       await new Promise(resolve => setTimeout(resolve, 1000));
       runs = await this.getRuns(eventId);
-      console.log('RUNS', runs);
+      console.dir({ runs }, { depth: null });
       if (runs?.[0]?.status === 'Failed' || runs?.[0]?.status === 'Cancelled') {
         throw new Error(`Function run ${runs?.[0]?.status}`);
       }
@@ -103,7 +103,7 @@ export class InngestRun<
       throw new Error('Event ID is not set');
     }
     const runOutput = await this.getRunOutput(eventId);
-    return runOutput;
+    return runOutput?.output;
   }
 }
 
