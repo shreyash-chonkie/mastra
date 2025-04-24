@@ -21,8 +21,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --experimental-dts --clean --treeshake=smallest --splitting",
     "build:watch": "pnpm build --watch",
-    "pretest": "docker compose up -d && sleep 3;",
-    "test": "vitest run",
+    "test": "INNGEST_DEV=1 vitest run",
     "posttest": "docker compose down -v",
     "lint": "eslint ."
   },
@@ -32,6 +31,7 @@
     "inngest": "^3.24.2"
   },
   "devDependencies": {
+    "execa": "^9.5.2",
     "hono": "^4.7.7",
     "@hono/node-server": "^1.14.1",
     "@internal/lint": "workspace:*",
