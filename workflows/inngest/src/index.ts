@@ -286,13 +286,15 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     if (step instanceof InngestWorkflow) {
       console.log('NESTED WORKFLOW', step.id);
       const run = step.createRun();
-      return (await this.inngestStep.invoke(`workflow.${step.id}`, {
+      const result = (await this.inngestStep.invoke(`workflow.${executionContext.workflowId}.step.${step.id}`, {
         function: step.getFunction(),
         data: {
           inputData: prevOutput,
           runId: run.runId,
         },
       })) as any;
+      console.log('NESTED WORKFLOW RESULT', result);
+      return result;
     }
 
     console.log('EXECUTING STEP', step.id);
