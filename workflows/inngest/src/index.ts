@@ -130,6 +130,11 @@ export class InngestWorkflow<
     this.inngest = inngest;
   }
 
+  __registerMastra(mastra: Mastra) {
+    this.#mastra = mastra;
+    this.executionEngine.__registerMastra(mastra);
+  }
+
   createRun(options?: { runId?: string }): Run<TSteps, TInput, TOutput> {
     const runIdToUse = options?.runId || randomUUID();
     console.log('CREATING RUN', this.id, runIdToUse);

@@ -3122,8 +3122,7 @@ describe('MastraInngestWorkflow', ctx => {
     });
   });
 
-  // TODO: access mastra
-  describe.skip('Accessing Mastra', () => {
+  describe('Accessing Mastra', () => {
     it('should be able to access the deprecated mastra primitives', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
