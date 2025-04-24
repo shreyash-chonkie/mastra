@@ -4134,7 +4134,6 @@ describe('MastraInngestWorkflow', ctx => {
         const { createWorkflow, createStep } = init(ingest);
 
         const start = vi.fn().mockImplementation(async ({ inputData, resume }) => {
-          console.log('RESUME', resume);
           // Get the current value (either from trigger or previous increment)
           const currentValue = inputData.startValue || 0;
 
@@ -4247,6 +4246,20 @@ describe('MastraInngestWorkflow', ctx => {
 
         const run = counterWorkflow.createRun();
         const result = await run.start({ inputData: { startValue: 0 } });
+
+        const runs = await mastra?.getStorage()?.getWorkflowRuns();
+        if (runs) {
+          for (const run of runs.runs) {
+            const snapshot = await mastra?.getStorage()?.loadWorkflowSnapshot({
+              workflowName: run.workflowName,
+              runId: run.runId,
+            });
+            console.dir(
+              { workflowName: run.workflowName, runId: run.runId, inTestSnapshot: snapshot },
+              { depth: null },
+            );
+          }
+        }
 
         expect(begin).toHaveBeenCalledTimes(1);
         expect(start).toHaveBeenCalledTimes(1);

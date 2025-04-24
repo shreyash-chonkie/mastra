@@ -218,9 +218,6 @@ export class InngestWorkflow<
       async ({ event, step, attempt }) => {
         const { inputData, runId, resume } = event.data;
 
-        console.dir({ startFn: { inputData, runId, resume } }, { depth: null });
-        console.log('mastra, mastra', this.#mastra);
-
         const engine = new InngestExecutionEngine(this.#mastra, step, attempt);
         const result = await engine.execute<z.infer<TInput>, WorkflowResult<TOutput, TSteps>>({
           workflowId: this.id,
@@ -387,17 +384,32 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
           (resume?.runId ?? stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId)
         : randomUUID();
 
-      console.log('nested runId', { runId });
-
       let result: WorkflowResult<any, any>;
       if (isResume) {
-        console.log('nested resume', { resume, executionContext, runId: runId });
         const snapshot = await this.mastra?.storage?.loadWorkflowSnapshot({
           workflowName: executionContext.workflowId,
           runId: runId,
         });
 
-        console.dir({ nestedSnapshot: snapshot, resumeStepResults: stepResults }, { depth: 5 });
+        console.dir(
+          {
+            nestedSnapshot: snapshot,
+            resumeStepResults: stepResults,
+            data: {
+              inputData: prevOutput,
+              runId: runId,
+              resume: {
+                runId: runId,
+                steps: resume.steps,
+                stepResults: snapshot?.context as any,
+                resumePayload: resume.resumePayload,
+                // @ts-ignore
+                resumePath: snapshot?.suspendedPaths?.[resume.steps?.[0]] as any,
+              },
+            },
+          },
+          { depth: 5 },
+        );
 
         result = (await this.inngestStep.invoke(`workflow.${executionContext.workflowId}.step.${step.id}`, {
           function: step.getFunction(),
@@ -453,7 +465,8 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       }
     }
 
-    return this.inngestStep.run(`workflow.${executionContext.workflowId}.step.${step.id}`, async () => {
+    const stepRes = await this.inngestStep.run(`workflow.${executionContext.workflowId}.step.${step.id}`, async () => {
+      // TODO: redo super.executeStep here so that it doesn't use side effects to populate executionContext or stepResults
       const result = await super.executeStep({
         step,
         stepResults,
@@ -475,8 +488,16 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
         };
       }
 
-      return result;
+      return { result, executionContext, stepResults };
     });
+
+    // @ts-ignore
+    Object.assign(executionContext, stepRes.executionContext);
+    // @ts-ignore
+    Object.assign(stepResults, stepRes.stepResults);
+
+    // @ts-ignore
+    return stepRes.result;
   }
 
   async executeConditional({
