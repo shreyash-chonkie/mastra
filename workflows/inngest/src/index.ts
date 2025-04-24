@@ -1,5 +1,6 @@
 import { NewWorkflow, type NewStep as Step, DefaultExecutionEngine, Run } from '@mastra/core/workflows/vNext';
 import type {
+  ExecutionContext,
   ExecutionEngine,
   ExecutionGraph,
   NewStep,
@@ -70,11 +71,9 @@ export class InngestRun<
 
   async getRunOutput(eventId: string) {
     let runs = await this.getRuns(eventId);
-    console.dir({ runs }, { depth: null });
     while (runs?.[0]?.status !== 'Completed') {
       await new Promise(resolve => setTimeout(resolve, 1000));
       runs = await this.getRuns(eventId);
-      console.dir({ runs }, { depth: null });
       if (runs?.[0]?.status === 'Failed' || runs?.[0]?.status === 'Cancelled') {
         throw new Error(`Function run ${runs?.[0]?.status}`);
       }
@@ -285,6 +284,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     if (step instanceof InngestWorkflow) {
+      console.log('NESTED WORKFLOW', step.id);
       const run = step.createRun();
       return (await this.inngestStep.invoke(`workflow.${step.id}`, {
         function: step.getFunction(),
@@ -295,6 +295,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       })) as any;
     }
 
+    console.log('EXECUTING STEP', step.id);
     return this.inngestStep.run(`workflow.${executionContext.workflowId}.step.${step.id}`, async () => {
       return super.executeStep({
         step,
@@ -306,5 +307,116 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
         runtimeContext,
       });
     });
+  }
+
+  async executeConditional({
+    workflowId,
+    runId,
+    entry,
+    prevOutput,
+    prevStep,
+    stepResults,
+    resume,
+    executionContext,
+    emitter,
+    runtimeContext,
+  }: {
+    workflowId: string;
+    runId: string;
+    entry: { type: 'conditional'; steps: StepFlowEntry[]; conditions: ExecuteFunction<any, any, any, any>[] };
+    prevStep: StepFlowEntry;
+    prevOutput: any;
+    stepResults: Record<string, StepResult<any>>;
+    resume?: {
+      steps: string[];
+      stepResults: Record<string, StepResult<any>>;
+      resumePayload: any;
+      resumePath: number[];
+    };
+    executionContext: ExecutionContext;
+    emitter: EventEmitter;
+    runtimeContext: RuntimeContext;
+  }): Promise<StepResult<any>> {
+    let execResults: any;
+    const truthyIndexes = (
+      await Promise.all(
+        entry.conditions.map((cond, index) =>
+          this.inngestStep.run(`workflow.${workflowId}.conditional.${index}`, async () => {
+            try {
+              const result = await cond({
+                mastra: this.mastra!,
+                runtimeContext,
+                inputData: prevOutput,
+                getInitData: () => stepResults?.input as any,
+                getStepResult: (step: any) => {
+                  if (!step?.id) {
+                    return null;
+                  }
+
+                  const result = stepResults[step.id];
+                  if (result?.status === 'success') {
+                    return result.output;
+                  }
+
+                  return null;
+                },
+
+                // TODO: this function shouldn't have suspend probably?
+                suspend: async (_suspendPayload: any) => {},
+                emitter,
+              });
+              return result ? index : null;
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            } catch (e: unknown) {
+              return null;
+            }
+          }),
+        ),
+      )
+    ).filter((index): index is number => index !== null);
+
+    const stepsToRun = entry.steps.filter((_, index) => truthyIndexes.includes(index));
+    const results: StepResult<any>[] = await Promise.all(
+      stepsToRun.map((step, index) =>
+        this.executeEntry({
+          workflowId,
+          runId,
+          entry: step,
+          prevStep,
+          stepResults,
+          resume,
+          executionContext: {
+            workflowId,
+            runId,
+            executionPath: [...executionContext.executionPath, index],
+            suspendedPaths: executionContext.suspendedPaths,
+            retryConfig: executionContext.retryConfig,
+          },
+          emitter,
+          runtimeContext,
+        }),
+      ),
+    );
+    const hasFailed = results.find(result => result.status === 'failed');
+    const hasSuspended = results.find(result => result.status === 'suspended');
+    if (hasFailed) {
+      execResults = { status: 'failed', error: hasFailed.error };
+    } else if (hasSuspended) {
+      execResults = { status: 'suspended', payload: hasSuspended.payload };
+    } else {
+      execResults = {
+        status: 'success',
+        output: results.reduce((acc: Record<string, any>, result, index) => {
+          if (result.status === 'success') {
+            // @ts-ignore
+            acc[stepsToRun[index]!.step.id] = result.output;
+          }
+
+          return acc;
+        }, {}),
+      };
+    }
+
+    return execResults;
   }
 }
