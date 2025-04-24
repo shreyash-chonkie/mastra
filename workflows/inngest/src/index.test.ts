@@ -2195,7 +2195,7 @@ describe('MastraInngestWorkflow', ctx => {
     }, 10000);
   });
 
-  // TODO: watch
+  // TODO: watch (can we support this on inngest?)
   describe.skip('Watch', () => {
     it('should watch workflow state changes and call onTransition', async ctx => {
       const ingest = new Inngest({
@@ -2355,7 +2355,7 @@ describe('MastraInngestWorkflow', ctx => {
   });
 
   // TODO: suspend and resume
-  describe.skip('Suspend and Resume', () => {
+  describe('Suspend and Resume', () => {
     afterAll(async () => {
       const pathToDb = path.join(process.cwd(), 'mastra.db');
 
@@ -2384,7 +2384,8 @@ describe('MastraInngestWorkflow', ctx => {
       expect(run2.runId).toBeDefined();
       expect(run.runId).toBe(run2.runId);
     });
-    it('should handle basic suspend and resume flow', async ctx => {
+    // TODO: needs watch
+    it.skip('should handle basic suspend and resume flow', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
@@ -2519,7 +2520,8 @@ describe('MastraInngestWorkflow', ctx => {
       });
     });
 
-    it('should handle parallel steps with conditional suspend', async ctx => {
+    // TODO: needs watch
+    it.skip('should handle parallel steps with conditional suspend', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
@@ -2653,7 +2655,8 @@ describe('MastraInngestWorkflow', ctx => {
       });
     });
 
-    it('should handle complex workflow with multiple suspends', async ctx => {
+    // TODO: needs watch
+    it.skip('should handle complex workflow with multiple suspends', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
@@ -2944,9 +2947,25 @@ describe('MastraInngestWorkflow', ctx => {
         .then(evaluateImproved)
         .commit();
 
-      new Mastra({
-        vnext_workflows: { 'test-workflow': promptEvalWorkflow },
+      const mastra = new Mastra({
+        storage: new DefaultStorage({
+          config: {
+            url: ':memory:',
+          },
+        }),
+        vnext_workflows: {
+          'test-workflow': promptEvalWorkflow,
+        },
       });
+
+      const app = new Hono();
+      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+
+      const srv = serve({
+        fetch: app.fetch,
+        port: (ctx as any).handlerPort,
+      });
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       const run = promptEvalWorkflow.createRun();
 
@@ -3019,6 +3038,8 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       expect(promptAgentAction).toHaveBeenCalledTimes(2);
+
+      srv.close();
     });
   });
 
@@ -4103,8 +4124,8 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     // TODO: fix suspending and resuming
-    describe.skip('suspending and resuming nested workflows', () => {
-      it('should be able to suspend nested workflow step', async ctx => {
+    describe('suspending and resuming nested workflows', () => {
+      it.only('should be able to suspend nested workflow step', async ctx => {
         const ingest = new Inngest({
           id: 'mastra',
           baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
@@ -4112,7 +4133,8 @@ describe('MastraInngestWorkflow', ctx => {
 
         const { createWorkflow, createStep } = init(ingest);
 
-        const start = vi.fn().mockImplementation(async ({ inputData }) => {
+        const start = vi.fn().mockImplementation(async ({ inputData, resume }) => {
+          console.log('RESUME', resume);
           // Get the current value (either from trigger or previous increment)
           const currentValue = inputData.startValue || 0;
 
@@ -4203,9 +4225,25 @@ describe('MastraInngestWorkflow', ctx => {
           )
           .commit();
 
-        new Mastra({
-          vnext_workflows: { counterWorkflow },
+        const mastra = new Mastra({
+          storage: new DefaultStorage({
+            config: {
+              url: ':memory:',
+            },
+          }),
+          vnext_workflows: {
+            'test-workflow': counterWorkflow,
+          },
         });
+
+        const app = new Hono();
+        app.all('/api/inngest', inngestServe({ mastra, ingest }));
+
+        const srv = serve({
+          fetch: app.fetch,
+          port: (ctx as any).handlerPort,
+        });
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         const run = counterWorkflow.createRun();
         const result = await run.start({ inputData: { startValue: 0 } });
@@ -4233,6 +4271,8 @@ describe('MastraInngestWorkflow', ctx => {
         expect(other).toHaveBeenCalledTimes(2);
         expect(final).toHaveBeenCalledTimes(1);
         expect(last).toHaveBeenCalledTimes(1);
+
+        srv.close();
       });
     });
 

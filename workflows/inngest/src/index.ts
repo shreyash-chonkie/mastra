@@ -40,6 +40,7 @@ export class InngestRun<
   TOutput extends z.ZodType<any> = z.ZodType<any>,
 > extends Run<TSteps, TInput, TOutput> {
   private inngest: Inngest;
+  #mastra: Mastra;
 
   constructor(
     params: {
@@ -57,6 +58,7 @@ export class InngestRun<
   ) {
     super(params);
     this.inngest = inngest;
+    this.#mastra = params.mastra!;
   }
 
   async getRuns(eventId: string) {
@@ -108,6 +110,53 @@ export class InngestRun<
     }
     return result;
   }
+
+  async resume<TResumeSchema extends z.ZodType<any>>(params: {
+    resumeData?: z.infer<TResumeSchema>;
+    step:
+      | Step<string, any, any, TResumeSchema, any>
+      | [...Step<string, any, any, any, any>[], Step<string, any, any, TResumeSchema, any>]
+      | string
+      | string[];
+    runtimeContext?: RuntimeContext;
+  }): Promise<WorkflowResult<TOutput, TSteps>> {
+    const steps: string[] = (Array.isArray(params.step) ? params.step : [params.step]).map(step =>
+      typeof step === 'string' ? step : step?.id,
+    );
+    const snapshot = await this.#mastra?.storage?.loadWorkflowSnapshot({
+      workflowName: this.workflowId,
+      runId: this.runId,
+    });
+
+    console.dir({ snapshot, workflowId: this.workflowId, runId: this.runId }, { depth: 3 });
+
+    const eventOutput = await this.inngest.send({
+      name: `workflow.${this.workflowId}`,
+      data: {
+        inputData: params.resumeData,
+        stepResults: snapshot?.context as any,
+        resume: {
+          steps,
+          stepResults: snapshot?.context as any,
+          resumePayload: params.resumeData,
+          // @ts-ignore
+          resumePath: snapshot?.suspendedPaths?.[steps?.[0]] as any,
+        },
+      },
+    });
+
+    const eventId = eventOutput.ids[0];
+    if (!eventId) {
+      throw new Error('Event ID is not set');
+    }
+    const runOutput = await this.getRunOutput(eventId);
+    console.dir({ runOutput }, { depth: null });
+    const result = runOutput?.output;
+    if (result.status === 'failed') {
+      result.error = new Error(result.error);
+    }
+    return result;
+  }
 }
 
 export class InngestWorkflow<
@@ -131,6 +180,14 @@ export class InngestWorkflow<
   __registerMastra(mastra: Mastra) {
     this.#mastra = mastra;
     this.executionEngine.__registerMastra(mastra);
+
+    if (this.executionGraph.steps.length) {
+      for (const step of this.executionGraph.steps) {
+        if (step.type === 'step' && step.step instanceof InngestWorkflow) {
+          step.step.__registerMastra(mastra);
+        }
+      }
+    }
   }
 
   createRun(options?: { runId?: string }): Run<TSteps, TInput, TOutput> {
@@ -159,7 +216,10 @@ export class InngestWorkflow<
       { id: `workflow.${this.id}`, retries: this.retryConfig?.attempts ?? 0 },
       { event: `workflow.${this.id}` },
       async ({ event, step, attempt }) => {
-        const { inputData, runId } = event.data;
+        const { inputData, runId, resume } = event.data;
+
+        console.dir({ startFn: { inputData, runId, resume } }, { depth: null });
+        console.log('mastra, mastra', this.#mastra);
 
         const engine = new InngestExecutionEngine(this.#mastra, step, attempt);
         const result = await engine.execute<z.infer<TInput>, WorkflowResult<TOutput, TSteps>>({
@@ -170,6 +230,7 @@ export class InngestWorkflow<
           emitter: new EventEmitter(), // TODO
           retryConfig: this.retryConfig,
           runtimeContext: new RuntimeContext(), // TODO
+          resume,
         });
 
         return result;
@@ -313,27 +374,82 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     resume?: {
       steps: string[];
       resumePayload: any;
+      runId?: string;
     };
     prevOutput: any;
     emitter: EventEmitter;
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     if (step instanceof InngestWorkflow) {
-      const run = step.createRun();
-      const result = (await this.inngestStep.invoke(`workflow.${executionContext.workflowId}.step.${step.id}`, {
-        function: step.getFunction(),
-        data: {
-          inputData: prevOutput,
-          runId: run.runId,
-        },
-      })) as any;
+      const isResume = !!resume?.steps?.length;
+      const runId = isResume
+        ? // @ts-ignore
+          (resume?.runId ?? stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId)
+        : randomUUID();
+
+      console.log('nested runId', { runId });
+
+      let result: WorkflowResult<any, any>;
+      if (isResume) {
+        console.log('nested resume', { resume, executionContext, runId: runId });
+        const snapshot = await this.mastra?.storage?.loadWorkflowSnapshot({
+          workflowName: executionContext.workflowId,
+          runId: runId,
+        });
+
+        console.dir({ nestedSnapshot: snapshot, resumeStepResults: stepResults }, { depth: 5 });
+
+        result = (await this.inngestStep.invoke(`workflow.${executionContext.workflowId}.step.${step.id}`, {
+          function: step.getFunction(),
+          data: {
+            inputData: prevOutput,
+            runId: runId,
+            resume: {
+              runId: runId,
+              steps: resume.steps,
+              stepResults: snapshot?.context as any,
+              resumePayload: resume.resumePayload,
+              // @ts-ignore
+              resumePath: snapshot?.suspendedPaths?.[resume.steps?.[0]] as any,
+            },
+          },
+        })) as any;
+      } else {
+        result = (await this.inngestStep.invoke(`workflow.${executionContext.workflowId}.step.${step.id}`, {
+          function: step.getFunction(),
+          data: {
+            inputData: prevOutput,
+            runId: runId,
+          },
+        })) as any;
+      }
+
+      console.dir({ nestedResult: result }, { depth: 5 });
 
       if (result.status === 'success') {
         return { status: 'success', output: result?.result };
       } else if (result.status === 'failed') {
         return { status: 'failed', error: result?.error };
       } else if (result.status === 'suspended') {
-        return { status: 'suspended', payload: result?.payload };
+        const suspendedSteps = Object.entries(result.steps).filter(([_stepName, stepResult]) => {
+          const stepRes: StepResult<any> = stepResult as StepResult<any>;
+          return stepRes?.status === 'suspended';
+        });
+
+        for (const [stepName, stepResult] of suspendedSteps) {
+          // @ts-ignore
+          const suspendPath: string[] = [stepName, ...(stepResult?.payload?.__workflow_meta?.path ?? [])];
+          executionContext.suspendedPaths[step.id] = executionContext.executionPath;
+          return {
+            status: 'suspended',
+            payload: { ...(stepResult as any)?.payload, __workflow_meta: { runId: runId, path: suspendPath } },
+          };
+        }
+
+        return {
+          status: 'suspended',
+          payload: {},
+        };
       }
     }
 
