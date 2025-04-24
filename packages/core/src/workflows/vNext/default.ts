@@ -17,38 +17,38 @@ export type ExecutionContext = {
   };
 };
 
-function fmtReturnValue<TOutput>(
-  stepResults: Record<string, StepResult<any>>,
-  lastOutput: StepResult<any>,
-  error?: Error | string,
-): TOutput {
-  const base: any = {
-    status: lastOutput.status,
-    steps: stepResults,
-  };
-  if (lastOutput.status === 'success') {
-    base.result = lastOutput.output;
-  } else if (lastOutput.status === 'failed') {
-    base.error = error instanceof Error ? error : (lastOutput.error ?? new Error('Unknown error: ' + error));
-  } else if (lastOutput.status === 'suspended') {
-    const suspendedStepIds = Object.entries(stepResults).flatMap(([stepId, stepResult]) => {
-      if (stepResult?.status === 'suspended') {
-        const nestedPath = stepResult?.payload?.__workflow_meta?.path;
-        return nestedPath ? [[stepId, ...nestedPath]] : [[stepId]];
-      }
-
-      return [];
-    });
-    base.suspended = suspendedStepIds;
-  }
-
-  return base as TOutput;
-}
-
 /**
  * Default implementation of the ExecutionEngine using XState
  */
 export class DefaultExecutionEngine extends ExecutionEngine {
+  protected fmtReturnValue<TOutput>(
+    stepResults: Record<string, StepResult<any>>,
+    lastOutput: StepResult<any>,
+    error?: Error | string,
+  ): TOutput {
+    const base: any = {
+      status: lastOutput.status,
+      steps: stepResults,
+    };
+    if (lastOutput.status === 'success') {
+      base.result = lastOutput.output;
+    } else if (lastOutput.status === 'failed') {
+      base.error = error instanceof Error ? error : (lastOutput.error ?? new Error('Unknown error: ' + error));
+    } else if (lastOutput.status === 'suspended') {
+      const suspendedStepIds = Object.entries(stepResults).flatMap(([stepId, stepResult]) => {
+        if (stepResult?.status === 'suspended') {
+          const nestedPath = stepResult?.payload?.__workflow_meta?.path;
+          return nestedPath ? [[stepId, ...nestedPath]] : [[stepId]];
+        }
+
+        return [];
+      });
+      base.suspended = suspendedStepIds;
+    }
+
+    return base as TOutput;
+  }
+
   /**
    * Executes a workflow run with the provided execution graph and input
    * @param graph The execution graph to execute
@@ -131,7 +131,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
               eventTimestamp: Date.now(),
             });
           }
-          return fmtReturnValue(stepResults, lastOutput);
+          return this.fmtReturnValue(stepResults, lastOutput);
         }
       } catch (e) {
         this.logger.error('Error executing step: ' + ((e as Error)?.stack ?? e));
@@ -154,11 +154,11 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           });
         }
 
-        return fmtReturnValue(stepResults, lastOutput, e as Error);
+        return this.fmtReturnValue(stepResults, lastOutput, e as Error);
       }
     }
 
-    return fmtReturnValue(stepResults, lastOutput);
+    return this.fmtReturnValue(stepResults, lastOutput);
   }
 
   getStepOutput(stepResults: Record<string, any>, step?: StepFlowEntry): any {

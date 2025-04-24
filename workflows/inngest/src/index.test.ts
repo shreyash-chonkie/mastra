@@ -727,8 +727,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
     });
 
-    // TODO: fix error handling
-    it.skip('should handle failing dependencies', async ctx => {
+    it('should handle failing dependencies', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
@@ -736,7 +735,11 @@ describe('MastraInngestWorkflow', ctx => {
 
       const { createWorkflow, createStep } = init(ingest);
 
-      const step1Action = vi.fn<any>().mockRejectedValue(new Error('Failed'));
+      let err: Error | undefined;
+      const step1Action = vi.fn<any>().mockImplementation(() => {
+        err = new Error('Failed');
+        throw err;
+      });
       const step2Action = vi.fn<any>();
 
       const step1 = createStep({
@@ -791,6 +794,7 @@ describe('MastraInngestWorkflow', ctx => {
       } catch {
         // do nothing
       }
+
       srv.close();
 
       expect(step1Action).toHaveBeenCalled();
@@ -983,8 +987,7 @@ describe('MastraInngestWorkflow', ctx => {
     });
   });
 
-  // TODO: fix error handling
-  describe.sequential.skip('Error Handling', () => {
+  describe.sequential('Error Handling', () => {
     it('should handle step execution errors', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
@@ -2101,10 +2104,8 @@ describe('MastraInngestWorkflow', ctx => {
     });
   });
 
-  // TODO: fix errors
-  describe.sequential.skip('Retry', () => {
-    // TODO: errors
-    it.skip('should retry a step default 0 times', async ctx => {
+  describe.sequential('Retry', () => {
+    it('should retry a step default 0 times', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
@@ -2168,7 +2169,7 @@ describe('MastraInngestWorkflow', ctx => {
       srv.close();
     });
 
-    // TODO: errors
+    // Need to fix so we can throw for inngest to recognize retries
     it.skip('should retry a step with a custom retry config', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',

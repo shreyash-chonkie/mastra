@@ -103,7 +103,12 @@ export class InngestRun<
       throw new Error('Event ID is not set');
     }
     const runOutput = await this.getRunOutput(eventId);
-    return runOutput?.output;
+    console.dir({ runOutput }, { depth: null });
+    const result = runOutput?.output;
+    if (result.status === 'failed') {
+      result.error = new Error(result.error);
+    }
+    return result;
   }
 }
 
@@ -148,13 +153,14 @@ export class InngestWorkflow<
       return this.function;
     }
     this.function = this.inngest.createFunction(
-      { id: `workflow.${this.id}` },
+      // @ts-ignore
+      { id: `workflow.${this.id}`, retries: this.retryConfig?.attempts ?? 0 },
       { event: `workflow.${this.id}` },
-      async ({ event, step }) => {
+      async ({ event, step, attempt }) => {
         const { inputData, runId } = event.data;
-        console.log('RUNNING FUNCTION', this.id, runId, inputData);
+        console.log('RUNNING FUNCTION', this.id, runId, inputData, attempt);
 
-        const engine = new InngestExecutionEngine(this.#mastra, step);
+        const engine = new InngestExecutionEngine(this.#mastra, step, attempt);
         const result = await engine.execute<z.infer<TInput>, WorkflowResult<TOutput, TSteps>>({
           workflowId: this.id,
           runId,
@@ -207,10 +213,45 @@ export function init(inngest: Inngest) {
 
 export class InngestExecutionEngine extends DefaultExecutionEngine {
   private inngestStep: BaseContext<Inngest>['step'];
+  private inngestAttempts: number;
 
-  constructor(mastra: Mastra, inngestStep: BaseContext<Inngest>['step']) {
+  constructor(mastra: Mastra, inngestStep: BaseContext<Inngest>['step'], inngestAttempts: number = 0) {
     super({ mastra });
     this.inngestStep = inngestStep;
+    this.inngestAttempts = inngestAttempts;
+  }
+
+  protected fmtReturnValue<TOutput>(
+    stepResults: Record<string, StepResult<any>>,
+    lastOutput: StepResult<any>,
+    error?: Error | string,
+  ): TOutput {
+    const base: any = {
+      status: lastOutput.status,
+      steps: stepResults,
+    };
+    if (lastOutput.status === 'success') {
+      base.result = lastOutput.output;
+    } else if (lastOutput.status === 'failed') {
+      base.error =
+        error instanceof Error
+          ? (error?.stack ?? error.message)
+          : lastOutput?.error instanceof Error
+            ? lastOutput.error.message
+            : (lastOutput.error ?? error ?? 'Unknown error');
+    } else if (lastOutput.status === 'suspended') {
+      const suspendedStepIds = Object.entries(stepResults).flatMap(([stepId, stepResult]) => {
+        if (stepResult?.status === 'suspended') {
+          const nestedPath = stepResult?.payload?.__workflow_meta?.path;
+          return nestedPath ? [[stepId, ...nestedPath]] : [[stepId]];
+        }
+
+        return [];
+      });
+      base.suspended = suspendedStepIds;
+    }
+
+    return base as TOutput;
   }
 
   async superExecuteStep({
@@ -299,7 +340,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
 
     console.log('EXECUTING STEP', step.id);
     return this.inngestStep.run(`workflow.${executionContext.workflowId}.step.${step.id}`, async () => {
-      return super.executeStep({
+      const result = await super.executeStep({
         step,
         stepResults,
         executionContext,
@@ -308,6 +349,19 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
         emitter,
         runtimeContext,
       });
+
+      if (result.status === 'failed') {
+        if (executionContext.retryConfig.attempts > 0 && this.inngestAttempts < executionContext.retryConfig.attempts) {
+          throw result.error;
+        }
+
+        return {
+          status: result.status,
+          error: result?.error instanceof Error ? result?.error?.message : result?.error,
+        };
+      }
+
+      return result;
     });
   }
 
