@@ -75,6 +75,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     runtimeContext: RuntimeContext;
   }): Promise<TOutput> {
     const { workflowId, runId, graph, input, resume, retryConfig } = params;
+    console.log({ execute: { workflowId, runId, graph, input, resume, retryConfig } });
     const { attempts = 0, delay = 0 } = retryConfig ?? {};
     const steps = graph.steps;
 
@@ -112,6 +113,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           emitter: params.emitter,
           runtimeContext: params.runtimeContext,
         });
+        if (!lastOutput) console.log('WTF last output is undefined ???', workflowId, runId, entry);
         if (lastOutput.status !== 'success') {
           if (entry.type === 'step') {
             params.emitter.emit('watch', {
@@ -134,6 +136,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           return this.fmtReturnValue(stepResults, lastOutput);
         }
       } catch (e) {
+        console.log('WTF', e, workflowId, runId, entry);
         this.logger.error('Error executing step: ' + ((e as Error)?.stack ?? e));
         if (entry.type === 'step') {
           params.emitter.emit('watch', {
@@ -690,6 +693,24 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       stepResults[entry.step.id] = execResults;
     }
 
+    console.dir(
+      {
+        persistCall: {
+          workflowId,
+          runId,
+          snapshot: {
+            runId,
+            value: {},
+            context: stepResults as any,
+            activePaths: [],
+            suspendedPaths: executionContext.suspendedPaths,
+            // @ts-ignore
+            timestamp: Date.now(),
+          },
+        },
+      },
+      { depth: 10 },
+    );
     await this.mastra?.getStorage()?.persistWorkflowSnapshot({
       workflowName: workflowId,
       runId,

@@ -134,6 +134,7 @@ export class InngestRun<
       name: `workflow.${this.workflowId}`,
       data: {
         inputData: params.resumeData,
+        runId: this.runId,
         stepResults: snapshot?.context as any,
         resume: {
           steps,
@@ -379,27 +380,41 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
   }): Promise<StepResult<any>> {
     if (step instanceof InngestWorkflow) {
       const isResume = !!resume?.steps?.length;
-      const runId = isResume
-        ? // @ts-ignore
-          (resume?.runId ?? stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId)
-        : randomUUID();
+      const runId = await this.inngestStep.run(
+        `workflow.${executionContext.workflowId}.step.${step.id}.runId`,
+        async () => {
+          const runId = isResume
+            ? // @ts-ignore
+              (resume?.runId ?? stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId ?? randomUUID())
+            : randomUUID();
+          return runId;
+        },
+      );
 
+      console.dir(
+        {
+          idOptions: {
+            resumeRunId: resume?.runId,
+            // @ts-ignore
+            stepResRunId: stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId,
+          },
+          usedRunId: runId,
+        },
+        { depth: 5 },
+      );
       let result: WorkflowResult<any, any>;
       if (isResume) {
-        const snapshot: any = await this.inngestStep.run(
-          `load-resume-snapshot.${executionContext.workflowId}.${runId}`,
-          async () => {
-            return this.mastra?.storage?.loadWorkflowSnapshot({
-              workflowName: executionContext.workflowId,
-              runId: runId,
-            });
-          },
-        );
+        console.dir({ stored: await this.mastra?.getStorage()?.getWorkflowRuns() }, { depth: 10 });
+        const snapshot: any = await this.mastra?.getStorage()?.loadWorkflowSnapshot({
+          workflowName: step.id,
+          runId: runId,
+        });
 
         console.dir(
           {
+            workflowName: step.id,
+            runId: runId,
             nestedSnapshot: snapshot,
-            resumeStepResults: stepResults,
             data: {
               inputData: prevOutput,
               runId: runId,
@@ -457,6 +472,18 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
           // @ts-ignore
           const suspendPath: string[] = [stepName, ...(stepResult?.payload?.__workflow_meta?.path ?? [])];
           executionContext.suspendedPaths[step.id] = executionContext.executionPath;
+          console.dir(
+            {
+              suspend: {
+                runId,
+                executionContext,
+                suspendPath,
+                stepResult,
+                payload: { ...(stepResult as any)?.payload, __workflow_meta: { runId: runId, path: suspendPath } },
+              },
+            },
+            { depth: 5 },
+          );
           return {
             status: 'suspended',
             payload: { ...(stepResult as any)?.payload, __workflow_meta: { runId: runId, path: suspendPath } },
@@ -588,6 +615,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
               return result ? index : null;
               // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (e: unknown) {
+              console.log(e);
               return null;
             }
           }),
