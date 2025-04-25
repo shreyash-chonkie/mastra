@@ -75,7 +75,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     runtimeContext: RuntimeContext;
   }): Promise<TOutput> {
     const { workflowId, runId, graph, input, resume, retryConfig } = params;
-    console.log({ execute: { workflowId, runId, graph, input, resume, retryConfig } });
+    console.dir({ execute: { workflowId, runId, input, resume, retryConfig } }, { depth: 10 });
     const { attempts = 0, delay = 0 } = retryConfig ?? {};
     const steps = graph.steps;
 

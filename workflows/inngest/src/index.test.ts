@@ -4152,6 +4152,7 @@ describe('MastraInngestWorkflow', ctx => {
         });
 
         const other = vi.fn().mockImplementation(async ({ suspend, resumeData }) => {
+          console.log('resuming other?', resumeData);
           if (!resumeData) {
             await suspend();
           }

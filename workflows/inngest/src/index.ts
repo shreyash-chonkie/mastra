@@ -438,11 +438,11 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
             runId: runId,
             resume: {
               runId: runId,
-              steps: resume.steps,
+              steps: resume.steps.slice(1),
               stepResults: snapshot?.context as any,
               resumePayload: resume.resumePayload,
               // @ts-ignore
-              resumePath: snapshot?.suspendedPaths?.[resume.steps?.[0]] as any,
+              resumePath: snapshot?.suspendedPaths?.[resume.steps?.[1]] as any,
             },
           },
         })) as any;
