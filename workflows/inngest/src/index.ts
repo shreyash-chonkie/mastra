@@ -386,10 +386,15 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
 
       let result: WorkflowResult<any, any>;
       if (isResume) {
-        const snapshot = await this.mastra?.storage?.loadWorkflowSnapshot({
-          workflowName: executionContext.workflowId,
-          runId: runId,
-        });
+        const snapshot: any = await this.inngestStep.run(
+          `load-resume-snapshot.${executionContext.workflowId}.${runId}`,
+          async () => {
+            return this.mastra?.storage?.loadWorkflowSnapshot({
+              workflowName: executionContext.workflowId,
+              runId: runId,
+            });
+          },
+        );
 
         console.dir(
           {
@@ -466,16 +471,40 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     }
 
     const stepRes = await this.inngestStep.run(`workflow.${executionContext.workflowId}.step.${step.id}`, async () => {
-      // TODO: redo super.executeStep here so that it doesn't use side effects to populate executionContext or stepResults
-      const result = await super.executeStep({
-        step,
-        stepResults,
-        executionContext,
-        resume,
-        prevOutput,
-        emitter,
+      let execResults: any;
+      let suspended: { payload: any } | undefined;
+      const result = await step.execute({
+        mastra: this.mastra!,
         runtimeContext,
+        inputData: prevOutput,
+        resumeData: resume?.steps[0] === step.id ? resume?.resumePayload : undefined,
+        getInitData: () => stepResults?.input as any,
+        getStepResult: (step: any) => {
+          const result = stepResults[step.id];
+          if (result?.status === 'success') {
+            return result.output;
+          }
+
+          return null;
+        },
+        suspend: async (suspendPayload: any) => {
+          executionContext.suspendedPaths[step.id] = executionContext.executionPath;
+          suspended = { payload: suspendPayload };
+        },
+        resume: {
+          steps: resume?.steps?.slice(1) || [],
+          resumePayload: resume?.resumePayload,
+          // @ts-ignore
+          runId: stepResults[step.id]?.payload?.__workflow_meta?.runId,
+        },
+        emitter,
       });
+
+      if (suspended) {
+        execResults = { status: 'suspended', payload: suspended.payload };
+      } else {
+        execResults = { status: 'success', output: result };
+      }
 
       if (result.status === 'failed') {
         if (executionContext.retryConfig.attempts > 0 && this.inngestAttempts < executionContext.retryConfig.attempts) {
@@ -488,7 +517,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
         };
       }
 
-      return { result, executionContext, stepResults };
+      return { result: execResults, executionContext, stepResults };
     });
 
     // @ts-ignore
