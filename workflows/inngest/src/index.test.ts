@@ -62,6 +62,7 @@ describe('MastraInngestWorkflow', ctx => {
         }),
         steps: [step1],
       });
+      workflow.then(step1).commit();
 
       const mastra = new Mastra({
         storage: new DefaultStorage({
@@ -73,7 +74,6 @@ describe('MastraInngestWorkflow', ctx => {
           'test-workflow': workflow,
         },
       });
-      workflow.then(step1).commit();
 
       const app = new Hono();
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
@@ -939,7 +939,7 @@ describe('MastraInngestWorkflow', ctx => {
     });
   });
 
-  describe.sequential('Error Handling', () => {
+  describe('Error Handling', () => {
     it('should handle step execution errors', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
@@ -2016,7 +2016,7 @@ describe('MastraInngestWorkflow', ctx => {
     });
   });
 
-  describe.sequential('Retry', () => {
+  describe('Retry', () => {
     it('should retry a step default 0 times', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
@@ -4123,9 +4123,8 @@ describe('MastraInngestWorkflow', ctx => {
       });
     });
 
-    // TODO: fix suspending and resuming
     describe('suspending and resuming nested workflows', () => {
-      it.only('should be able to suspend nested workflow step', async ctx => {
+      it('should be able to suspend nested workflow step', async ctx => {
         const ingest = new Inngest({
           id: 'mastra',
           baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
@@ -4584,8 +4583,6 @@ describe('MastraInngestWorkflow', ctx => {
       const run = counterWorkflow.createRun();
       const result = await run.start({ inputData: { startValue: 0 } });
 
-      srv.close();
-
       expect(passthroughStep.execute).toHaveBeenCalledTimes(2);
       expect(result.steps['nested-workflow-c']).toMatchObject({
         status: 'suspended',
@@ -4604,6 +4601,8 @@ describe('MastraInngestWorkflow', ctx => {
       }
       expect(result.suspended[0]).toEqual(['nested-workflow-c', 'nested-workflow-b', 'nested-workflow-a', 'other']);
       const resumedResults = await run.resume({ step: result.suspended[0], resumeData: { newValue: 0 } });
+
+      srv.close();
 
       // @ts-ignore
       expect(resumedResults.steps['nested-workflow-c'].output).toEqual({

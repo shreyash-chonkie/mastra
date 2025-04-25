@@ -380,30 +380,24 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
   }): Promise<StepResult<any>> {
     if (step instanceof InngestWorkflow) {
       const isResume = !!resume?.steps?.length;
-      const runId = await this.inngestStep.run(
-        `workflow.${executionContext.workflowId}.step.${step.id}.runId`,
-        async () => {
-          const runId = isResume
-            ? // @ts-ignore
-              (resume?.runId ?? stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId ?? randomUUID())
-            : randomUUID();
-          return runId;
-        },
-      );
-
-      console.dir(
-        {
-          idOptions: {
-            resumeRunId: resume?.runId,
-            // @ts-ignore
-            stepResRunId: stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId,
-          },
-          usedRunId: runId,
-        },
-        { depth: 5 },
-      );
       let result: WorkflowResult<any, any>;
+      let runId: string;
       if (isResume) {
+        // @ts-ignore
+        runId = resume?.runId ?? stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId ?? randomUUID();
+
+        console.dir(
+          {
+            idOptions: {
+              resumeRunId: resume?.runId,
+              // @ts-ignore
+              stepResRunId: stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId,
+            },
+            usedRunId: runId,
+          },
+          { depth: 5 },
+        );
+
         console.dir({ stored: await this.mastra?.getStorage()?.getWorkflowRuns() }, { depth: 10 });
         const snapshot: any = await this.mastra?.getStorage()?.loadWorkflowSnapshot({
           workflowName: step.id,
@@ -420,11 +414,11 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
               runId: runId,
               resume: {
                 runId: runId,
-                steps: resume.steps,
+                steps: resume.steps.slice(1),
                 stepResults: snapshot?.context as any,
                 resumePayload: resume.resumePayload,
                 // @ts-ignore
-                resumePath: snapshot?.suspendedPaths?.[resume.steps?.[0]] as any,
+                resumePath: snapshot?.suspendedPaths?.[resume.steps?.[1]] as any,
               },
             },
           },
@@ -447,11 +441,17 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
           },
         })) as any;
       } else {
+        runId = await this.inngestStep.run(
+          `workflow.${executionContext.workflowId}.step.${step.id}.runId`,
+          async () => {
+            return randomUUID();
+          },
+        );
         result = (await this.inngestStep.invoke(`workflow.${executionContext.workflowId}.step.${step.id}`, {
           function: step.getFunction(),
           data: {
             inputData: prevOutput,
-            runId: runId,
+            runId,
           },
         })) as any;
       }
@@ -500,48 +500,47 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     const stepRes = await this.inngestStep.run(`workflow.${executionContext.workflowId}.step.${step.id}`, async () => {
       let execResults: any;
       let suspended: { payload: any } | undefined;
-      const result = await step.execute({
-        mastra: this.mastra!,
-        runtimeContext,
-        inputData: prevOutput,
-        resumeData: resume?.steps[0] === step.id ? resume?.resumePayload : undefined,
-        getInitData: () => stepResults?.input as any,
-        getStepResult: (step: any) => {
-          const result = stepResults[step.id];
-          if (result?.status === 'success') {
-            return result.output;
-          }
+      try {
+        const result = await step.execute({
+          mastra: this.mastra!,
+          runtimeContext,
+          inputData: prevOutput,
+          resumeData: resume?.steps[0] === step.id ? resume?.resumePayload : undefined,
+          getInitData: () => stepResults?.input as any,
+          getStepResult: (step: any) => {
+            const result = stepResults[step.id];
+            if (result?.status === 'success') {
+              return result.output;
+            }
 
-          return null;
-        },
-        suspend: async (suspendPayload: any) => {
-          executionContext.suspendedPaths[step.id] = executionContext.executionPath;
-          suspended = { payload: suspendPayload };
-        },
-        resume: {
-          steps: resume?.steps?.slice(1) || [],
-          resumePayload: resume?.resumePayload,
-          // @ts-ignore
-          runId: stepResults[step.id]?.payload?.__workflow_meta?.runId,
-        },
-        emitter,
-      });
+            return null;
+          },
+          suspend: async (suspendPayload: any) => {
+            executionContext.suspendedPaths[step.id] = executionContext.executionPath;
+            suspended = { payload: suspendPayload };
+          },
+          resume: {
+            steps: resume?.steps?.slice(1) || [],
+            resumePayload: resume?.resumePayload,
+            // @ts-ignore
+            runId: stepResults[step.id]?.payload?.__workflow_meta?.runId,
+          },
+          emitter,
+        });
+
+        execResults = { status: 'success', output: result };
+      } catch (e) {
+        execResults = { status: 'failed', error: e instanceof Error ? e.message : String(e) };
+      }
 
       if (suspended) {
         execResults = { status: 'suspended', payload: suspended.payload };
-      } else {
-        execResults = { status: 'success', output: result };
       }
 
-      if (result.status === 'failed') {
+      if (execResults.status === 'failed') {
         if (executionContext.retryConfig.attempts > 0 && this.inngestAttempts < executionContext.retryConfig.attempts) {
-          throw result.error;
+          throw execResults.error;
         }
-
-        return {
-          status: result.status,
-          error: result?.error instanceof Error ? result?.error?.message : result?.error,
-        };
       }
 
       return { result: execResults, executionContext, stepResults };
