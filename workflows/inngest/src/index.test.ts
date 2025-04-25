@@ -2354,7 +2354,6 @@ describe('MastraInngestWorkflow', ctx => {
     });
   });
 
-  // TODO: suspend and resume
   describe('Suspend and Resume', () => {
     afterAll(async () => {
       const pathToDb = path.join(process.cwd(), 'mastra.db');
@@ -4415,8 +4414,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
     });
 
-    // TODO: fix suspending and resuming
-    it.only('should be able to suspend nested workflow step in a nested workflow step', async ctx => {
+    it('should be able to suspend nested workflow step in a nested workflow step', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,

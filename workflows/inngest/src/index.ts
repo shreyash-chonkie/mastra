@@ -390,12 +390,13 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       let runId: string;
       if (isResume) {
         // @ts-ignore
-        runId = resume?.runId ?? stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId ?? randomUUID();
+        runId = stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId ?? randomUUID();
 
         console.dir(
           {
             idOptions: {
-              resumeRunId: resume?.runId,
+              workflowName: step.id,
+              runId,
               // @ts-ignore
               stepResRunId: stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId,
             },
