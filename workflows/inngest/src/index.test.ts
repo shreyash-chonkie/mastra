@@ -4247,20 +4247,6 @@ describe('MastraInngestWorkflow', ctx => {
         const run = counterWorkflow.createRun();
         const result = await run.start({ inputData: { startValue: 0 } });
 
-        const runs = await mastra?.getStorage()?.getWorkflowRuns();
-        if (runs) {
-          for (const run of runs.runs) {
-            const snapshot = await mastra?.getStorage()?.loadWorkflowSnapshot({
-              workflowName: run.workflowName,
-              runId: run.runId,
-            });
-            console.dir(
-              { workflowName: run.workflowName, runId: run.runId, inTestSnapshot: snapshot },
-              { depth: null },
-            );
-          }
-        }
-
         expect(begin).toHaveBeenCalledTimes(1);
         expect(start).toHaveBeenCalledTimes(1);
         expect(other).toHaveBeenCalledTimes(1);
@@ -4430,7 +4416,7 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     // TODO: fix suspending and resuming
-    it.skip('should be able to suspend nested workflow step in a nested workflow step', async ctx => {
+    it.only('should be able to suspend nested workflow step in a nested workflow step', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
@@ -4582,6 +4568,17 @@ describe('MastraInngestWorkflow', ctx => {
 
       const run = counterWorkflow.createRun();
       const result = await run.start({ inputData: { startValue: 0 } });
+
+      const runs = await mastra?.getStorage()?.getWorkflowRuns();
+      if (runs) {
+        for (const run of runs.runs) {
+          const snapshot = await mastra?.getStorage()?.loadWorkflowSnapshot({
+            workflowName: run.workflowName,
+            runId: run.runId,
+          });
+          console.dir({ workflowName: run.workflowName, runId: run.runId, inTestSnapshot: snapshot }, { depth: null });
+        }
+      }
 
       expect(passthroughStep.execute).toHaveBeenCalledTimes(2);
       expect(result.steps['nested-workflow-c']).toMatchObject({

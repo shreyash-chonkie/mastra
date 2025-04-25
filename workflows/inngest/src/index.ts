@@ -104,7 +104,7 @@ export class InngestRun<
     }
     const runOutput = await this.getRunOutput(eventId);
     console.dir({ runOutput }, { depth: null });
-    const result = runOutput?.output;
+    const result = runOutput?.output?.result;
     if (result.status === 'failed') {
       result.error = new Error(result.error);
     }
@@ -152,7 +152,7 @@ export class InngestRun<
     }
     const runOutput = await this.getRunOutput(eventId);
     console.dir({ runOutput }, { depth: null });
-    const result = runOutput?.output;
+    const result = runOutput?.output?.result;
     if (result.status === 'failed') {
       result.error = new Error(result.error);
     }
@@ -217,7 +217,13 @@ export class InngestWorkflow<
       { id: `workflow.${this.id}`, retries: this.retryConfig?.attempts ?? 0 },
       { event: `workflow.${this.id}` },
       async ({ event, step, attempt }) => {
-        const { inputData, runId, resume } = event.data;
+        let { inputData, runId, resume } = event.data;
+
+        if (!runId) {
+          runId = await step.run(`workflow.${this.id}.runIdGen`, async () => {
+            return randomUUID();
+          });
+        }
 
         const engine = new InngestExecutionEngine(this.#mastra, step, attempt);
         const result = await engine.execute<z.infer<TInput>, WorkflowResult<TOutput, TSteps>>({
@@ -231,7 +237,7 @@ export class InngestWorkflow<
           resume,
         });
 
-        return result;
+        return { result, runId };
       },
     );
     return this.function;
@@ -425,7 +431,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
           { depth: 5 },
         );
 
-        result = (await this.inngestStep.invoke(`workflow.${executionContext.workflowId}.step.${step.id}`, {
+        const invokeResp = (await this.inngestStep.invoke(`workflow.${executionContext.workflowId}.step.${step.id}`, {
           function: step.getFunction(),
           data: {
             inputData: prevOutput,
@@ -440,20 +446,17 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
             },
           },
         })) as any;
+        result = invokeResp.result;
+        runId = invokeResp.runId;
       } else {
-        runId = await this.inngestStep.run(
-          `workflow.${executionContext.workflowId}.step.${step.id}.runId`,
-          async () => {
-            return randomUUID();
-          },
-        );
-        result = (await this.inngestStep.invoke(`workflow.${executionContext.workflowId}.step.${step.id}`, {
+        const invokeResp = (await this.inngestStep.invoke(`workflow.${executionContext.workflowId}.step.${step.id}`, {
           function: step.getFunction(),
           data: {
             inputData: prevOutput,
-            runId,
           },
         })) as any;
+        result = invokeResp.result;
+        runId = invokeResp.runId;
       }
 
       console.dir({ nestedResult: result }, { depth: 5 });
