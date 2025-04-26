@@ -2463,5 +2463,18 @@ describe('PgVector', () => {
 
       expect(db['pool'].options.ssl).toBe(false);
     });
+    it('should keep default values when custom values are added', async () => {
+      const db = new PgVector({
+        connectionString,
+        pgPoolOptions: {
+          ssl: false,
+        },
+      });
+
+      expect(db['pool'].options.max).toBe(20);
+      expect(db['pool'].options.idleTimeoutMillis).toBe(30000);
+      expect(db['pool'].options.connectionTimeoutMillis).toBe(2000);
+      expect(db['pool'].options.ssl).toBe(false);
+    });
   });
 });
