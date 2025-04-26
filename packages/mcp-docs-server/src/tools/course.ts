@@ -111,6 +111,16 @@ async function getDeviceCredentials(): Promise<{ deviceId: string; key: string }
   }
 }
 
+async function getDeviceId(): Promise<string | null> {
+  const creds = await getDeviceCredentials();
+
+  if (!creds || !creds?.deviceId) {
+    return null;
+  }
+
+  return creds.deviceId;
+}
+
 // Save the device credentials (deviceId and key)
 async function saveDeviceCredentials(deviceId: string, key: string): Promise<void> {
   const deviceIdPath = await getDeviceIdPath();
@@ -403,9 +413,9 @@ async function mergeCourseStates(currentState: CourseState, newState: CourseStat
 export const startMastraCourse = {
   name: 'startMastraCourse',
   description:
-    'Starts the Mastra Course. If the user is not registered, they will be prompted to register first. Otherwise, it will start at the first lesson or pick up where they last left off.',
+    'Starts the Mastra Course. If the user is not registered, they will be prompted to register first. Otherwise, it will start at the first lesson or pick up where they last left off. ALWAYS ask the user for their email address if they are not registered. DO NOT assume their email address, they must confirm their email and that they want to register.',
   parameters: z.object({
-    email: z.string().email().optional().describe('Email address for registration if not already registered'),
+    email: z.string().email().optional().describe('Email address for registration if not already registered. '),
   }),
   execute: async (args: { email?: string }) => {
     try {
