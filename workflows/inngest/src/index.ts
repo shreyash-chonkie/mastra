@@ -11,6 +11,7 @@ import type {
   WorkflowResult,
 } from '@mastra/core/workflows/vNext';
 import { Inngest, type BaseContext } from 'inngest';
+import { subscribe } from '@inngest/realtime';
 import { serve as inngestServe } from 'inngest/hono';
 import EventEmitter from 'events';
 import type { Mastra } from '@mastra/core';
@@ -158,6 +159,25 @@ export class InngestRun<
     }
     return result;
   }
+
+  watch(cb: (event: any) => void): () => void {
+    const streamPromise = subscribe(
+      {
+        channel: `workflow:${this.workflowId}:${this.runId}`,
+        topics: ['watch'],
+      },
+      (message: any) => {
+        console.log('message', message);
+        cb(message.data);
+      },
+    );
+
+    return () => {
+      streamPromise.then(stream => {
+        stream.cancel();
+      });
+    };
+  }
 }
 
 export class InngestWorkflow<
@@ -216,12 +236,23 @@ export class InngestWorkflow<
       // @ts-ignore
       { id: `workflow.${this.id}`, retries: this.retryConfig?.attempts ?? 0 },
       { event: `workflow.${this.id}` },
-      async ({ event, step, attempt }) => {
+      async ({ event, step, attempt, publish }) => {
         let { inputData, runId, resume } = event.data;
 
         if (!runId) {
           runId = await step.run(`workflow.${this.id}.runIdGen`, async () => {
             return randomUUID();
+          });
+        }
+
+        const emitter = new EventEmitter();
+        if (publish) {
+          emitter.on('watch', async (event: any) => {
+            await publish({
+              channel: `workflow:${this.id}:${runId}`,
+              topic: 'watch',
+              data: event,
+            });
           });
         }
 
@@ -231,7 +262,7 @@ export class InngestWorkflow<
           runId,
           graph: this.executionGraph,
           input: inputData,
-          emitter: new EventEmitter(), // TODO
+          emitter,
           retryConfig: this.retryConfig,
           runtimeContext: new RuntimeContext(), // TODO
           resume,

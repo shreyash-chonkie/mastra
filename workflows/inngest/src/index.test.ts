@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Inngest } from 'inngest';
+import { realtimeMiddleware } from '@inngest/realtime';
 
 import fs from 'fs';
 import path from 'path';
@@ -2196,11 +2197,12 @@ describe('MastraInngestWorkflow', ctx => {
   });
 
   // TODO: watch (can we support this on inngest?)
-  describe.skip('Watch', () => {
-    it('should watch workflow state changes and call onTransition', async ctx => {
+  describe('Watch', () => {
+    it.only('should watch workflow state changes and call onTransition', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
+        middleware: [realtimeMiddleware()],
       });
 
       const { createWorkflow, createStep } = init(ingest);
