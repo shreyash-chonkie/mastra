@@ -461,14 +461,23 @@ describe('AstraVector Integration Tests', () => {
         },
       ];
 
-      await vectorDB.upsert({
-        indexName: testIndexName2,
-        vectors,
-        metadata,
-      });
+      // retry 3 times if it fails
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await vectorDB.upsert({
+            indexName: testIndexName2,
+            vectors,
+            metadata,
+          });
+          break;
+        } catch (error) {
+          if (attempt === 3) throw error;
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+        }
+      }
       // Wait for indexing
       await new Promise(resolve => setTimeout(resolve, 2000));
-    });
+    }, 10 * 1000);
 
     describe('Basic Comparison Operators', () => {
       it('filters with $eq operator', async () => {
