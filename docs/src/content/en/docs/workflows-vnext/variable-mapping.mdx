@@ -1,0 +1,26 @@
+```typescript
+myWorkflow
+  .then(step1)
+  .map({
+    transformedValue: {
+      step: step1,
+      path: "nestedValue",
+    },
+    runtimeContextValue: {
+      runtimeContextPath: "runtimeContextValue",
+      schema: z.number(),
+    },
+    constantValue: {
+      value: 42,
+      schema: z.number(),
+    },
+    initDataValue: {
+      initData: myWorkflow,
+      path: "startValue",
+    },
+  })
+  .then(step2)
+  .commit();
+```
+
+This allows explicit mapping of values from one step's output to another step's input.

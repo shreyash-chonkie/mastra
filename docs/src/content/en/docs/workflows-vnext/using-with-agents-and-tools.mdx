@@ -1,0 +1,53 @@
+## Agent as a step
+
+vNext workflows can use Mastra agents directly as steps using `createStep(agent)`:
+
+```typescript
+// Agent defined elsewhere
+const myAgent = new Agent({
+  name: "myAgent",
+  instructions: "...",
+  model: openai("gpt-4"),
+});
+
+// Create Mastra instance with agent
+const mastra = new Mastra({
+  agents: {
+    myAgent,
+  },
+  vnext_workflows: {
+    myWorkflow,
+  },
+});
+
+// Use agent in workflow
+myWorkflow
+  .then(preparationStep)
+  .map({
+    prompt: {
+      step: preparationStep,
+      path: "formattedPrompt",
+    },
+  })
+  .then(createStep(myAgent)) // Use agent directly as a step
+  .then(processResultStep)
+  .commit();
+```
+
+## Tools as a step
+
+vNext workflows can use Mastra tools directly as steps using `createStep(tool)`:
+
+```typescript
+const myTool = createTool({
+  id: "my-tool",
+  description: "My tool",
+  inputSchema: z.object({}),
+  outputSchema: z.object({}),
+  execute: async ({ inputData }) => {
+    return { result: "success" };
+  },
+});
+
+myWorkflow.then(createStep(myTool)).then(finalStep).commit();
+```
