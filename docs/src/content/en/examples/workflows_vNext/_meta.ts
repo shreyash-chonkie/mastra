@@ -8,7 +8,7 @@ const meta = {
   "calling-agent": "Calling an Agent",
   "suspend-and-resume": "Suspend and Resume",
   "using-a-tool-as-a-step": "Using a Tool as a Step",
-  "variable-mapping": "Workflow Variables",
+  "input-data-mapping": "Input Data Mapping",
 };
 
 export default meta;
