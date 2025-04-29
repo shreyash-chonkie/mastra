@@ -172,6 +172,10 @@ const mainWorkflow = createWorkflow({
   .commit();
 ```
 
+In the above example, the `nestedWorkflow` is used as a step in the `mainWorkflow`, where the `inputSchema` of `nestedWorkflow` matches the `outputSchema` of `initialStep`, and the `outputSchema` of `nestedWorkflow` matches the `inputSchema` of `finalStep`.
+
+Nested workflows are the main (and only) way compose execution flows beyond simple sequential execution. When using `.branch()` or `.parallel()` to compose execution flows, executing more than just one step necessarily requires a nested workflow, and as a byproduct, a description of how these steps are to be executed.
+
 ```typescript
 const planBothWorkflow = createWorkflow({
   id: "plan-both-workflow",
