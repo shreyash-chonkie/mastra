@@ -1,4 +1,11 @@
-Variable mapping allows explicit mapping of values for the inputs of the next step. These values can come from a number of sources:
+---
+title: "Input Data Mapping with Workflow (vNext) | Mastra Docs"
+description: "Learn how to use workflow input mapping to create more dynamic data flows in your Mastra workflows (vNext)."
+---
+
+# Input Data Mapping
+
+Input data mapping allows explicit mapping of values for the inputs of the next step. These values can come from a number of sources:
 
 - The outputs of a previous step
 - The runtime context
@@ -34,7 +41,7 @@ There are many cases where `.map()` can be useful in matching inputs to outputs,
 
 ## Renaming outputs
 
-One use case for variable mappings is renaming outputs to match inputs:
+One use case for input mappings is renaming outputs to match inputs:
 
 ```typescript
 const step1 = createStep({
