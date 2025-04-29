@@ -51,3 +51,74 @@ const myTool = createTool({
 
 myWorkflow.then(createStep(myTool)).then(finalStep).commit();
 ```
+
+## Workflow as a tool in an agent
+
+```typescript
+import { Agent } from "@mastra/core/agent";
+import { createTool } from "@mastra/core/tools";
+import { createWorkflow, createStep } from "@mastra/core/workflows/vNext";
+
+const weatherWorkflow = createWorkflow({
+  steps: [fetchWeather, planActivities],
+  id: "weather-workflow-step1-single-day",
+  inputSchema: z.object({
+    city: z.string().describe("The city to get the weather for"),
+  }),
+  outputSchema: z.object({
+    activities: z.string(),
+  }),
+})
+  .then(fetchWeather)
+  .then(planActivities);
+
+const activityPlannerTool = createTool({
+  id: "get-weather-specific-activities",
+  description: "Get weather-specific activities for a city",
+  inputSchema: z.object({
+    city: z.string(),
+  }),
+  outputSchema: z.object({
+    activities: z.array(z.string()),
+  }),
+  execute: async ({ context, mastra }) => {
+    const plannerWorkflow = mastra?.getWorkflow("my-workflow");
+    if (!plannerWorkflow) {
+      throw new Error("Planner workflow not found");
+    }
+
+    const run = plannerWorkflow.createRun();
+    const results = await run.start({
+      triggerData: {
+        city: context.city,
+      },
+    });
+    const planActivitiesStep = results.results["plan-activities"];
+    if (planActivitiesStep.status === "success") {
+      return planActivitiesStep.output;
+    }
+
+    return {
+      activities: "No activities found",
+    };
+  },
+});
+
+const activityPlannerAgent = new Agent({
+  name: "activityPlannerAgent",
+  model: openai("gpt-4o"),
+  instructions: `
+  You are an activity planner. You have access to a tool that will help you get weather-specific activities for any city. The tool uses agents to plan the activities, you just need to provide the city. Whatever information you get back, return it as is and add your own thoughts on top of it.
+  `,
+  tools: { activityPlannerTool },
+});
+
+export const mastra = new Mastra({
+  vnext_workflows: {
+    "my-workflow": myWorkflow,
+  },
+  agents: {
+    activityPlannerAgent,
+  },
+});
+```
