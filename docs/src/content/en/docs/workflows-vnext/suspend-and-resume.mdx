@@ -1,31 +1,28 @@
-vNext workflows support pausing and resuming execution for user interaction:
+---
+title: "Suspend & Resume Workflows (vNext) | Human-in-the-Loop | Mastra Docs"
+description: "Suspend and resume in Mastra vNext workflows allows you to pause execution while waiting for external input or resources."
+---
 
-```typescript
-const userInputStep = createStep({
-  id: "get-user-input",
-  inputSchema: z.object({}),
-  resumeSchema: z.object({
-    userSelection: z.string(),
-  }),
-  suspendSchema: z.object({
-    suspendContext: z.string(),
-  }),
-  outputSchema: z.object({
-    userSelection: z.string(),
-  }),
-  execute: async ({ resumeData, suspend }) => {
-    if (!resumeData?.userSelection) {
-      // Suspend the workflow until user provides input
-      await suspend({
-        suspendContext: "Waiting for user selection",
-      });
-      return { userSelection: "" }; // This return is not used when suspended
-    }
-    // If userSelection exists, continue with it
-    return { userSelection: resumeData.userSelection };
-  },
-});
-```
+# Suspend and Resume in Workflows
+
+Complex workflows often need to pause execution while waiting for external input or resources.
+
+Mastra's suspend and resume features let you pause workflow execution at any step, persist the workflow snapshot to storage, and resume execution from the saved snapshot when ready.
+This entire process is automatically managed by Mastra. No config needed, or manual step required from the user.
+
+Storing the workflow snapshot to storage (LibSQL by default) means that the workflow state is permanently preserved across sessions, deployments, and server restarts. This persistence is crucial for workflows that might remain suspended for minutes, hours, or even days while waiting for external input or resources.
+
+## When to Use Suspend/Resume
+
+Common scenarios for suspending workflows include:
+
+- Waiting for human approval or input
+- Pausing until external API resources become available
+- Collecting additional data needed for later steps
+- Rate limiting or throttling expensive operations
+- Handling event-driven processes with external triggers
+
+## How to suspend a step
 
 ```typescript
 const humanInputStep = createStep({
@@ -58,7 +55,36 @@ const humanInputStep = createStep({
 });
 ```
 
-To resume a suspended workflow:
+## How to resume step execution
+
+### Identifying suspended state
+
+When running a workflow, its state can be one of the following:
+
+- `running` - The workflow is currently running
+- `suspended` - The workflow is suspended
+- `success` - The workflow has completed
+- `failed` - The workflow has failed
+
+When the state is `suspended`, you can identify any and all steps that have been suspended by looking at the `suspended` property of the workflow.
+
+```typescript
+const run = counterWorkflow.createRun();
+const result = await run.start({ inputData: { startValue: 0 } });
+
+if (result.status === "suspended") {
+  const resumedResults = await run.resume({
+    step: result.suspended[0],
+    resumeData: { newValue: 0 },
+  });
+}
+```
+
+In this case, the logic resumes whatever is the first step reported as suspended.
+
+The `suspended` property is of type `string[][]`, where every array is a path to a step that has been suspended, the first element being the step id on the main workflow. If that step is a workflow itself, the second element is the step id on the nested workflow that was suspended, unless it is a workflow itself, in which case the third element is the step id on the nested workflow that was suspended, and so on.
+
+### Resume
 
 ```typescript
 // After getting user input
