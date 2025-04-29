@@ -254,35 +254,7 @@ export type WorkflowResult<...> =
 
 5. **error**: Optional error object present when `status` is `'failed'`
 
-## Example Usage
-
-```typescript
-const result = await workflow.createRun().start({
-  inputData: {
-    /* ... */
-  },
-});
-
-if (result.status === "success") {
-  // Workflow completed successfully
-  console.log("Final result:", result.result);
-  console.log("Step outputs:", result.steps);
-} else if (result.status === "suspended") {
-  // Workflow is waiting for user input
-  console.log("Suspended steps:", result.suspended);
-  // Resume the workflow with user input
-  const resumedResult = await workflowRun.resume({
-    step: result.suspended[0],
-    resumeData: {
-      /* user input */
-    },
-  });
-} else if (result.status === "failed") {
-  // Workflow encountered an error
-  console.error("Workflow failed:", result.error);
-  throw result.error;
-}
-```
+## Watching Workflow Execution
 
 You can also watch workflow execution:
 
