@@ -12,7 +12,7 @@ This example demonstrates how to create a workflow that executes one or more of 
 ## Define Looping workflow
 Defines a workflow which calls the executes a nested workflow until the provided condition is met.
 
-```ts
+```ts showLineNumbers copy filename="looping-workflow.ts"
 import { createWorkflow, createStep } from '@mastra/core/workflows/vNext'
 import { z } from 'zod'
 
@@ -112,7 +112,7 @@ export { mastra }
 
 
 ## Execute the workflow
-Here, we'll get the weather workflow from the mastra instance, then create a run and execute the created run with the required inputData.
+Here, we'll get the increment workflow from the mastra instance, then create a run and execute the created run with the required inputData.
 
 ```ts showLineNumbers copy filename="exec.ts"
 import { mastra } from "./"
