@@ -73,7 +73,7 @@ export { planningAgent }
 Define the weather workflow with 3 steps: one to fetch the weather via a network call, one to plan activities, and another to plan only indoor activities.
 Both using the planning agent.
 
-```ts showLineNumbers copy
+```ts showLineNumbers copy filename="workflows/conditional-workflow.ts"
 import { z } from 'zod'
 import { createStep, createWorkflow } from './vNext'
 
@@ -304,10 +304,38 @@ const mastra = new Mastra({
 export { mastra }
 ```
 
+## Register Agent and Workflow with Mastra Instance
+Register the planning agent and weather workflow with the mastra instance.
+This is critical for enabling access to the planning agent within the weather workflow.
+
+```ts showLineNumbers copy filename="index.ts"
+import { Mastra } from '@mastra/core/mastra'
+import { createLogger } from '@mastra/core/logger'
+import { weatherWorkflow } from './workflows'
+import { planningAgent } from './agents'
+
+const mastra = new Mastra({
+  vnext_workflows: {
+    weatherWorkflow,
+  },
+  agents: {
+    planningAgent,
+  },
+  logger: createLogger({
+    name: 'Mastra',
+    level: 'info',
+  }),
+})
+
+export { mastra }
+```
+
 ## Execute the weather workflow
 Here, we'll get the weather workflow from the mastra instance, then create a run and execute the created run with the required inputData.
 
-```ts showLineNumbers copy
+```ts showLineNumbers copy filename="exec.ts"
+import { mastra } from "./"
+
 const workflow = mastra.getNewWorkflow('weatherWorkflow')
 const run = workflow.createRun()
 

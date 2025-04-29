@@ -69,7 +69,7 @@ export { planningAgent }
 
 ## Define Weather Workflow
 Define the weather workflow with 2 steps: one to fetch the weather via a network call, and another to plan activities using the planning agent.
-```ts showLineNumbers copy filename="workflows/weather-workflow.ts"
+```ts showLineNumbers copy filename="workflows/agent-workflow.ts"
 import { createWorkflow, createStep } from '@mastra/core/workflows/vNext'
 import { z } from 'zod'
 
@@ -248,7 +248,12 @@ export { mastra }
 ## Execute the weather workflow
 Here, we'll get the weather workflow from the mastra instance, then create a run and execute the created run with the required inputData.
 
-```ts showLineNumbers copy
+## Execute the weather workflow
+Here, we'll get the weather workflow from the mastra instance, then create a run and execute the created run with the required inputData.
+
+```ts showLineNumbers copy filename="exec.ts"
+import { mastra } from "./"
+
 const workflow = mastra.getNewWorkflow('weatherWorkflow')
 const run = workflow.createRun()
 
