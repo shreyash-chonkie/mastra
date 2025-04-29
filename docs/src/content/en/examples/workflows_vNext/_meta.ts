@@ -1,13 +1,11 @@
 const meta = {
-  "creating-a-workflow": "Creating a Workflow",
-  "sequential-steps": "Sequential Steps",
-  "parallel-steps": "Parallel Steps",
-  "branching-paths": "Branching Paths",
   "conditional-branching": "Conditional Branching",
-  "human-in-the-loop": "Human in the Loop",
+  "parallel-steps": "Parallel Steps",
   "calling-agent": "Calling an Agent",
-  "using-a-tool-as-a-step": "Using a Tool as a Step",
-  "input-data-mapping": "Input Data Mapping",
+  "agent-and-tool-interop": "Using a Tool/Agent as a Step",
+  "human-in-the-loop": "Human in the Loop",
+  "control-flow": "Control flow",
+  // "input-data-mapping": "Input Data Mapping",
 };
 
 export default meta;
