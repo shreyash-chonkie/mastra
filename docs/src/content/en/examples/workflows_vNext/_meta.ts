@@ -6,7 +6,6 @@ const meta = {
   "conditional-branching": "Conditional Branching",
   "human-in-the-loop": "Human in the Loop",
   "calling-agent": "Calling an Agent",
-  "suspend-and-resume": "Suspend and Resume",
   "using-a-tool-as-a-step": "Using a Tool as a Step",
   "input-data-mapping": "Input Data Mapping",
 };
