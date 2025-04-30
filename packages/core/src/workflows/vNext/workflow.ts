@@ -603,7 +603,7 @@ export class NewWorkflow<
       resumePayload: any;
       runId?: string;
     };
-    emitter: EventEmitter;
+    emitter: { emit: (event: string, data: any) => void };
     mastra: Mastra;
   }): Promise<z.infer<TOutput>> {
     this.__registerMastra(mastra);

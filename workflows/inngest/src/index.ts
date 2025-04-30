@@ -161,16 +161,19 @@ export class InngestRun<
   }
 
   watch(cb: (event: any) => void): () => void {
-    const streamPromise = subscribe(
-      {
-        channel: `workflow:${this.workflowId}:${this.runId}`,
-        topics: ['watch'],
-      },
-      (message: any) => {
-        console.log('message', message);
+    console.log('WATCHING', `workflow:${this.workflowId}:${this.runId}`);
+    const streamPromise = subscribe({
+      channel: `workflow:${this.workflowId}:${this.runId}`,
+      topics: ['watch'],
+      app: this.inngest,
+    });
+
+    streamPromise.then(async stream => {
+      for await (const message of stream) {
+        console.log('--- message ---', message);
         cb(message.data);
-      },
-    );
+      }
+    });
 
     return () => {
       streamPromise.then(stream => {
@@ -245,16 +248,18 @@ export class InngestWorkflow<
           });
         }
 
-        const emitter = new EventEmitter();
-        if (publish) {
-          emitter.on('watch', async (event: any) => {
-            await publish({
+        const emitter = {
+          emit: (event: string, data: any) => {
+            console.log('emitting', event, data, `workflow:${this.id}:${runId}`);
+            publish({
               channel: `workflow:${this.id}:${runId}`,
               topic: 'watch',
-              data: event,
+              data,
+            }).catch((err: Error | string) => {
+              console.error('Error emitting event', err);
             });
-          });
-        }
+          },
+        };
 
         const engine = new InngestExecutionEngine(this.#mastra, step, attempt);
         const result = await engine.execute<z.infer<TInput>, WorkflowResult<TOutput, TSteps>>({
@@ -374,7 +379,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       resumePayload: any;
     };
     prevOutput: any;
-    emitter: EventEmitter;
+    emitter: { emit: (event: string, data: any) => void };
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     return super.executeStep({
@@ -412,7 +417,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       runId?: string;
     };
     prevOutput: any;
-    emitter: EventEmitter;
+    emitter: { emit: (event: string, data: any) => void };
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     if (step instanceof InngestWorkflow) {
@@ -494,8 +499,44 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       console.dir({ nestedResult: result }, { depth: 5 });
 
       if (result.status === 'success') {
+        emitter.emit('watch', {
+          type: 'watch',
+          payload: {
+            currentStep: {
+              id: step.id,
+              status: 'success',
+              output: result?.result,
+            },
+            workflowState: {
+              status: 'running',
+              steps: stepResults,
+              result: null,
+              error: null,
+            },
+          },
+          eventTimestamp: Date.now(),
+        });
+
         return { status: 'success', output: result?.result };
       } else if (result.status === 'failed') {
+        emitter.emit('watch', {
+          type: 'watch',
+          payload: {
+            currentStep: {
+              id: step.id,
+              status: 'failed',
+              error: result?.error,
+            },
+            workflowState: {
+              status: 'running',
+              steps: stepResults,
+              result: null,
+              error: null,
+            },
+          },
+          eventTimestamp: Date.now(),
+        });
+
         return { status: 'failed', error: result?.error };
       } else if (result.status === 'suspended') {
         const suspendedSteps = Object.entries(result.steps).filter(([_stepName, stepResult]) => {
@@ -519,11 +560,48 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
             },
             { depth: 5 },
           );
+
+          emitter.emit('watch', {
+            type: 'watch',
+            payload: {
+              currentStep: {
+                id: step.id,
+                status: 'suspended',
+                payload: { ...(stepResult as any)?.payload, __workflow_meta: { runId: runId, path: suspendPath } },
+              },
+              workflowState: {
+                status: 'running',
+                steps: stepResults,
+                result: null,
+                error: null,
+              },
+            },
+            eventTimestamp: Date.now(),
+          });
+
           return {
             status: 'suspended',
             payload: { ...(stepResult as any)?.payload, __workflow_meta: { runId: runId, path: suspendPath } },
           };
         }
+
+        emitter.emit('watch', {
+          type: 'watch',
+          payload: {
+            currentStep: {
+              id: step.id,
+              status: 'suspended',
+              payload: {},
+            },
+            workflowState: {
+              status: 'running',
+              steps: stepResults,
+              result: null,
+              error: null,
+            },
+          },
+          eventTimestamp: Date.now(),
+        });
 
         return {
           status: 'suspended',
@@ -578,6 +656,8 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
         }
       }
 
+      console.log('emitting', step.id, execResults);
+
       return { result: execResults, executionContext, stepResults };
     });
 
@@ -585,6 +665,24 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     Object.assign(executionContext, stepRes.executionContext);
     // @ts-ignore
     Object.assign(stepResults, stepRes.stepResults);
+
+    emitter.emit('watch', {
+      type: 'watch',
+      payload: {
+        currentStep: {
+          id: step.id,
+          status: stepRes.result.status,
+          output: stepRes.result.output,
+        },
+        workflowState: {
+          status: 'running',
+          steps: stepResults,
+          result: null,
+          error: null,
+        },
+      },
+      eventTimestamp: Date.now(),
+    });
 
     // @ts-ignore
     return stepRes.result;

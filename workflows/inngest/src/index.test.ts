@@ -2196,7 +2196,6 @@ describe('MastraInngestWorkflow', ctx => {
     }, 10000);
   });
 
-  // TODO: watch (can we support this on inngest?)
   describe('Watch', () => {
     it.only('should watch workflow state changes and call onTransition', async ctx => {
       const ingest = new Inngest({
@@ -2257,10 +2256,11 @@ describe('MastraInngestWorkflow', ctx => {
 
       // Start watching the workflow
       run.watch(onTransition);
+      run.watch(e => console.log('evvv', e));
 
       const executionResult = await run.start({ inputData: {} });
 
-      expect(onTransition).toHaveBeenCalledTimes(2);
+      expect(onTransition).toHaveBeenCalledTimes(3);
       expect(onTransition).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'watch',
@@ -2295,6 +2295,7 @@ describe('MastraInngestWorkflow', ctx => {
       const ingest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
+        middleware: [realtimeMiddleware()],
       });
 
       const { createWorkflow, createStep } = init(ingest);
@@ -2323,6 +2324,26 @@ describe('MastraInngestWorkflow', ctx => {
       });
       workflow.then(step1).then(step2).commit();
 
+      const mastra = new Mastra({
+        storage: new DefaultStorage({
+          config: {
+            url: ':memory:',
+          },
+        }),
+        vnext_workflows: {
+          'test-workflow': workflow,
+        },
+      });
+
+      const app = new Hono();
+      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+
+      const srv = serve({
+        fetch: app.fetch,
+        port: (ctx as any).handlerPort,
+      });
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       const onTransition = vi.fn();
       const onTransition2 = vi.fn();
 
@@ -2350,6 +2371,8 @@ describe('MastraInngestWorkflow', ctx => {
       run3.watch(onTransition);
 
       await run3.start({ inputData: {} });
+
+      srv.close();
 
       expect(onTransition).toHaveBeenCalledTimes(4);
       expect(onTransition2).toHaveBeenCalledTimes(4);

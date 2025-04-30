@@ -46,7 +46,7 @@ export abstract class ExecutionEngine extends MastraBase {
       resumePayload: any;
       resumePath: number[];
     };
-    emitter: EventEmitter;
+    emitter: { emit: (event: string, data: any) => void };
     runtimeContext: RuntimeContext;
     retryConfig?: {
       attempts?: number;
