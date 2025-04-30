@@ -1,5 +1,52 @@
 # @mastra/speech-ibm
 
+## 0.1.20-alpha.7
+
+### Patch Changes
+
+- Updated dependencies [1d3b1cd]
+  - @mastra/core@0.9.1-alpha.7
+
+## 0.1.20-alpha.6
+
+### Patch Changes
+
+- Updated dependencies [c23a81c]
+  - @mastra/core@0.9.1-alpha.6
+
+## 0.1.20-alpha.5
+
+### Patch Changes
+
+- Updated dependencies [3e7b69d]
+  - @mastra/core@0.9.1-alpha.5
+
+## 0.1.20-alpha.4
+
+### Patch Changes
+
+- 35d5697: dependencies updates:
+  - Updated dependency [`zod@^3.24.3` ↗︎](https://www.npmjs.com/package/zod/v/3.24.3) (from `^3.24.2`, in `dependencies`)
+- Updated dependencies [e4943b8]
+- Updated dependencies [479f490]
+  - @mastra/core@0.9.1-alpha.4
+
+## 0.1.20-alpha.3
+
+### Patch Changes
+
+- Updated dependencies [6262bd5]
+  - @mastra/core@0.9.1-alpha.3
+
+## 0.1.20-alpha.2
+
+### Patch Changes
+
+- Updated dependencies [405b63d]
+- Updated dependencies [61e92f5]
+- Updated dependencies [c71013a]
+  - @mastra/core@0.9.1-alpha.2
+
 ## 0.1.20-alpha.1
 
 ### Patch Changes

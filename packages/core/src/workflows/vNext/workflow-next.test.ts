@@ -8,7 +8,7 @@ import { Agent } from '../../agent';
 import { RuntimeContext } from '../../di';
 import { DefaultStorage } from '../../storage/libsql';
 import type { WatchEvent } from './types';
-import { createStep, createWorkflow } from './workflow';
+import { cloneStep, cloneWorkflow, createStep, createWorkflow } from './workflow';
 
 describe('Workflow', () => {
   describe('Basic Workflow Execution', () => {
@@ -546,6 +546,61 @@ describe('Workflow', () => {
           step1: { status: 'success', output: [{ str: 'step1-data' }] },
           step2: { status: 'success', output: { result: 'success', input: [{ str: 'step1-data' }] } },
         });
+      });
+
+      it('should resolve constant values via .map()', async () => {
+        const execute = vi.fn<any>().mockResolvedValue({ result: 'success' });
+        const triggerSchema = z.object({
+          cool: z.string(),
+        });
+
+        const step1 = createStep({
+          id: 'step1',
+          execute,
+          inputSchema: triggerSchema,
+          outputSchema: z.object({ result: z.string() }),
+        });
+
+        const step2 = createStep({
+          id: 'step2',
+          execute: async ({ inputData }) => {
+            return { result: inputData.candidates.map(c => c.name).join('') || 'none', second: inputData.iteration };
+          },
+          inputSchema: z.object({ candidates: z.array(z.object({ name: z.string() })), iteration: z.number() }),
+          outputSchema: z.object({ result: z.string(), second: z.number() }),
+        });
+
+        const workflow = createWorkflow({
+          id: 'test-workflow',
+          inputSchema: triggerSchema,
+          outputSchema: z.object({ result: z.string(), second: z.number() }),
+        });
+
+        workflow
+          .then(step1)
+          .map({
+            candidates: {
+              value: [],
+              schema: z.array(z.object({ name: z.string() })),
+            },
+            iteration: {
+              value: 0,
+              schema: z.number(),
+            },
+          })
+          .then(step2)
+          .commit();
+
+        const run = workflow.createRun();
+        const result = await run.start({ inputData: { cool: 'test-input' } });
+
+        expect(execute).toHaveBeenCalledWith(
+          expect.objectContaining({
+            inputData: { cool: 'test-input' },
+          }),
+        );
+
+        expect(result.steps.step2).toEqual({ status: 'success', output: { result: 'none', second: 0 } });
       });
     });
 
@@ -3105,6 +3160,117 @@ describe('Workflow', () => {
       expect(last).toHaveBeenCalledTimes(1);
       // @ts-ignore
       expect(result.steps['nested-workflow-a'].output).toEqual({
+        finalValue: 26 + 1,
+      });
+
+      // @ts-ignore
+      expect(result.steps['nested-workflow-b'].output).toEqual({
+        finalValue: 1,
+      });
+
+      expect(result.steps['last-step']).toEqual({
+        output: { success: true },
+        status: 'success',
+      });
+    });
+
+    it('should be able clone workflows as steps', async () => {
+      const start = vi.fn().mockImplementation(async ({ inputData }) => {
+        // Get the current value (either from trigger or previous increment)
+        const currentValue = inputData.startValue || 0;
+
+        // Increment the value
+        const newValue = currentValue + 1;
+
+        return { newValue };
+      });
+      const startStep = createStep({
+        id: 'start',
+        inputSchema: z.object({ startValue: z.number() }),
+        outputSchema: z.object({
+          newValue: z.number(),
+        }),
+        execute: start,
+      });
+
+      const other = vi.fn().mockImplementation(async () => {
+        return { other: 26 };
+      });
+      const otherStep = createStep({
+        id: 'other',
+        inputSchema: z.object({ newValue: z.number() }),
+        outputSchema: z.object({ other: z.number() }),
+        execute: other,
+      });
+
+      const final = vi.fn().mockImplementation(async ({ getStepResult }) => {
+        const startVal = getStepResult(startStep)?.newValue ?? 0;
+        const otherVal = getStepResult(cloneStep(otherStep, { id: 'other-clone' }))?.other ?? 0;
+        return { finalValue: startVal + otherVal };
+      });
+      const last = vi.fn().mockImplementation(async ({ inputData }) => {
+        console.log('inputData', inputData);
+        return { success: true };
+      });
+      const finalStep = createStep({
+        id: 'final',
+        inputSchema: z.object({ newValue: z.number(), other: z.number() }),
+        outputSchema: z.object({ success: z.boolean() }),
+        execute: final,
+      });
+
+      const counterWorkflow = createWorkflow({
+        id: 'counter-workflow',
+        inputSchema: z.object({
+          startValue: z.number(),
+        }),
+        outputSchema: z.object({ success: z.boolean() }),
+      });
+
+      const wfA = createWorkflow({
+        id: 'nested-workflow-a',
+        inputSchema: counterWorkflow.inputSchema,
+        outputSchema: z.object({ success: z.boolean() }),
+      })
+        .then(startStep)
+        .then(cloneStep(otherStep, { id: 'other-clone' }))
+        .then(finalStep)
+        .commit();
+      const wfB = createWorkflow({
+        id: 'nested-workflow-b',
+        inputSchema: counterWorkflow.inputSchema,
+        outputSchema: z.object({ success: z.boolean() }),
+      })
+        .then(startStep)
+        .then(cloneStep(finalStep, { id: 'final-clone' }))
+        .commit();
+
+      const wfAClone = cloneWorkflow(wfA, { id: 'nested-workflow-a-clone' });
+
+      counterWorkflow
+        .parallel([wfAClone, wfB])
+        .then(
+          createStep({
+            id: 'last-step',
+            inputSchema: z.object({
+              'nested-workflow-b': z.object({ success: z.boolean() }),
+              'nested-workflow-a-clone': z.object({ success: z.boolean() }),
+            }),
+            outputSchema: z.object({ success: z.boolean() }),
+            execute: last,
+          }),
+        )
+        .commit();
+
+      const run = counterWorkflow.createRun();
+      const result = await run.start({ inputData: { startValue: 0 } });
+
+      expect(start).toHaveBeenCalledTimes(2);
+      expect(other).toHaveBeenCalledTimes(1);
+      expect(final).toHaveBeenCalledTimes(2);
+      expect(last).toHaveBeenCalledTimes(1);
+      // @ts-ignore
+      expect(result.steps['nested-workflow-a-clone'].output).toEqual({
         finalValue: 26 + 1,
       });
 
