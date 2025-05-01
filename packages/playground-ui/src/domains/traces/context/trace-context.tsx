@@ -2,7 +2,7 @@ import { createContext, useState } from 'react';
 
 import type { Span, RefinedTrace } from '../types';
 
-type TraceContextType = {
+export type TraceContextType = {
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   trace: Span[] | null;
