@@ -28,7 +28,7 @@ describe('MastraInngestWorkflow', ctx => {
     const inngestPort = await getPort();
     const handlerPort = await getPort();
     const containerName = randomUUID();
-    await $`docker run --rm -d --name ${containerName} -p ${inngestPort}:${inngestPort} inngest/inngest inngest dev -p ${inngestPort} -u http://host.docker.internal:${handlerPort}/api/inngest`;
+    await $`docker run --rm -d --name ${containerName} -p ${inngestPort}:${inngestPort} inngest/inngest:v1.5.10 inngest dev -p ${inngestPort} -u http://host.docker.internal:${handlerPort}/api/inngest`;
 
     ctx.inngestPort = inngestPort;
     ctx.handlerPort = handlerPort;

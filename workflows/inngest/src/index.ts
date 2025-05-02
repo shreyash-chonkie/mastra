@@ -249,7 +249,7 @@ export class InngestWorkflow<
 
         const emitter = {
           emit: (event: string, data: any) => {
-            const copy = { ...data };
+            const copy = JSON.parse(JSON.stringify(data));
             publish({
               channel: `workflow:${this.id}:${runId}`,
               topic: 'watch',
