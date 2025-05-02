@@ -1,6 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, Tbody, Th, Row, Cell, DateTimeCell, UnitCell, TxtCell } from '@/ds/components/Table';
-
 import { Thead } from '@/ds/components/Table';
 import type { RefinedTrace } from '@/domains/traces/types';
 import { Badge } from '@/ds/components/Badge';
@@ -10,6 +9,7 @@ import { Txt } from '@/ds/components/Txt';
 import { useContext } from 'react';
 import { TraceContext } from './context/trace-context';
 import { Check, X } from 'lucide-react';
+import { Button } from '@/ds/components/Button';
 
 const TracesTableSkeleton = ({ colsCount }: { colsCount: number }) => {
   return (
@@ -52,7 +52,10 @@ const TracesTableError = ({ error, colsCount }: { error: { message: string }; co
 export interface TracesTableProps {
   traces: RefinedTrace[];
   isLoading: boolean;
-  error?: { message: string } | null;
+  error: { message: string } | null;
+  onLoadNew?: () => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
 }
 
 const TraceRow = ({ trace, index, isActive }: { trace: RefinedTrace; index: number; isActive: boolean }) => {
@@ -83,33 +86,51 @@ const TraceRow = ({ trace, index, isActive }: { trace: RefinedTrace; index: numb
   );
 };
 
-export const TracesTable = ({ traces, isLoading, error }: TracesTableProps) => {
+export const TracesTable = ({ traces, isLoading, error, onLoadNew, onLoadMore, hasMore }: TracesTableProps) => {
   const hasNoTraces = !traces || traces.length === 0;
   const { currentTraceIndex } = useContext(TraceContext);
   const colsCount = 4;
 
   return (
-    <Table size="small">
-      <Thead>
-        <Th width={120}>Time</Th>
-        <Th width="auto">Trace Id</Th>
-        <Th width={120}>Duration</Th>
-        <Th width={120}>Spans</Th>
-        <Th width={120}>Status</Th>
-      </Thead>
-      {isLoading ? (
-        <TracesTableSkeleton colsCount={colsCount} />
-      ) : error ? (
-        <TracesTableError error={error} colsCount={colsCount} />
-      ) : hasNoTraces ? (
-        <TracesTableEmpty colsCount={colsCount} />
-      ) : (
-        <Tbody>
-          {traces.map((trace, index) => (
-            <TraceRow key={trace.traceId} trace={trace} index={index} isActive={index === currentTraceIndex} />
-          ))}
-        </Tbody>
+    <div className="space-y-4">
+      {onLoadNew && (
+        <div className="flex justify-center mt-4">
+          <Button onClick={onLoadNew} disabled={isLoading}>
+            New Traces
+          </Button>
+        </div>
       )}
-    </Table>
+      <Table size="small">
+        <Thead>
+          <Th width={120}>Time</Th>
+          <Th width="auto">Trace Id</Th>
+          <Th width={120}>Duration</Th>
+          <Th width={120}>Spans</Th>
+          <Th width={120}>Status</Th>
+        </Thead>
+        {isLoading && !traces.length ? (
+          <TracesTableSkeleton colsCount={colsCount} />
+        ) : error ? (
+          <TracesTableError error={error} colsCount={colsCount} />
+        ) : hasNoTraces ? (
+          <TracesTableEmpty colsCount={colsCount} />
+        ) : (
+          <>
+            <Tbody>
+              {traces.map((trace, index) => (
+                <TraceRow key={trace.traceId} trace={trace} index={index} isActive={index === currentTraceIndex} />
+              ))}
+            </Tbody>
+          </>
+        )}
+      </Table>
+      {onLoadMore && (
+        <div className="flex justify-center mt-4">
+          <Button onClick={onLoadMore} disabled={isLoading || !hasMore}>
+            {hasMore ? 'More Traces' : 'No More Traces'}
+          </Button>
+        </div>
+      )}
+    </div>
   );
 };

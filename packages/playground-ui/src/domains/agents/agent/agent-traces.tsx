@@ -12,20 +12,40 @@ export interface AgentTracesProps {
   traces: RefinedTrace[];
   isLoading: boolean;
   error: { message: string } | null;
+  onLoadNew?: () => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
 }
 
-export function AgentTraces({ className, traces, isLoading, error }: AgentTracesProps) {
-  return <AgentTracesInner className={className} traces={traces} isLoading={isLoading} error={error} />;
+export function AgentTraces({ className, traces, isLoading, error, onLoadNew, onLoadMore, hasMore }: AgentTracesProps) {
+  return (
+    <AgentTracesInner
+      className={className}
+      traces={traces}
+      isLoading={isLoading}
+      error={error}
+      onLoadNew={onLoadNew}
+      onLoadMore={onLoadMore}
+      hasMore={hasMore}
+    />
+  );
 }
 
-function AgentTracesInner({ className, traces, isLoading, error }: AgentTracesProps) {
+function AgentTracesInner({ className, traces, isLoading, error, onLoadNew, onLoadMore, hasMore }: AgentTracesProps) {
   const [sidebarWidth, setSidebarWidth] = useState(100);
   const { isOpen: open } = useContext(TraceContext);
 
   return (
     <div className={clsx('h-full relative overflow-hidden flex', className)}>
       <div className="h-full overflow-y-scroll w-full">
-        <TracesTable traces={traces} isLoading={isLoading} error={error} />
+        <TracesTable
+          traces={traces}
+          isLoading={isLoading}
+          error={error}
+          onLoadNew={onLoadNew}
+          onLoadMore={onLoadMore}
+          hasMore={hasMore}
+        />
       </div>
 
       {open && <TracesSidebar width={sidebarWidth} onResize={setSidebarWidth} />}
