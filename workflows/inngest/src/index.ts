@@ -162,18 +162,17 @@ export class InngestRun<
 
   watch(cb: (event: any) => void): () => void {
     console.log('WATCHING', `workflow:${this.workflowId}:${this.runId}`);
-    const streamPromise = subscribe({
-      channel: `workflow:${this.workflowId}:${this.runId}`,
-      topics: ['watch'],
-      app: this.inngest,
-    });
-
-    streamPromise.then(async stream => {
-      for await (const message of stream) {
-        console.log('--- message ---', message);
+    const streamPromise = subscribe(
+      {
+        channel: `workflow:${this.workflowId}:${this.runId}`,
+        topics: ['watch'],
+        app: this.inngest,
+      },
+      message => {
+        console.dir({ data: message.data }, { depth: null });
         cb(message.data);
-      }
-    });
+      },
+    );
 
     return () => {
       streamPromise.then(stream => {
@@ -250,11 +249,11 @@ export class InngestWorkflow<
 
         const emitter = {
           emit: (event: string, data: any) => {
-            console.log('emitting', event, data, `workflow:${this.id}:${runId}`);
+            const copy = { ...data };
             publish({
               channel: `workflow:${this.id}:${runId}`,
               topic: 'watch',
-              data,
+              data: copy,
             }).catch((err: Error | string) => {
               console.error('Error emitting event', err);
             });
@@ -656,8 +655,6 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
         }
       }
 
-      console.log('emitting', step.id, execResults);
-
       return { result: execResults, executionContext, stepResults };
     });
 
@@ -666,6 +663,23 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     // @ts-ignore
     Object.assign(stepResults, stepRes.stepResults);
 
+    console.log('emitting', {
+      type: 'watch',
+      payload: {
+        currentStep: {
+          id: step.id,
+          status: stepRes.result.status,
+          output: stepRes.result.output,
+        },
+        workflowState: {
+          status: 'running',
+          steps: stepResults,
+          result: null,
+          error: null,
+        },
+      },
+      eventTimestamp: Date.now(),
+    });
     emitter.emit('watch', {
       type: 'watch',
       payload: {

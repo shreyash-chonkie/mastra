@@ -2259,6 +2259,7 @@ describe('MastraInngestWorkflow', ctx => {
       run.watch(e => console.log('evvv', e));
 
       const executionResult = await run.start({ inputData: {} });
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       expect(onTransition).toHaveBeenCalledTimes(3);
       expect(onTransition).toHaveBeenCalledWith(
