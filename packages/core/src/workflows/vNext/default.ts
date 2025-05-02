@@ -20,18 +20,44 @@ export type ExecutionContext = {
  * Default implementation of the ExecutionEngine using XState
  */
 export class DefaultExecutionEngine extends ExecutionEngine {
-  protected fmtReturnValue<TOutput>(
+  protected async fmtReturnValue<TOutput>(
+    emitter: { emit: (event: string, data: any) => Promise<void> },
     stepResults: Record<string, StepResult<any>>,
     lastOutput: StepResult<any>,
     error?: Error | string,
-  ): TOutput {
+  ): Promise<TOutput> {
     const base: any = {
       status: lastOutput.status,
       steps: stepResults,
     };
     if (lastOutput.status === 'success') {
+      await emitter.emit('watch', {
+        type: 'watch',
+        payload: {
+          workflowState: {
+            status: lastOutput.status,
+            steps: stepResults,
+            result: lastOutput.output,
+          },
+        },
+        eventTimestamp: Date.now(),
+      });
+
       base.result = lastOutput.output;
     } else if (lastOutput.status === 'failed') {
+      await emitter.emit('watch', {
+        type: 'watch',
+        payload: {
+          workflowState: {
+            status: lastOutput.status,
+            steps: stepResults,
+            result: null,
+            error: lastOutput.error,
+          },
+        },
+        eventTimestamp: Date.now(),
+      });
+
       base.error = error instanceof Error ? error : (lastOutput.error ?? new Error('Unknown error: ' + error));
     } else if (lastOutput.status === 'suspended') {
       const suspendedStepIds = Object.entries(stepResults).flatMap(([stepId, stepResult]) => {
@@ -43,6 +69,19 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         return [];
       });
       base.suspended = suspendedStepIds;
+
+      await emitter.emit('watch', {
+        type: 'watch',
+        payload: {
+          workflowState: {
+            status: lastOutput.status,
+            steps: stepResults,
+            result: null,
+            error: null,
+          },
+        },
+        eventTimestamp: Date.now(),
+      });
     }
 
     return base as TOutput;
@@ -66,7 +105,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       resumePayload: any;
       resumePath: number[];
     };
-    emitter: { emit: (event: string, data: any) => void };
+    emitter: { emit: (event: string, data: any) => Promise<void> };
     retryConfig?: {
       attempts?: number;
       delay?: number;
@@ -114,58 +153,16 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         });
         if (!lastOutput) console.log('WTF last output is undefined ???', workflowId, runId, entry);
         if (lastOutput.status !== 'success') {
-          if (entry.type === 'step') {
-            params.emitter.emit('watch', {
-              type: 'watch',
-              payload: {
-                workflowState: {
-                  status: lastOutput.status,
-                  steps: stepResults,
-                  result: null,
-                  error: lastOutput.error,
-                },
-              },
-              eventTimestamp: Date.now(),
-            });
-          }
-          return this.fmtReturnValue(stepResults, lastOutput);
+          return this.fmtReturnValue(params.emitter, stepResults, lastOutput);
         }
       } catch (e) {
         console.log('WTF', e, workflowId, runId, entry);
         this.logger.error('Error executing step: ' + ((e as Error)?.stack ?? e));
-        if (entry.type === 'step') {
-          params.emitter.emit('watch', {
-            type: 'watch',
-            payload: {
-              workflowState: {
-                status: 'failed',
-                steps: stepResults,
-                result: null,
-                error: e as Error,
-              },
-            },
-            eventTimestamp: Date.now(),
-          });
-        }
-
-        return this.fmtReturnValue(stepResults, lastOutput, e as Error);
+        return this.fmtReturnValue(params.emitter, stepResults, lastOutput, e as Error);
       }
     }
 
-    params.emitter.emit('watch', {
-      type: 'watch',
-      payload: {
-        workflowState: {
-          status: lastOutput.status,
-          steps: stepResults,
-          result: lastOutput.output,
-          error: lastOutput.error,
-        },
-      },
-      eventTimestamp: Date.now(),
-    });
-
-    return this.fmtReturnValue(stepResults, lastOutput);
+    return this.fmtReturnValue(params.emitter, stepResults, lastOutput);
   }
 
   getStepOutput(stepResults: Record<string, any>, step?: StepFlowEntry): any {
@@ -214,7 +211,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       resumePayload: any;
     };
     prevOutput: any;
-    emitter: { emit: (event: string, data: any) => void };
+    emitter: { emit: (event: string, data: any) => Promise<void> };
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     let execResults: any;
@@ -265,7 +262,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       }
     }
 
-    emitter.emit('watch', {
+    await emitter.emit('watch', {
       type: 'watch',
       payload: {
         currentStep: {
@@ -309,7 +306,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       resumePath: number[];
     };
     executionContext: ExecutionContext;
-    emitter: { emit: (event: string, data: any) => void };
+    emitter: { emit: (event: string, data: any) => Promise<void> };
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     let execResults: any;
@@ -382,7 +379,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       resumePath: number[];
     };
     executionContext: ExecutionContext;
-    emitter: { emit: (event: string, data: any) => void };
+    emitter: { emit: (event: string, data: any) => Promise<void> };
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     let execResults: any;
@@ -493,7 +490,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       resumePath: number[];
     };
     executionContext: ExecutionContext;
-    emitter: { emit: (event: string, data: any) => void };
+    emitter: { emit: (event: string, data: any) => Promise<void> };
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     const { step, condition } = entry;
@@ -564,7 +561,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       resumePath: number[];
     };
     executionContext: ExecutionContext;
-    emitter: { emit: (event: string, data: any) => void };
+    emitter: { emit: (event: string, data: any) => Promise<void> };
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     const { step, opts } = entry;
@@ -622,7 +619,7 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       resumePath: number[];
     };
     executionContext: ExecutionContext;
-    emitter: { emit: (event: string, data: any) => void };
+    emitter: { emit: (event: string, data: any) => Promise<void> };
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     const prevOutput = this.getStepOutput(stepResults, prevStep);
@@ -715,24 +712,6 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       stepResults[entry.step.id] = execResults;
     }
 
-    console.dir(
-      {
-        persistCall: {
-          workflowId,
-          runId,
-          snapshot: {
-            runId,
-            value: {},
-            context: stepResults as any,
-            activePaths: [],
-            suspendedPaths: executionContext.suspendedPaths,
-            // @ts-ignore
-            timestamp: Date.now(),
-          },
-        },
-      },
-      { depth: 10 },
-    );
     await this.mastra?.getStorage()?.persistWorkflowSnapshot({
       workflowName: workflowId,
       runId,

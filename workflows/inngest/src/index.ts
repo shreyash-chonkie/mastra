@@ -168,14 +168,24 @@ export class InngestRun<
         topics: ['watch'],
         app: this.inngest,
       },
-      message => {
-        console.dir({ data: message.data }, { depth: null });
+      (message: any) => {
+        console.dir({ subscribed: message.data }, { depth: null });
         cb(message.data);
       },
     );
 
+    streamPromise.then(async (stream: any) => {
+      for await (const message of stream) {
+        console.dir({ data: message.data }, { depth: null });
+        cb(message.data);
+      }
+
+      console.log('STREAM ENDED');
+    });
+
     return () => {
-      streamPromise.then(stream => {
+      streamPromise.then((stream: any) => {
+        console.log('CANCELLING', `workflow:${this.workflowId}:${this.runId}`);
         stream.cancel();
       });
     };
@@ -248,15 +258,22 @@ export class InngestWorkflow<
         }
 
         const emitter = {
-          emit: (event: string, data: any) => {
-            const copy = JSON.parse(JSON.stringify(data));
-            publish({
-              channel: `workflow:${this.id}:${runId}`,
-              topic: 'watch',
-              data: copy,
-            }).catch((err: Error | string) => {
+          emit: async (event: string, data: any) => {
+            console.dir(
+              { publish: { data, channel: `workflow:${this.id}:${runId}`, topic: 'watch' } },
+              { depth: null },
+            );
+
+            try {
+              await publish({
+                channel: `workflow:${this.id}:${runId}`,
+                topic: 'watch',
+                data,
+              });
+              console.log('FINISHED PUBLISHING EVENT', data);
+            } catch (err: any) {
               console.error('Error emitting event', err);
-            });
+            }
           },
         };
 
@@ -322,16 +339,29 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     this.inngestAttempts = inngestAttempts;
   }
 
-  protected fmtReturnValue<TOutput>(
+  protected async fmtReturnValue<TOutput>(
+    emitter: { emit: (event: string, data: any) => Promise<void> },
     stepResults: Record<string, StepResult<any>>,
     lastOutput: StepResult<any>,
     error?: Error | string,
-  ): TOutput {
+  ): Promise<TOutput> {
     const base: any = {
       status: lastOutput.status,
       steps: stepResults,
     };
     if (lastOutput.status === 'success') {
+      await emitter.emit('watch', {
+        type: 'watch',
+        payload: {
+          workflowState: {
+            status: lastOutput.status,
+            steps: stepResults,
+            result: lastOutput.output,
+          },
+        },
+        eventTimestamp: Date.now(),
+      });
+
       base.result = lastOutput.output;
     } else if (lastOutput.status === 'failed') {
       base.error =
@@ -340,7 +370,33 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
           : lastOutput?.error instanceof Error
             ? lastOutput.error.message
             : (lastOutput.error ?? error ?? 'Unknown error');
+
+      await emitter.emit('watch', {
+        type: 'watch',
+        payload: {
+          workflowState: {
+            status: lastOutput.status,
+            steps: stepResults,
+            result: null,
+            error: base.error,
+          },
+        },
+        eventTimestamp: Date.now(),
+      });
     } else if (lastOutput.status === 'suspended') {
+      await emitter.emit('watch', {
+        type: 'watch',
+        payload: {
+          workflowState: {
+            status: lastOutput.status,
+            steps: stepResults,
+            result: null,
+            error: null,
+          },
+        },
+        eventTimestamp: Date.now(),
+      });
+
       const suspendedStepIds = Object.entries(stepResults).flatMap(([stepId, stepResult]) => {
         if (stepResult?.status === 'suspended') {
           const nestedPath = stepResult?.payload?.__workflow_meta?.path;
@@ -378,7 +434,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       resumePayload: any;
     };
     prevOutput: any;
-    emitter: { emit: (event: string, data: any) => void };
+    emitter: { emit: (event: string, data: any) => Promise<void> };
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     return super.executeStep({
@@ -416,7 +472,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       runId?: string;
     };
     prevOutput: any;
-    emitter: { emit: (event: string, data: any) => void };
+    emitter: { emit: (event: string, data: any) => Promise<void> };
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     if (step instanceof InngestWorkflow) {
@@ -427,45 +483,10 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
         // @ts-ignore
         runId = stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId ?? randomUUID();
 
-        console.dir(
-          {
-            idOptions: {
-              workflowName: step.id,
-              runId,
-              // @ts-ignore
-              stepResRunId: stepResults[resume?.steps?.[0]]?.payload?.__workflow_meta?.runId,
-            },
-            usedRunId: runId,
-          },
-          { depth: 5 },
-        );
-
-        console.dir({ stored: await this.mastra?.getStorage()?.getWorkflowRuns() }, { depth: 10 });
         const snapshot: any = await this.mastra?.getStorage()?.loadWorkflowSnapshot({
           workflowName: step.id,
           runId: runId,
         });
-
-        console.dir(
-          {
-            workflowName: step.id,
-            runId: runId,
-            nestedSnapshot: snapshot,
-            data: {
-              inputData: prevOutput,
-              runId: runId,
-              resume: {
-                runId: runId,
-                steps: resume.steps.slice(1),
-                stepResults: snapshot?.context as any,
-                resumePayload: resume.resumePayload,
-                // @ts-ignore
-                resumePath: snapshot?.suspendedPaths?.[resume.steps?.[1]] as any,
-              },
-            },
-          },
-          { depth: 5 },
-        );
 
         const invokeResp = (await this.inngestStep.invoke(`workflow.${executionContext.workflowId}.step.${step.id}`, {
           function: step.getFunction(),
@@ -495,118 +516,123 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
         runId = invokeResp.runId;
       }
 
-      console.dir({ nestedResult: result }, { depth: 5 });
-
-      if (result.status === 'success') {
-        emitter.emit('watch', {
-          type: 'watch',
-          payload: {
-            currentStep: {
-              id: step.id,
-              status: 'success',
-              output: result?.result,
-            },
-            workflowState: {
-              status: 'running',
-              steps: stepResults,
-              result: null,
-              error: null,
-            },
-          },
-          eventTimestamp: Date.now(),
-        });
-
-        return { status: 'success', output: result?.result };
-      } else if (result.status === 'failed') {
-        emitter.emit('watch', {
-          type: 'watch',
-          payload: {
-            currentStep: {
-              id: step.id,
-              status: 'failed',
-              error: result?.error,
-            },
-            workflowState: {
-              status: 'running',
-              steps: stepResults,
-              result: null,
-              error: null,
-            },
-          },
-          eventTimestamp: Date.now(),
-        });
-
-        return { status: 'failed', error: result?.error };
-      } else if (result.status === 'suspended') {
-        const suspendedSteps = Object.entries(result.steps).filter(([_stepName, stepResult]) => {
-          const stepRes: StepResult<any> = stepResult as StepResult<any>;
-          return stepRes?.status === 'suspended';
-        });
-
-        for (const [stepName, stepResult] of suspendedSteps) {
-          // @ts-ignore
-          const suspendPath: string[] = [stepName, ...(stepResult?.payload?.__workflow_meta?.path ?? [])];
-          executionContext.suspendedPaths[step.id] = executionContext.executionPath;
-          console.dir(
-            {
-              suspend: {
-                runId,
-                executionContext,
-                suspendPath,
-                stepResult,
-                payload: { ...(stepResult as any)?.payload, __workflow_meta: { runId: runId, path: suspendPath } },
+      const res = await this.inngestStep.run(
+        `workflow.${executionContext.workflowId}.step.${step.id}.nestedwf-results`,
+        async () => {
+          if (result.status === 'success') {
+            await emitter.emit('watch', {
+              type: 'watch',
+              payload: {
+                currentStep: {
+                  id: step.id,
+                  status: 'success',
+                  output: result?.result,
+                },
+                workflowState: {
+                  status: 'running',
+                  steps: stepResults,
+                  result: null,
+                  error: null,
+                },
               },
-            },
-            { depth: 5 },
-          );
+              eventTimestamp: Date.now(),
+            });
 
-          emitter.emit('watch', {
-            type: 'watch',
-            payload: {
-              currentStep: {
-                id: step.id,
+            return { status: 'success', output: result?.result };
+          } else if (result.status === 'failed') {
+            await emitter.emit('watch', {
+              type: 'watch',
+              payload: {
+                currentStep: {
+                  id: step.id,
+                  status: 'failed',
+                  error: result?.error,
+                },
+                workflowState: {
+                  status: 'running',
+                  steps: stepResults,
+                  result: null,
+                  error: null,
+                },
+              },
+              eventTimestamp: Date.now(),
+            });
+
+            return { status: 'failed', error: result?.error };
+          } else if (result.status === 'suspended') {
+            const suspendedSteps = Object.entries(result.steps).filter(([_stepName, stepResult]) => {
+              const stepRes: StepResult<any> = stepResult as StepResult<any>;
+              return stepRes?.status === 'suspended';
+            });
+
+            for (const [stepName, stepResult] of suspendedSteps) {
+              // @ts-ignore
+              const suspendPath: string[] = [stepName, ...(stepResult?.payload?.__workflow_meta?.path ?? [])];
+              executionContext.suspendedPaths[step.id] = executionContext.executionPath;
+              console.dir(
+                {
+                  suspend: {
+                    runId,
+                    executionContext,
+                    suspendPath,
+                    stepResult,
+                    payload: { ...(stepResult as any)?.payload, __workflow_meta: { runId: runId, path: suspendPath } },
+                  },
+                },
+                { depth: 5 },
+              );
+
+              await emitter.emit('watch', {
+                type: 'watch',
+                payload: {
+                  currentStep: {
+                    id: step.id,
+                    status: 'suspended',
+                    payload: { ...(stepResult as any)?.payload, __workflow_meta: { runId: runId, path: suspendPath } },
+                  },
+                  workflowState: {
+                    status: 'running',
+                    steps: stepResults,
+                    result: null,
+                    error: null,
+                  },
+                },
+                eventTimestamp: Date.now(),
+              });
+
+              return {
                 status: 'suspended',
                 payload: { ...(stepResult as any)?.payload, __workflow_meta: { runId: runId, path: suspendPath } },
-              },
-              workflowState: {
-                status: 'running',
-                steps: stepResults,
-                result: null,
-                error: null,
-              },
-            },
-            eventTimestamp: Date.now(),
-          });
+              };
+            }
 
-          return {
-            status: 'suspended',
-            payload: { ...(stepResult as any)?.payload, __workflow_meta: { runId: runId, path: suspendPath } },
-          };
-        }
+            await emitter.emit('watch', {
+              type: 'watch',
+              payload: {
+                currentStep: {
+                  id: step.id,
+                  status: 'suspended',
+                  payload: {},
+                },
+                workflowState: {
+                  status: 'running',
+                  steps: stepResults,
+                  result: null,
+                  error: null,
+                },
+              },
+              eventTimestamp: Date.now(),
+            });
 
-        emitter.emit('watch', {
-          type: 'watch',
-          payload: {
-            currentStep: {
-              id: step.id,
+            return {
               status: 'suspended',
               payload: {},
-            },
-            workflowState: {
-              status: 'running',
-              steps: stepResults,
-              result: null,
-              error: null,
-            },
-          },
-          eventTimestamp: Date.now(),
-        });
+            };
+          }
+        },
+      );
 
-        return {
-          status: 'suspended',
-          payload: {},
-        };
-      }
+      return res;
     }
 
     const stepRes = await this.inngestStep.run(`workflow.${executionContext.workflowId}.step.${step.id}`, async () => {
@@ -655,6 +681,24 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
         }
       }
 
+      await emitter.emit('watch', {
+        type: 'watch',
+        payload: {
+          currentStep: {
+            id: step.id,
+            status: execResults.status,
+            output: execResults.output,
+          },
+          workflowState: {
+            status: 'running',
+            steps: stepResults,
+            result: null,
+            error: null,
+          },
+        },
+        eventTimestamp: Date.now(),
+      });
+
       return { result: execResults, executionContext, stepResults };
     });
 
@@ -662,41 +706,6 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     Object.assign(executionContext, stepRes.executionContext);
     // @ts-ignore
     Object.assign(stepResults, stepRes.stepResults);
-
-    console.log('emitting', {
-      type: 'watch',
-      payload: {
-        currentStep: {
-          id: step.id,
-          status: stepRes.result.status,
-          output: stepRes.result.output,
-        },
-        workflowState: {
-          status: 'running',
-          steps: stepResults,
-          result: null,
-          error: null,
-        },
-      },
-      eventTimestamp: Date.now(),
-    });
-    emitter.emit('watch', {
-      type: 'watch',
-      payload: {
-        currentStep: {
-          id: step.id,
-          status: stepRes.result.status,
-          output: stepRes.result.output,
-        },
-        workflowState: {
-          status: 'running',
-          steps: stepResults,
-          result: null,
-          error: null,
-        },
-      },
-      eventTimestamp: Date.now(),
-    });
 
     // @ts-ignore
     return stepRes.result;
@@ -727,7 +736,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       resumePath: number[];
     };
     executionContext: ExecutionContext;
-    emitter: EventEmitter;
+    emitter: { emit: (event: string, data: any) => Promise<void> };
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     let execResults: any;
@@ -767,7 +776,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
           }),
         ),
       )
-    ).filter((index): index is number => index !== null);
+    ).filter((index: any): index is number => index !== null);
 
     const stepsToRun = entry.steps.filter((_, index) => truthyIndexes.includes(index));
     const results: StepResult<any>[] = await Promise.all(

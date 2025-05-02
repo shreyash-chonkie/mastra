@@ -21,7 +21,7 @@ export type ExecuteFunction<TStepInput, TStepOutput, TResumeSchema, TSuspendSche
     steps: string[];
     resumePayload: any;
   };
-  emitter: { emit: (event: string, data: any) => void };
+  emitter: { emit: (event: string, data: any) => Promise<void> };
 }) => Promise<TStepOutput>;
 
 // Define a Step interface

@@ -2250,19 +2250,22 @@ describe('MastraInngestWorkflow', ctx => {
       });
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      const onTransition = vi.fn();
-
       const run = workflow.createRun();
 
       // Start watching the workflow
-      run.watch(onTransition);
-      run.watch(e => console.log('evvv', e));
+      let cnt = 0;
+      let resp: any;
+      run.watch(d => {
+        console.log('dd', d);
+        cnt++;
+        resp = d;
+      });
 
       const executionResult = await run.start({ inputData: {} });
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      expect(onTransition).toHaveBeenCalledTimes(3);
-      expect(onTransition).toHaveBeenCalledWith(
+      expect(cnt).toBe(3);
+      expect(resp).toEqual(
         expect.objectContaining({
           type: 'watch',
           payload: {
