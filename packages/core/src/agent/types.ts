@@ -43,6 +43,7 @@ export interface AgentConfig<
   name: TAgentId;
   instructions: DynamicArgument<string>;
   model: DynamicArgument<MastraLanguageModel>;
+  description?: string;
   tools?: DynamicArgument<TTools>;
   defaultGenerateOptions?: AgentGenerateOptions;
   defaultStreamOptions?: AgentStreamOptions;

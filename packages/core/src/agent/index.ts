@@ -81,6 +81,7 @@ export class Agent<
   public name: TAgentId;
   #instructions: DynamicArgument<string>;
   readonly model?: DynamicArgument<MastraLanguageModel>;
+  readonly description?: string;
   #mastra?: Mastra;
   #memory?: MastraMemory;
   #defaultGenerateOptions: AgentGenerateOptions;
@@ -96,6 +97,10 @@ export class Agent<
 
     this.name = config.name;
     this.id = config.name;
+
+    if (config.description) {
+      this.description = config.description;
+    }
 
     this.#instructions = config.instructions;
 
