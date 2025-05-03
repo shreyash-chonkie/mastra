@@ -43,6 +43,7 @@ import type {
   ToolsInput,
   DynamicArgument,
 } from './types';
+import type { NewWorkflow } from '../workflows/vNext';
 
 export * from './types';
 
@@ -90,6 +91,7 @@ export class Agent<
   metrics: TMetrics;
   evals: TMetrics;
   #voice: CompositeVoice;
+  #workflows?: Record<string, NewWorkflow>;
 
   constructor(config: AgentConfig<TAgentId, TTools, TMetrics>) {
     super({ component: RegisteredLogger.AGENT });
@@ -118,6 +120,20 @@ export class Agent<
       this.__registerPrimitives({
         telemetry: config.mastra.getTelemetry(),
         logger: config.mastra.getLogger(),
+      });
+    }
+
+    if (config.workflows) {
+      this.#workflows = config.workflows;
+
+      Object.entries(config.workflows).forEach(([_workflowName, workflow]) => {
+        if (config.mastra) {
+          workflow.__registerMastra(config.mastra);
+          workflow.__registerPrimitives({
+            telemetry: config.mastra.getTelemetry(),
+            logger: config.mastra.getLogger(),
+          });
+        }
       });
     }
 
@@ -740,10 +756,54 @@ export class Agent<
       );
     }
 
+    let convertedWorkflowTools: Record<string, CoreTool> = {};
+    if (this.#workflows && Object.keys(this.#workflows).length > 0) {
+      convertedWorkflowTools = Object.entries(this.#workflows).reduce(
+        (memo, [workflowName, workflow]) => {
+          memo[workflowName] = {
+            description: workflow.description || `Workflow: ${workflowName}`,
+            parameters: workflow.inputSchema || { type: 'object', properties: {} },
+            execute: async (args: any) => {
+              try {
+                this.logger.debug(`[Agent:${this.name}] - Executing workflow as tool ${workflowName}`, {
+                  name: workflowName,
+                  description: workflow.description,
+                  args,
+                  runId,
+                  threadId,
+                  resourceId,
+                });
+
+                const run = workflow.createRun();
+
+                const result = await run.start({
+                  inputData: args,
+                  runtimeContext,
+                });
+
+                return result;
+              } catch (err) {
+                this.logger.error(`[Agent:${this.name}] - Failed workflow tool execution`, {
+                  error: err,
+                  runId,
+                  threadId,
+                  resourceId,
+                });
+                throw err;
+              }
+            },
+          };
+          return memo;
+        },
+        {} as Record<string, CoreTool>,
+      );
+    }
+
     // Convert tools from toolsets
     const toolsFromToolsetsConverted: Record<string, CoreTool> = {
       ...converted,
       ...convertedMemoryTools,
+      ...convertedWorkflowTools,
     };
 
     const toolsFromToolsets = Object.values(toolsets || {});
