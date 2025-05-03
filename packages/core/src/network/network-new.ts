@@ -68,7 +68,7 @@ export class AgentNetwork extends MastraBase {
 
             OUTPUT FORMAT:
             Your response must include:
-            - selectedAgentId: The ID of the agent to handle the next step
+            - agentId: The ID of the agent to handle the next step
             - prompt: A clear, detailed prompt for the selected agent
             - isComplete: Boolean indicating if the task is complete (true/false)
             - reasoning: Your explanation for this routing decision
@@ -103,20 +103,106 @@ export class AgentNetwork extends MastraBase {
     return this.#instructions;
   }
 
-  getNetworkWorkflow() {
-    const workflow = createWorkflow({
-      id: `${this.#name}-network-workflow`,
+  getExecuteAgentWorkflow() {
+    const networkInstance = this;
+
+    // Create a step to execute the selected agent
+    const executeAgentStep = createStep({
+      id: 'execute-agent',
+      description: 'Executes the selected agent with the provided prompt',
       inputSchema: z.object({
         task: z.string(),
+        agentId: z.string(),
+        prompt: z.string(),
+        isComplete: z.boolean().default(false),
+        reasoning: z.string(),
       }),
       outputSchema: z.object({
-        text: z.string(),
+        task: z.string(),
+        result: z.string(),
         agentId: z.string(),
-        isComplete: z.boolean().default(false),
+        isComplete: z.boolean(),
       }),
+      async execute({ inputData, runtimeContext }) {
+        console.log(`Executing agent ${inputData.agentId}`);
+
+        // If the task is complete, return the final result
+        if (inputData.isComplete) {
+          return {
+            task: inputData.task,
+            result: inputData.reasoning,
+            agentId: inputData.agentId,
+            isComplete: inputData.isComplete,
+          };
+        }
+
+        const agents = await networkInstance.getAgents({ runtimeContext });
+
+        // Find the selected agent by ID
+        const selectedAgent = agents[inputData.agentId];
+
+        if (!selectedAgent) {
+          throw new Error(`Agent with ID ${inputData.agentId} not found`);
+        }
+
+        // Execute the selected agent
+        const response = await selectedAgent.generate(inputData.prompt);
+
+        console.log('Agent response:', response.text);
+
+        return {
+          task: inputData.task,
+          result: response.text,
+          agentId: inputData.agentId,
+          isComplete: inputData.isComplete,
+        };
+      },
     });
 
-    // Store reference to this AgentNetwork instance
+    const executeAgentWorkflow = createWorkflow({
+      id: `${this.#name}-execute-agent-workflow`,
+      inputSchema: z.object({
+        task: z.string(),
+        agentId: z.string(),
+        prompt: z.string(),
+        isComplete: z.boolean().default(false),
+        reasoning: z.string(),
+      }),
+      outputSchema: z.object({
+        task: z.string(),
+        result: z.string(),
+        agentId: z.string(),
+        isComplete: z.boolean(),
+      }),
+      steps: [executeAgentStep],
+    });
+
+    executeAgentWorkflow
+      .then(executeAgentStep)
+      .map({
+        text: {
+          path: 'result',
+          step: executeAgentStep,
+        },
+        agentId: {
+          path: 'agentId',
+          step: executeAgentStep,
+        },
+        isComplete: {
+          path: 'isComplete',
+          step: executeAgentStep,
+        },
+        task: {
+          path: 'task',
+          step: executeAgentStep,
+        },
+      })
+      .commit();
+
+    return executeAgentWorkflow;
+  }
+
+  getRoutingAgentWorkflow() {
     const networkInstance = this;
 
     const routingAgentStep = createStep({
@@ -129,14 +215,15 @@ export class AgentNetwork extends MastraBase {
         isComplete: z.boolean().optional(),
       }),
       outputSchema: z.object({
-        selectedAgentId: z.string(),
+        agentId: z.string(),
         task: z.string(),
         prompt: z.string(),
         isComplete: z.boolean().default(false),
         reasoning: z.string(),
       }),
       async execute({ inputData, runtimeContext }) {
-        console.log('initial inputData', inputData);
+        console.log(`Routing step: ${inputData?.agentId ? 'Re-routing' : 'Initial routing'}`, inputData);
+
         // Get the routing agent from the network instance
         const routingAgent = await networkInstance.getRoutingAgent({ runtimeContext });
 
@@ -144,17 +231,17 @@ export class AgentNetwork extends MastraBase {
         if (inputData.agentId && inputData.text) {
           // Create a prompt that includes the previous agent's output
           const completionPrompt = `
-                    You previously used agent ${inputData.agentId} which produced this output:
-                    ${inputData.text}
+                        You previously used agent ${inputData.agentId} which produced this output:
+                        ${inputData.text}
 
-                    Original request: ${inputData.task}
+                        Original request: ${inputData.task}
 
-                    Is this task complete? Consider if all requirements from the original request have been met.
+                        Is this task complete? Consider if all requirements from the original request have been met.
 
-                    Return the fields
-                    
-                    isComplete: boolean
-                    reasoning: string
+                        Return the fields
+                        
+                        isComplete: boolean
+                        reasoning: string
                     `;
 
           // Generate a decision about task completion
@@ -169,8 +256,8 @@ export class AgentNetwork extends MastraBase {
           if (completionResult.object.isComplete) {
             return {
               task: inputData.task,
-              selectedAgentId: inputData.agentId,
-              prompt: '', // Not needed since we're done
+              agentId: inputData.agentId,
+              prompt: '',
               isComplete: true,
               reasoning: completionResult.object.reasoning,
             };
@@ -190,12 +277,14 @@ export class AgentNetwork extends MastraBase {
           // Generate the routing decision for the next step
           const nextStepResult = await routingAgent.generate(nextStepPrompt, {
             output: z.object({
-              selectedAgentId: z.string(),
+              agentId: z.string(),
               prompt: z.string(),
               isComplete: z.boolean().default(false),
               reasoning: z.string(),
             }),
           });
+
+          console.log('nextStepResult', nextStepResult.object);
 
           return { ...nextStepResult.object, task: inputData.task };
         }
@@ -203,90 +292,50 @@ export class AgentNetwork extends MastraBase {
         // Generate the routing decision
         const result = await routingAgent.generate(inputData.task, {
           output: z.object({
-            selectedAgentId: z.string(),
+            agentId: z.string(),
             prompt: z.string(),
             isComplete: z.boolean().default(false),
             reasoning: z.string(),
           }),
         });
 
-        return { ...result.object, task: inputData.task };
+        console.log('Routing to', JSON.stringify(result.object));
+
+        return { ...result.object, task: inputData.task, isComplete: false };
       },
     });
 
-    // Create a step to execute the selected agent
-    const executeAgentStep = createStep({
-      id: 'execute-agent',
-      description: 'Executes the selected agent with the provided prompt',
+    const routingAgentWorkflow = createWorkflow({
+      id: `${this.#name}-routing-agent-workflow`,
       inputSchema: z.object({
         task: z.string(),
-        selectedAgentId: z.string(),
-        prompt: z.string(),
-        isComplete: z.boolean().default(false),
-        reasoning: z.string(),
       }),
       outputSchema: z.object({
-        task: z.string(),
-        result: z.string(),
+        text: z.string(),
         agentId: z.string(),
-        isComplete: z.boolean(),
-      }),
-      async execute({ inputData, runtimeContext }) {
-        // If the task is complete, return the final result
-        if (inputData.isComplete) {
-          return {
-            task: inputData.task,
-            result: inputData.reasoning,
-            agentId: inputData.selectedAgentId,
-            isComplete: inputData.isComplete,
-          };
-        }
-
-        const agents = await networkInstance.getAgents({ runtimeContext });
-
-        // Find the selected agent by ID
-        const selectedAgent = agents[inputData.selectedAgentId];
-
-        if (!selectedAgent) {
-          throw new Error(`Agent with ID ${inputData.selectedAgentId} not found`);
-        }
-
-        // Execute the selected agent
-        const response = await selectedAgent.generate(inputData.prompt);
-
-        return {
-          task: inputData.task,
-          result: response.text,
-          agentId: inputData.selectedAgentId,
-          isComplete: inputData.isComplete,
-        };
-      },
-    });
-
-    const finalStep = createStep({
-      id: 'final-step',
-      description: 'Final step',
-      inputSchema: z.object({
-        task: z.string(),
-        selectedAgentId: z.string(),
-        prompt: z.string(),
         isComplete: z.boolean().default(false),
-        reasoning: z.string(),
       }),
-      outputSchema: z.object({
-        result: z.string(),
-        agentId: z.string(),
-        task: z.string(),
-      }),
-      async execute({ inputData }) {
-        return {
-          result: inputData.reasoning,
-          agentId: inputData.selectedAgentId,
-          task: inputData.task,
-        };
-      },
     });
 
+    const executeAgentStep = this.getExecuteAgentWorkflow();
+
+    // Define the workflow execution flow
+    routingAgentWorkflow
+      .then(routingAgentStep)
+      .branch([
+        [
+          async ({ inputData }) => {
+            return !inputData?.isComplete;
+          },
+          executeAgentStep,
+        ],
+      ])
+      .commit();
+
+    return routingAgentWorkflow;
+  }
+
+  getNetworkWorkflow() {
     const controlWorkflow = createWorkflow({
       id: `${this.#name}-control-workflow`,
       inputSchema: z.object({
@@ -299,41 +348,8 @@ export class AgentNetwork extends MastraBase {
       }),
     });
 
-    // Define the workflow execution flow
-    workflow
-      .then(routingAgentStep)
-      .branch([
-        [
-          async ({ inputData }) => {
-            return inputData?.isComplete;
-          },
-          finalStep,
-        ],
-        [
-          async ({ inputData }) => {
-            return !inputData?.isComplete;
-          },
-          executeAgentStep,
-        ],
-      ])
-      .map({
-        agentId: {
-          path: 'agentId',
-          step: executeAgentStep,
-        },
-        text: {
-          path: 'result',
-          step: executeAgentStep,
-        },
-        isComplete: {
-          path: 'isComplete',
-          step: executeAgentStep,
-        },
-      })
-      .commit();
-
     controlWorkflow
-      .dountil(workflow, async ({ inputData }) => {
+      .dountil(this.getRoutingAgentWorkflow(), async ({ inputData }) => {
         return inputData?.isComplete;
       })
       .commit();

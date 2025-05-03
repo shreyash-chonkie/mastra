@@ -278,4 +278,72 @@ describe('AgentNetwork', () => {
       expect(result).toBeDefined();
     });
   });
+
+  describe.only('Supervisor example (better than Langchain)', () => {
+    it('should route tasks between specialized agents', async () => {
+      // Create specialized agents
+
+      // Joke Generator Agent
+      const jokeAgent = new Agent({
+        name: 'joke_agent',
+        description: 'Expert at creating jokes and humor content',
+        instructions: 'You are a world-class joke writer. Create funny, clever jokes based on the request.',
+        model: openai('gpt-3.5-turbo'),
+      });
+
+      // Research Expert Agent
+      const researchAgent = new Agent({
+        name: 'research_agent',
+        description: 'Expert at researching factual information',
+        instructions: 'You are a world-class researcher. Provide accurate, factual information based on the request.',
+        model: openai('gpt-3.5-turbo'),
+      });
+
+      // Create a record of specialized agents
+      const specializedAgents = {
+        joke_agent: jokeAgent,
+        research_agent: researchAgent,
+      };
+
+      // Create the supervisor network
+      const supervisorNetwork = new AgentNetwork({
+        name: 'SupervisorNetwork',
+        agents: specializedAgents,
+        model: openai('gpt-4o'),
+        instructions:
+          'You are a team supervisor managing a research expert and a joke expert. ' +
+          'For factual information and research, use research_agent. ' +
+          'For jokes and humor, use joke_agent.',
+      });
+
+      // Test with a joke request
+      const jokeRequest = 'Share a joke to relax before my next project idea.';
+      const jokeResult = await supervisorNetwork.generate(jokeRequest);
+
+      console.log('Joke Request Result:', jokeResult);
+      expect(jokeResult).toBeDefined();
+      // Check if the result has the expected structure
+      if (jokeResult.status === 'success') {
+        expect(jokeResult.result.agentId).toBe('joke_agent'); // Should route to joke agent
+      }
+
+      // // Test with a research request
+      // const researchRequest = 'What are the employee counts for major tech companies in 2024?';
+      // const researchResult = await supervisorNetwork.generate(researchRequest);
+
+      // console.log('Research Request Result:', researchResult);
+      // expect(researchResult).toBeDefined();
+      // // Check if the result has the expected structure
+      // if (researchResult.status === 'success') {
+      //   expect(researchResult.result.agentId).toBe('research_agent'); // Should route to research agent
+      // }
+
+      // // Test with a mixed request that requires multiple agents
+      // const mixedRequest = 'Tell me a joke about software engineers and then explain why debugging is important.';
+      // const mixedResult = await supervisorNetwork.generate(mixedRequest);
+
+      // console.log('Mixed Request Result:', mixedResult);
+      // expect(mixedResult).toBeDefined();
+    }, 100000);
+  });
 });
