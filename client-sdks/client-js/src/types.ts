@@ -260,3 +260,14 @@ export interface GetNetworkResponse {
   };
   state?: Record<string, any>;
 }
+
+export interface GetMCPServerResponse {
+  id: string;
+  name: string;
+  description?: string;
+  tools: Array<{
+    name: string;
+    description: string;
+    parameters: Record<string, any>;
+  }>;
+}

@@ -1,4 +1,14 @@
-import { Agent, MemoryThread, Tool, Workflow, Vector, BaseResource, Network, VNextWorkflow } from './resources';
+import {
+  Agent,
+  MemoryThread,
+  Tool,
+  Workflow,
+  Vector,
+  BaseResource,
+  Network,
+  VNextWorkflow,
+  MCPServer,
+} from './resources';
 import type {
   ClientOptions,
   CreateMemoryThreadParams,
@@ -7,6 +17,7 @@ import type {
   GetLogParams,
   GetLogsParams,
   GetLogsResponse,
+  GetMCPServerResponse,
   GetMemoryThreadParams,
   GetMemoryThreadResponse,
   GetNetworkResponse,
@@ -234,5 +245,22 @@ export class MastraClient extends BaseResource {
    */
   public getNetwork(networkId: string) {
     return new Network(this.options, networkId);
+  }
+
+  /**
+   * Retrieves all available MCP servers
+   * @returns Promise containing map of MCP server IDs to server details
+   */
+  public getMCPServers(): Promise<Record<string, GetMCPServerResponse>> {
+    return this.request('/api/mcp/servers');
+  }
+
+  /**
+   * Gets an MCP server instance by ID
+   * @param serverId - ID of the MCP server to retrieve
+   * @returns MCPServer instance
+   */
+  public getMCPServer(serverId: string) {
+    return new MCPServer(this.options, serverId);
   }
 }

@@ -2,6 +2,7 @@ import type { Agent } from '../agent';
 import type { MastraDeployer } from '../deployer';
 import { LogLevel, createLogger, noopLogger } from '../logger';
 import type { Logger } from '../logger';
+import type { AbstractMCPServer } from '../mcp';
 import type { MastraMemory } from '../memory/memory';
 import type { AgentNetwork } from '../network';
 import type { ServerConfig } from '../server/types';
@@ -23,6 +24,7 @@ export interface Config<
   TTTS extends Record<string, MastraTTS> = Record<string, MastraTTS>,
   TLogger extends Logger = Logger,
   TNetworks extends Record<string, AgentNetwork> = Record<string, AgentNetwork>,
+  TMCPServers extends Record<string, AbstractMCPServer> = Record<string, AbstractMCPServer>,
 > {
   agents?: TAgents;
   networks?: TNetworks;
@@ -35,6 +37,7 @@ export interface Config<
   telemetry?: OtelConfig;
   deployer?: MastraDeployer;
   server?: ServerConfig;
+  mcpServers?: TMCPServers;
 
   /**
    * Server middleware functions to be applied to API routes
@@ -62,6 +65,7 @@ export class Mastra<
   TTTS extends Record<string, MastraTTS> = Record<string, MastraTTS>,
   TLogger extends Logger = Logger,
   TNetworks extends Record<string, AgentNetwork> = Record<string, AgentNetwork>,
+  TMCPServers extends Record<string, AbstractMCPServer> = Record<string, AbstractMCPServer>,
 > {
   #vectors?: TVectors;
   #agents: TAgents;
@@ -79,6 +83,7 @@ export class Mastra<
   #memory?: MastraMemory;
   #networks?: TNetworks;
   #server?: ServerConfig;
+  #mcpServers?: TMCPServers;
 
   /**
    * @deprecated use getTelemetry() instead
@@ -101,7 +106,7 @@ export class Mastra<
     return this.#memory;
   }
 
-  constructor(config?: Config<TAgents, TWorkflows, TNewWorkflows, TVectors, TTTS, TLogger>) {
+  constructor(config?: Config<TAgents, TWorkflows, TNewWorkflows, TVectors, TTTS, TLogger, TNetworks, TMCPServers>) {
     // Store server middleware with default path
     if (config?.serverMiddleware) {
       this.#serverMiddleware = config.serverMiddleware.map(m => ({
@@ -177,6 +182,22 @@ export class Mastra<
 
     if (config?.vectors) {
       this.#vectors = config.vectors;
+    }
+
+    if (config?.networks) {
+      this.#networks = config.networks;
+    }
+
+    if (config?.mcpServers) {
+      this.#mcpServers = config.mcpServers;
+
+      // Set logger and telemetry for MCP servers
+      Object.values(this.#mcpServers).forEach(server => {
+        server.__setLogger(this.#logger);
+        if (this.#telemetry) {
+          server.__setTelemetry(this.#telemetry);
+        }
+      });
     }
 
     if (config?.memory) {
@@ -574,5 +595,22 @@ Do:
     console.log(this.#logger);
 
     return await this.#logger.getLogs(transportId);
+  }
+
+  /**
+   * Get all registered MCP servers
+   * @returns Array of MCP servers
+   */
+  public getMCPServers(): AbstractMCPServer[] {
+    return Object.values(this.#mcpServers || {});
+  }
+
+  /**
+   * Get a specific MCP server by ID
+   * @param serverId - The ID of the MCP server to retrieve
+   * @returns The MCP server with the specified ID, or undefined if not found
+   */
+  public getMCPServer(serverId: string): AbstractMCPServer | undefined {
+    return this.#mcpServers?.[serverId];
   }
 }

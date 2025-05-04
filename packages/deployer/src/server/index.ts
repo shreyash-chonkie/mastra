@@ -27,6 +27,12 @@ import { handleClientsRefresh, handleTriggerClientsRefresh } from './handlers/cl
 import { errorHandler } from './handlers/error';
 import { getLogsByRunIdHandler, getLogsHandler, getLogTransports } from './handlers/logs';
 import {
+  getMcpServersHandler,
+  getMcpServerHandler,
+  mcpServerSseHandler,
+  mcpServerMessageHandler,
+} from './handlers/mcp';
+import {
   createThreadHandler,
   deleteThreadHandler,
   getMemoryStatusHandler,
@@ -1103,6 +1109,96 @@ export async function createHonoServer(mastra: Mastra, options: ServerBundleOpti
       },
     }),
     executeAgentToolHandler,
+  );
+
+  // MCP server routes
+  app.get(
+    '/api/mcp/servers',
+    describeRoute({
+      description: 'Get all MCP servers',
+      tags: ['mcp'],
+      responses: {
+        200: {
+          description: 'List of MCP servers',
+        },
+      },
+    }),
+    getMcpServersHandler,
+  );
+
+  app.get(
+    '/api/mcp/servers/:serverId',
+    describeRoute({
+      description: 'Get details for a specific MCP server',
+      tags: ['mcp'],
+      parameters: [
+        {
+          name: 'serverId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      responses: {
+        200: {
+          description: 'MCP server details',
+        },
+        404: {
+          description: 'MCP server not found',
+        },
+      },
+    }),
+    getMcpServerHandler,
+  );
+
+  app.post(
+    '/api/mcp/servers/:serverId/sse',
+    describeRoute({
+      description: 'Start an SSE connection with an MCP server',
+      tags: ['mcp'],
+      parameters: [
+        {
+          name: 'serverId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      responses: {
+        200: {
+          description: 'SSE connection established',
+        },
+        404: {
+          description: 'MCP server not found',
+        },
+      },
+    }),
+    mcpServerSseHandler,
+  );
+
+  app.post(
+    '/api/mcp/servers/:serverId/message',
+    describeRoute({
+      description: 'Send a message to an MCP server',
+      tags: ['mcp'],
+      parameters: [
+        {
+          name: 'serverId',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+        },
+      ],
+      responses: {
+        200: {
+          description: 'Message sent successfully',
+        },
+        404: {
+          description: 'MCP server not found',
+        },
+      },
+    }),
+    mcpServerMessageHandler,
   );
 
   // Memory routes

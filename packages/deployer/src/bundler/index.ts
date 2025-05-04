@@ -268,6 +268,8 @@ export abstract class Bundler extends MastraBundler {
       },
     });
 
+    console.log('SUH');
+
     await bundler.write();
     const toolsInputOptions = Array.from(Object.keys(inputOptions.input || {}))
       .filter(key => key.startsWith('tools/'))
