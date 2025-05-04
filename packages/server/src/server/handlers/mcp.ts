@@ -1,4 +1,4 @@
-import type { Mastra, AbstractMCPServer } from '@mastra/core';
+import type { Mastra, MastraMCPServer } from '@mastra/core';
 
 /**
  * Handler for GET /api/mcp/servers
@@ -8,7 +8,7 @@ export const getMcpServersHandler = async ({ mastra }: { mastra: Mastra }) => {
   const servers = mastra.getMCPServers();
 
   return {
-    servers: servers.map((server: AbstractMCPServer) => ({
+    servers: servers.map((server: MastraMCPServer) => ({
       id: server.name,
       name: server.name,
       version: server.version,

@@ -2,7 +2,7 @@ import type { Agent } from '../agent';
 import type { MastraDeployer } from '../deployer';
 import { LogLevel, createLogger, noopLogger } from '../logger';
 import type { Logger } from '../logger';
-import type { AbstractMCPServer } from '../mcp';
+import type { MastraMCPServer } from '../mcp';
 import type { MastraMemory } from '../memory/memory';
 import type { AgentNetwork } from '../network';
 import type { ServerConfig } from '../server/types';
@@ -24,7 +24,7 @@ export interface Config<
   TTTS extends Record<string, MastraTTS> = Record<string, MastraTTS>,
   TLogger extends Logger = Logger,
   TNetworks extends Record<string, AgentNetwork> = Record<string, AgentNetwork>,
-  TMCPServers extends Record<string, AbstractMCPServer> = Record<string, AbstractMCPServer>,
+  TMCPServers extends Record<string, MastraMCPServer> = Record<string, MastraMCPServer>,
 > {
   agents?: TAgents;
   networks?: TNetworks;
@@ -65,7 +65,7 @@ export class Mastra<
   TTTS extends Record<string, MastraTTS> = Record<string, MastraTTS>,
   TLogger extends Logger = Logger,
   TNetworks extends Record<string, AgentNetwork> = Record<string, AgentNetwork>,
-  TMCPServers extends Record<string, AbstractMCPServer> = Record<string, AbstractMCPServer>,
+  TMCPServers extends Record<string, MastraMCPServer> = Record<string, MastraMCPServer>,
 > {
   #vectors?: TVectors;
   #agents: TAgents;
@@ -193,7 +193,6 @@ export class Mastra<
 
       // Set logger and telemetry for MCP servers
       Object.values(this.#mcpServers).forEach(server => {
-        server.__setLogger(this.#logger);
         if (this.#telemetry) {
           server.__setTelemetry(this.#telemetry);
         }
@@ -465,6 +464,12 @@ Do:
         this.#vectors?.[key]?.__setLogger(this.#logger);
       });
     }
+
+    if (this.#mcpServers) {
+      Object.keys(this.#mcpServers).forEach(key => {
+        this.#mcpServers?.[key]?.__setLogger(this.#logger);
+      });
+    }
   }
 
   public setTelemetry(telemetry: OtelConfig) {
@@ -601,7 +606,7 @@ Do:
    * Get all registered MCP servers
    * @returns Array of MCP servers
    */
-  public getMCPServers(): AbstractMCPServer[] {
+  public getMCPServers(): MastraMCPServer[] {
     return Object.values(this.#mcpServers || {});
   }
 
@@ -610,7 +615,7 @@ Do:
    * @param serverId - The ID of the MCP server to retrieve
    * @returns The MCP server with the specified ID, or undefined if not found
    */
-  public getMCPServer(serverId: string): AbstractMCPServer | undefined {
+  public getMCPServer(serverId: string): MastraMCPServer | undefined {
     return this.#mcpServers?.[serverId];
   }
 }

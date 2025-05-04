@@ -26,12 +26,7 @@ import {
 import { handleClientsRefresh, handleTriggerClientsRefresh } from './handlers/client';
 import { errorHandler } from './handlers/error';
 import { getLogsByRunIdHandler, getLogsHandler, getLogTransports } from './handlers/logs';
-import {
-  getMcpServersHandler,
-  getMcpServerHandler,
-  mcpServerSseHandler,
-  mcpServerMessageHandler,
-} from './handlers/mcp';
+import { getMcpServersHandler, getMcpServerHandler, getMcpServerMessageHandler } from './handlers/mcp';
 import {
   createThreadHandler,
   deleteThreadHandler,
@@ -1152,9 +1147,9 @@ export async function createHonoServer(mastra: Mastra, options: ServerBundleOpti
   );
 
   app.post(
-    '/api/mcp/servers/:serverId/sse',
+    '/api/mcp/servers/:serverId',
     describeRoute({
-      description: 'Start an SSE connection with an MCP server',
+      description: 'Send a message to an MCP server',
       tags: ['mcp'],
       parameters: [
         {
@@ -1173,11 +1168,11 @@ export async function createHonoServer(mastra: Mastra, options: ServerBundleOpti
         },
       },
     }),
-    mcpServerSseHandler,
+    getMcpServerMessageHandler,
   );
 
   app.post(
-    '/api/mcp/servers/:serverId/message',
+    '/api/mcp/servers/:serverId',
     describeRoute({
       description: 'Send a message to an MCP server',
       tags: ['mcp'],
@@ -1198,7 +1193,7 @@ export async function createHonoServer(mastra: Mastra, options: ServerBundleOpti
         },
       },
     }),
-    mcpServerMessageHandler,
+    getMcpServerMessageHandler,
   );
 
   // Memory routes

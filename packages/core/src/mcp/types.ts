@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 import type { ToolsInput } from '../agent';
-import { MastraBase } from '../base.warning';
+import { MastraBase } from '../base';
 import { RegisteredLogger } from '../logger';
 
 /**
@@ -35,7 +35,7 @@ export type ConvertedTool = {
  * Abstract base class for MCP server implementations
  * This provides a common interface for all MCP servers that can be registered with Mastra
  */
-export abstract class AbstractMCPServer extends MastraBase {
+export abstract class MastraMCPServer extends MastraBase {
   /**
    * Name of the MCP server
    */
@@ -64,7 +64,7 @@ export abstract class AbstractMCPServer extends MastraBase {
   }
 
   /**
-   * Constructor for the AbstractMCPServer
+   * Constructor for the MastraMCPServer
    * @param config Configuration options for the MCP server
    */
   constructor(config: MCPServerConfig) {
@@ -87,9 +87,19 @@ export abstract class AbstractMCPServer extends MastraBase {
    */
   public abstract startSSE(options: MCPServerSSEOptions): Promise<void>;
 
-  public abstract connectSSE({ messagePath, res }: { messagePath: string; res: any }): Promise<void>;
-
-  public abstract handlePostMessage(req: any, res: any): Promise<void>;
+  public abstract startHTTP({
+    url,
+    httpPath,
+    req,
+    res,
+    options,
+  }: {
+    url: URL;
+    httpPath: string;
+    req: any;
+    res: any;
+    options?: any;
+  }): Promise<void>;
 
   /**
    * Close the MCP server and all its connections

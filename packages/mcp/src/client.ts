@@ -223,6 +223,7 @@ export class InternalMastraMCPClient extends MastraBase {
         this.transport = streamableTransport;
         this.log('debug', 'Successfully connected using Streamable HTTP transport.');
       } catch (error) {
+        console.error(error);
         this.log('debug', `Streamable HTTP transport failed: ${error}`);
         shouldTrySSE = true;
       }

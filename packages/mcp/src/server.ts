@@ -1,19 +1,23 @@
+import { randomUUID } from 'crypto';
 import { isVercelTool, isZodType, resolveSerializedZodOutput } from '@mastra/core';
 import type { ToolsInput } from '@mastra/core/agent';
-import { AbstractMCPServer } from '@mastra/core/mcp';
+import { MastraMCPServer } from '@mastra/core/mcp';
 import type { MCPServerSSEOptions, ConvertedTool } from '@mastra/core/mcp';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import type { StreamableHTTPServerTransportOptions } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import jsonSchemaToZod from 'json-schema-to-zod';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
-export class MCPServer extends AbstractMCPServer {
+export class MCPServer extends MastraMCPServer {
   private server: Server;
   private stdioTransport?: StdioServerTransport;
   private sseTransport?: SSEServerTransport;
+  private streamableHTTPTransport?: StreamableHTTPServerTransport;
 
   /**
    * Get the current stdio transport.
@@ -27,6 +31,13 @@ export class MCPServer extends AbstractMCPServer {
    */
   public getSseTransport(): SSEServerTransport | undefined {
     return this.sseTransport;
+  }
+
+  /**
+   * Get the current streamable HTTP transport.
+   */
+  public getStreamableHTTPTransport(): StreamableHTTPServerTransport | undefined {
+    return this.streamableHTTPTransport;
   }
 
   /**
@@ -218,6 +229,70 @@ export class MCPServer extends AbstractMCPServer {
     }
   }
 
+  /**
+   * Handles MCP-over-StreamableHTTP protocol for user-provided HTTP servers.
+   * Call this from your HTTP server for the streamable HTTP endpoint.
+   *
+   * @param url Parsed URL of the incoming request
+   * @param httpPath Path for establishing the streamable HTTP connection (e.g. '/mcp')
+   * @param req Incoming HTTP request
+   * @param res HTTP response (must support .write/.end)
+   * @param options Optional options to pass to the transport (e.g. sessionIdGenerator)
+   */
+  async startHTTP({
+    url,
+    httpPath,
+    req,
+    res,
+    options = { sessionIdGenerator: () => randomUUID() },
+  }: {
+    url: URL;
+    httpPath: string;
+    req: any;
+    res: any;
+    options?: StreamableHTTPServerTransportOptions;
+  }) {
+    if (url.pathname === httpPath) {
+      this.logger.debug('Received StreamableHTTP connection');
+      this.streamableHTTPTransport = new StreamableHTTPServerTransport(options);
+      console.log(this.streamableHTTPTransport);
+      try {
+        console.log('Connecting to MCP server');
+        await this.server.connect(this.streamableHTTPTransport);
+      } catch (error) {
+        console.log('Error connecting to MCP server', { error });
+        this.logger.error('Error connecting to MCP server', { error });
+        res.writeHead(500);
+        res.end('Error connecting to MCP server');
+        return;
+      }
+
+      try {
+        console.log('Handling MCP connection');
+        await this.streamableHTTPTransport.handleRequest(req, res);
+      } catch (error) {
+        console.error(error);
+        this.logger.error('Error handling MCP connection', { error });
+        res.writeHead(500);
+        res.end('Error handling MCP connection');
+        return;
+      }
+
+      this.server.onclose = async () => {
+        await this.server.close();
+        this.streamableHTTPTransport = undefined;
+      };
+
+      res.on('close', () => {
+        this.streamableHTTPTransport = undefined;
+      });
+    } else {
+      this.logger.debug('Unknown path:', { path: url.pathname });
+      res.writeHead(404);
+      res.end();
+    }
+  }
+
   public async handlePostMessage(req: any, res: any) {
     this.logger.debug('Received message');
     if (!this.sseTransport) {
@@ -246,12 +321,24 @@ export class MCPServer extends AbstractMCPServer {
   /**
    * Close the MCP server and all its connections
    */
-  public async close(): Promise<void> {
-    if (this.stdioTransport || this.sseTransport) {
+  async close() {
+    try {
+      if (this.stdioTransport) {
+        await this.stdioTransport.close?.();
+        this.stdioTransport = undefined;
+      }
+      if (this.sseTransport) {
+        await this.sseTransport.close?.();
+        this.sseTransport = undefined;
+      }
+      if (this.streamableHTTPTransport) {
+        await this.streamableHTTPTransport.close?.();
+        this.streamableHTTPTransport = undefined;
+      }
       await this.server.close();
-      this.stdioTransport = undefined;
-      this.sseTransport = undefined;
-      this.logger.info('Closed MCP Server');
+      this.logger.info('MCP server closed.');
+    } catch (error) {
+      this.logger.error('Error closing MCP server:', { error });
     }
   }
 }

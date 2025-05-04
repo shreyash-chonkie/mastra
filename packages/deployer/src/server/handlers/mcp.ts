@@ -3,6 +3,7 @@ import {
   getMcpServersHandler as getOriginalMcpServersHandler,
   getMcpServerHandler as getOriginalMcpServerHandler,
 } from '@mastra/server/handlers/mcp';
+import { toReqRes, toFetchResponse } from 'fetch-to-node';
 import type { Context } from 'hono';
 
 // Helper function to get the Mastra instance from the context
@@ -37,13 +38,34 @@ export const getMcpServerHandler = async (c: Context) => {
 /**
  * Handler for POST /api/mcp/servers/:serverId
  */
-export const mcpServerSseHandler = async (c: Context) => {
+export const getMcpServerMessageHandler = async (c: Context) => {
   const mastra = getMastra(c);
   const serverId = c.req.param('serverId');
-
+  const { req, res } = toReqRes(c.req.raw);
+  console.log('Received MCP connection');
   const server = mastra.getMCPServer(serverId);
 
   if (!server) {
     return c.json({ error: `MCP server '${serverId}' not found` }, 404);
   }
+
+  console.log('Starting MCP connection');
+
+  try {
+    await server.startHTTP({
+      url: new URL(c.req.url),
+      httpPath: `/api/mcp/servers/${serverId}`,
+      req,
+      res,
+      options: {
+        sessionIdGenerator: undefined,
+      },
+    });
+  } catch (error: any) {
+    return c.json({ error: error.message || 'Server not found' }, 404);
+  }
+
+  const toFetchRes = await toFetchResponse(res);
+
+  return toFetchRes;
 };
