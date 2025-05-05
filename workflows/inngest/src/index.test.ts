@@ -2197,7 +2197,7 @@ describe('MastraInngestWorkflow', ctx => {
   });
 
   describe('Watch', () => {
-    it.only('should watch workflow state changes and call onTransition', async ctx => {
+    it('should watch workflow state changes and call onTransition', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
@@ -2398,8 +2398,8 @@ describe('MastraInngestWorkflow', ctx => {
 
       await run.start({ inputData: {} });
 
-      expect(onTransition).toHaveBeenCalledTimes(2);
-      expect(onTransition2).toHaveBeenCalledTimes(2);
+      expect(onTransition).toHaveBeenCalledTimes(3);
+      expect(onTransition2).toHaveBeenCalledTimes(3);
 
       const run2 = workflow.createRun();
 
@@ -2407,8 +2407,8 @@ describe('MastraInngestWorkflow', ctx => {
 
       await run2.start({ inputData: {} });
 
-      expect(onTransition).toHaveBeenCalledTimes(2);
-      expect(onTransition2).toHaveBeenCalledTimes(4);
+      expect(onTransition).toHaveBeenCalledTimes(3);
+      expect(onTransition2).toHaveBeenCalledTimes(6);
 
       const run3 = workflow.createRun();
 
@@ -2418,8 +2418,8 @@ describe('MastraInngestWorkflow', ctx => {
 
       srv.close();
 
-      expect(onTransition).toHaveBeenCalledTimes(4);
-      expect(onTransition2).toHaveBeenCalledTimes(4);
+      expect(onTransition).toHaveBeenCalledTimes(6);
+      expect(onTransition2).toHaveBeenCalledTimes(6);
     });
   });
 
