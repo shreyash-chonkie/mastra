@@ -243,6 +243,10 @@ export class InngestWorkflow<
 
         const emitter = {
           emit: async (event: string, data: any) => {
+            if (!publish) {
+              return;
+            }
+
             try {
               await publish({
                 channel: `workflow:${this.id}:${runId}`,
@@ -516,7 +520,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
               eventTimestamp: Date.now(),
             });
 
-            return { status: 'failed', error: result?.error };
+            return { executionContext, result: { status: 'failed', error: result?.error } };
           } else if (result.status === 'suspended') {
             const suspendedSteps = Object.entries(result.steps).filter(([_stepName, stepResult]) => {
               const stepRes: StepResult<any> = stepResult as StepResult<any>;
@@ -547,8 +551,11 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
               });
 
               return {
-                status: 'suspended',
-                payload: { ...(stepResult as any)?.payload, __workflow_meta: { runId: runId, path: suspendPath } },
+                executionContext,
+                result: {
+                  status: 'suspended',
+                  payload: { ...(stepResult as any)?.payload, __workflow_meta: { runId: runId, path: suspendPath } },
+                },
               };
             }
 
@@ -571,8 +578,11 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
             });
 
             return {
-              status: 'suspended',
-              payload: {},
+              executionContext,
+              result: {
+                status: 'suspended',
+                payload: {},
+              },
             };
           }
 
@@ -596,11 +606,12 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
             eventTimestamp: Date.now(),
           });
 
-          return { status: 'success', output: result?.result };
+          return { executionContext, result: { status: 'success', output: result?.result } };
         },
       );
 
-      return res as StepResult<any>;
+      Object.assign(executionContext, res.executionContext);
+      return res.result as StepResult<any>;
     }
 
     const stepRes = await this.inngestStep.run(`workflow.${executionContext.workflowId}.step.${step.id}`, async () => {
