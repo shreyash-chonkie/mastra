@@ -1,4 +1,10 @@
-import { NewWorkflow, type NewStep as Step, DefaultExecutionEngine, Run } from '@mastra/core/workflows/vNext';
+import {
+  NewWorkflow,
+  type NewStep as Step,
+  DefaultExecutionEngine,
+  Run,
+  cloneStep,
+} from '@mastra/core/workflows/vNext';
 import type {
   ExecuteFunction,
   ExecutionContext,
@@ -184,7 +190,7 @@ export class InngestWorkflow<
   TPrevSchema extends z.ZodType<any> = TInput,
 > extends NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, TPrevSchema> {
   #mastra: Mastra;
-  inngest: Inngest;
+  public inngest: Inngest;
 
   private function: ReturnType<Inngest['createFunction']> | undefined;
 
@@ -297,6 +303,31 @@ export class InngestWorkflow<
   }
 }
 
+function cloneWorkflow<
+  TWorkflowId extends string = string,
+  TInput extends z.ZodType<any> = z.ZodType<any>,
+  TOutput extends z.ZodType<any> = z.ZodType<any>,
+  TSteps extends Step<string, any, any, any, any>[] = Step<string, any, any, any, any>[],
+>(
+  workflow: InngestWorkflow<TSteps, string, TInput, TOutput>,
+  opts: { id: TWorkflowId },
+): InngestWorkflow<TSteps, TWorkflowId, TInput, TOutput> {
+  const wf = new InngestWorkflow(
+    {
+      id: opts.id,
+      inputSchema: workflow.inputSchema,
+      outputSchema: workflow.outputSchema,
+      steps: workflow.stepDefs,
+      mastra: workflow.mastra,
+    },
+    workflow.inngest,
+  );
+
+  wf.setStepFlow(workflow.stepGraph);
+  wf.commit();
+  return wf;
+}
+
 export function init(inngest: Inngest) {
   return {
     createWorkflow<
@@ -308,6 +339,8 @@ export function init(inngest: Inngest) {
       return new InngestWorkflow(params, inngest);
     },
     createStep,
+    cloneStep,
+    cloneWorkflow,
   };
 }
 

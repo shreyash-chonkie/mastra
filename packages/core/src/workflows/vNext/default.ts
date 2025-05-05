@@ -593,6 +593,32 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     return { status: 'success', output: results };
   }
 
+  protected async persistStepUpdate({
+    workflowId,
+    runId,
+    stepResults,
+    executionContext,
+  }: {
+    workflowId: string;
+    runId: string;
+    stepResults: Record<string, StepResult<any>>;
+    executionContext: ExecutionContext;
+  }) {
+    await this.mastra?.getStorage()?.persistWorkflowSnapshot({
+      workflowName: workflowId,
+      runId,
+      snapshot: {
+        runId,
+        value: {},
+        context: stepResults as any,
+        activePaths: [],
+        suspendedPaths: executionContext.suspendedPaths,
+        // @ts-ignore
+        timestamp: Date.now(),
+      },
+    });
+  }
+
   async executeEntry({
     workflowId,
     runId,
@@ -709,18 +735,11 @@ export class DefaultExecutionEngine extends ExecutionEngine {
       stepResults[entry.step.id] = execResults;
     }
 
-    await this.mastra?.getStorage()?.persistWorkflowSnapshot({
-      workflowName: workflowId,
+    await this.persistStepUpdate({
+      workflowId,
       runId,
-      snapshot: {
-        runId,
-        value: {},
-        context: stepResults as any,
-        activePaths: [],
-        suspendedPaths: executionContext.suspendedPaths,
-        // @ts-ignore
-        timestamp: Date.now(),
-      },
+      stepResults,
+      executionContext,
     });
 
     return execResults;
