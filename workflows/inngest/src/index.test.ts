@@ -2254,33 +2254,73 @@ describe('MastraInngestWorkflow', ctx => {
 
       // Start watching the workflow
       let cnt = 0;
-      let resp: any;
+      let resps: any[] = [];
       run.watch(d => {
         console.log('dd', d);
         cnt++;
-        resp = d;
+        resps.push(d);
       });
 
       const executionResult = await run.start({ inputData: {} });
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       expect(cnt).toBe(3);
-      expect(resp).toEqual(
-        expect.objectContaining({
-          type: 'watch',
-          payload: {
-            currentStep: expect.objectContaining({
-              id: expect.any(String),
-              status: expect.any(String),
-              output: expect.any(Object),
-            }),
-            workflowState: expect.objectContaining({
-              status: expect.any(String),
-            }),
+      expect(resps.length).toBe(3);
+      expect(resps[0]).toMatchObject({
+        type: 'watch',
+        payload: {
+          currentStep: {
+            id: 'step1',
+            status: 'success',
+            output: { result: 'success1' },
           },
-          eventTimestamp: expect.any(Number),
-        }),
-      );
+          workflowState: {
+            status: 'running',
+            result: null,
+            error: null,
+            steps: {},
+          },
+        },
+      });
+      expect(resps[1]).toMatchObject({
+        type: 'watch',
+        payload: {
+          currentStep: {
+            id: 'step2',
+            status: 'success',
+            output: { result: 'success2' },
+          },
+          workflowState: {
+            status: 'running',
+            result: null,
+            error: null,
+            steps: {},
+          },
+        },
+      });
+
+      expect(resps[resps.length - 1].currentStep).toBeUndefined();
+      expect(resps[resps.length - 1]).toMatchObject({
+        type: 'watch',
+        payload: {
+          workflowState: {
+            status: 'success',
+            result: {
+              result: 'success2',
+            },
+            steps: {
+              step1: {
+                status: 'success',
+                output: { result: 'success1' },
+              },
+              step2: {
+                status: 'success',
+                output: { result: 'success2' },
+              },
+            },
+          },
+        },
+      });
 
       // Verify execution completed successfully
       expect(executionResult.steps.step1).toEqual({

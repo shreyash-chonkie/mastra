@@ -174,15 +174,6 @@ export class InngestRun<
       },
     );
 
-    streamPromise.then(async (stream: any) => {
-      for await (const message of stream) {
-        console.dir({ data: message.data }, { depth: null });
-        cb(message.data);
-      }
-
-      console.log('STREAM ENDED');
-    });
-
     return () => {
       streamPromise.then((stream: any) => {
         console.log('CANCELLING', `workflow:${this.workflowId}:${this.runId}`);
