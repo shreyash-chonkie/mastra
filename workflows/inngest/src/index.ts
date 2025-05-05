@@ -14,7 +14,7 @@ import { Inngest, type BaseContext } from 'inngest';
 import { subscribe } from '@inngest/realtime';
 import { serve as inngestServe } from 'inngest/hono';
 import EventEmitter from 'events';
-import type { Mastra } from '@mastra/core';
+import { deepMerge, type Mastra } from '@mastra/core';
 import type { z } from 'zod';
 import { RuntimeContext } from '@mastra/core/di';
 import { randomUUID } from 'crypto';
@@ -682,12 +682,43 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     });
 
     // @ts-ignore
-    Object.assign(executionContext, stepRes.executionContext);
+    Object.assign(executionContext.suspendedPaths, stepRes.executionContext.suspendedPaths);
     // @ts-ignore
     Object.assign(stepResults, stepRes.stepResults);
 
     // @ts-ignore
     return stepRes.result;
+  }
+
+  async persistStepUpdate({
+    workflowId,
+    runId,
+    stepResults,
+    executionContext,
+  }: {
+    workflowId: string;
+    runId: string;
+    stepResults: Record<string, StepResult<any>>;
+    executionContext: ExecutionContext;
+  }) {
+    await this.inngestStep.run(
+      `workflow.${workflowId}.run.${runId}.path.${JSON.stringify(executionContext.executionPath)}.stepUpdate`,
+      async () => {
+        await this.mastra?.getStorage()?.persistWorkflowSnapshot({
+          workflowName: workflowId,
+          runId,
+          snapshot: {
+            runId,
+            value: {},
+            context: stepResults as any,
+            activePaths: [],
+            suspendedPaths: executionContext.suspendedPaths,
+            // @ts-ignore
+            timestamp: Date.now(),
+          },
+        });
+      },
+    );
   }
 
   async executeConditional({

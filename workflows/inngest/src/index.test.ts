@@ -2450,11 +2450,12 @@ describe('MastraInngestWorkflow', ctx => {
       expect(run2.runId).toBeDefined();
       expect(run.runId).toBe(run2.runId);
     });
-    // TODO: needs watch
-    it.skip('should handle basic suspend and resume flow', async ctx => {
+
+    it('should handle basic suspend and resume flow', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
+        middleware: [realtimeMiddleware()],
       });
 
       const { createWorkflow, createStep } = init(ingest);
@@ -2537,10 +2538,25 @@ describe('MastraInngestWorkflow', ctx => {
       });
       await initialStorage.init();
 
-      new Mastra({
-        storage: initialStorage,
-        vnext_workflows: { 'test-workflow': promptEvalWorkflow },
+      const mastra = new Mastra({
+        storage: new DefaultStorage({
+          config: {
+            url: ':memory:',
+          },
+        }),
+        vnext_workflows: {
+          'test-workflow': promptEvalWorkflow,
+        },
       });
+
+      const app = new Hono();
+      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+
+      const srv = serve({
+        fetch: app.fetch,
+        port: (ctx as any).handlerPort,
+      });
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       const run = promptEvalWorkflow.createRun();
 
@@ -2566,6 +2582,8 @@ describe('MastraInngestWorkflow', ctx => {
       const resumeData = await workflowSuspended;
       const resumeResult = await run.resume({ resumeData: resumeData as any, step: promptAgent });
 
+      srv.close();
+
       if (!resumeResult) {
         throw new Error('Resume failed to return a result');
       }
@@ -2586,11 +2604,11 @@ describe('MastraInngestWorkflow', ctx => {
       });
     });
 
-    // TODO: needs watch
-    it.skip('should handle parallel steps with conditional suspend', async ctx => {
+    it('should handle parallel steps with conditional suspend', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
+        middleware: [realtimeMiddleware()],
       });
 
       const { createWorkflow, createStep } = init(ingest);
@@ -2664,9 +2682,25 @@ describe('MastraInngestWorkflow', ctx => {
         ])
         .commit();
 
-      new Mastra({
-        vnext_workflows: { 'test-workflow': workflow },
+      const mastra = new Mastra({
+        storage: new DefaultStorage({
+          config: {
+            url: ':memory:',
+          },
+        }),
+        vnext_workflows: {
+          'test-workflow': workflow,
+        },
       });
+
+      const app = new Hono();
+      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+
+      const srv = serve({
+        fetch: app.fetch,
+        port: (ctx as any).handlerPort,
+      });
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       const run = workflow.createRun();
 
@@ -2705,6 +2739,8 @@ describe('MastraInngestWorkflow', ctx => {
       expect(humanInterventionAction).toHaveBeenCalledTimes(2);
       expect(explainResponseAction).not.toHaveBeenCalled();
 
+      srv.close();
+
       if (!result) {
         throw new Error('Resume failed to return a result');
       }
@@ -2721,11 +2757,11 @@ describe('MastraInngestWorkflow', ctx => {
       });
     });
 
-    // TODO: needs watch
-    it.skip('should handle complex workflow with multiple suspends', async ctx => {
+    it('should handle complex workflow with multiple suspends', async ctx => {
       const ingest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
+        middleware: [realtimeMiddleware()],
       });
 
       const { createWorkflow, createStep } = init(ingest);
@@ -2842,9 +2878,25 @@ describe('MastraInngestWorkflow', ctx => {
         .parallel([humanIntervention, explainResponse])
         .commit();
 
-      new Mastra({
-        vnext_workflows: { 'test-workflow': workflow },
+      const mastra = new Mastra({
+        storage: new DefaultStorage({
+          config: {
+            url: ':memory:',
+          },
+        }),
+        vnext_workflows: {
+          'test-workflow': workflow,
+        },
       });
+
+      const app = new Hono();
+      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+
+      const srv = serve({
+        fetch: app.fetch,
+        port: (ctx as any).handlerPort,
+      });
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       const run = workflow.createRun();
       const started = run.start({ inputData: { input: 'test' } });
@@ -2854,10 +2906,14 @@ describe('MastraInngestWorkflow', ctx => {
         let hasResumed = false;
         let hasResumedImproveResponse = false;
         run.watch(async data => {
-          const isHumanInterventionSuspended =
-            data.payload?.currentStep?.id === 'humanIntervention' && data.payload?.currentStep?.status === 'suspended';
-          const isImproveResponseSuspended =
-            data.payload?.currentStep?.id === 'improveResponse' && data.payload?.currentStep?.status === 'suspended';
+          const state = data.payload?.workflowState;
+
+          if (state.status !== 'suspended') {
+            return;
+          }
+
+          const isHumanInterventionSuspended = state.steps?.humanIntervention?.status === 'suspended';
+          const isImproveResponseSuspended = state.steps?.improveResponse?.status === 'suspended';
 
           if (isHumanInterventionSuspended) {
             if (!hasResumed) {
@@ -2880,9 +2936,6 @@ describe('MastraInngestWorkflow', ctx => {
               hasResumedImproveResponse = true;
               const resumed = run.resume({
                 step: improveResponse,
-                resumeData: {
-                  ...data.payload.workflowState.steps,
-                },
               });
               improvedResponseResultPromise = resumed;
             }
@@ -2890,6 +2943,7 @@ describe('MastraInngestWorkflow', ctx => {
         });
       });
 
+      const result = await resultPromise;
       const initialResult = await started;
       expect(initialResult?.steps.improveResponse.status).toBe('suspended');
       // @ts-ignore
@@ -2899,7 +2953,7 @@ describe('MastraInngestWorkflow', ctx => {
       expect(improvedResponseResult?.steps.improveResponse.status).toBe('success');
       expect(improvedResponseResult?.steps.evaluateImprovedResponse.status).toBe('success');
 
-      const result = await resultPromise;
+      srv.close();
       if (!result) {
         throw new Error('Resume failed to return a result');
       }
