@@ -31,8 +31,8 @@ function readPackageJson(dir: string): PackageJson {
 
 function getMastraPackages(packageJson: PackageJson): MastraPackage[] {
   const allDependencies = {
-    ...packageJson.dependencies,
-    ...packageJson.devDependencies,
+    ...(packageJson.dependencies || {}),
+    ...(packageJson.devDependencies || {}),
   };
 
   const mastraPackages = Object.entries(allDependencies).filter(
