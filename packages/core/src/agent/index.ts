@@ -33,6 +33,7 @@ import { makeCoreTool, createMastraProxy, ensureToolProperties, ensureAllMessage
 import type { CompositeVoice } from '../voice';
 import { DefaultVoice } from '../voice';
 import { agentToStep, Step } from '../workflows';
+import type { NewWorkflow } from '../workflows/vNext';
 import type {
   AgentConfig,
   MastraLanguageModel,
@@ -43,7 +44,6 @@ import type {
   ToolsInput,
   DynamicArgument,
 } from './types';
-import type { NewWorkflow } from '../workflows/vNext';
 
 export * from './types';
 
