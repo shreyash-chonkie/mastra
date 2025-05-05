@@ -2145,7 +2145,6 @@ describe('MastraInngestWorkflow', ctx => {
 
       // @ts-ignore
       const toolAction = vi.fn<any>().mockImplementation(async ({ context }) => {
-        console.log('tool call context', context);
         return { name: context.name };
       });
 
@@ -2256,7 +2255,6 @@ describe('MastraInngestWorkflow', ctx => {
       let cnt = 0;
       let resps: any[] = [];
       run.watch(d => {
-        console.log('dd', d);
         cnt++;
         resps.push(d);
       });
@@ -2755,7 +2753,6 @@ describe('MastraInngestWorkflow', ctx => {
           await suspend();
         })
         .mockImplementationOnce(({ resumeData }) => {
-          console.log('resumeData', resumeData);
           return { improvedOutput: 'human intervention output' };
         });
       const explainResponseAction = vi.fn().mockResolvedValue({
@@ -3807,7 +3804,6 @@ describe('MastraInngestWorkflow', ctx => {
 
         const app = new Hono();
         app.use('*', async (ctx, next) => {
-          console.log('middleware', ctx.req.method, ctx.req.url);
           await next();
         });
         app.all('/api/inngest', inngestServe({ mastra, ingest }));
@@ -3961,7 +3957,6 @@ describe('MastraInngestWorkflow', ctx => {
 
         const app = new Hono();
         app.use('*', async (ctx, next) => {
-          console.log('middleware', ctx.req.method, ctx.req.url);
           await next();
         });
         app.all('/api/inngest', inngestServe({ mastra, ingest }));
@@ -4153,7 +4148,6 @@ describe('MastraInngestWorkflow', ctx => {
 
         const app = new Hono();
         app.use('*', async (ctx, next) => {
-          console.log('middleware', ctx.req.method, ctx.req.url);
           await next();
         });
         app.all('/api/inngest', inngestServe({ mastra, ingest }));
@@ -4219,7 +4213,6 @@ describe('MastraInngestWorkflow', ctx => {
         });
 
         const other = vi.fn().mockImplementation(async ({ suspend, resumeData }) => {
-          console.log('resuming other?', resumeData);
           if (!resumeData) {
             await suspend();
           }
@@ -4447,7 +4440,7 @@ describe('MastraInngestWorkflow', ctx => {
 
         const app = new Hono();
         app.use('*', async (ctx, next) => {
-          console.log('middleware', ctx.req.method, ctx.req.url);
+          'middleware', ctx.req.method, ctx.req.url;
           await next();
         });
         app.all('/api/inngest', inngestServe({ mastra, ingest }));
@@ -4643,7 +4636,6 @@ describe('MastraInngestWorkflow', ctx => {
             workflowName: run.workflowName,
             runId: run.runId,
           });
-          console.dir({ workflowName: run.workflowName, runId: run.runId, inTestSnapshot: snapshot }, { depth: null });
         }
       }
 

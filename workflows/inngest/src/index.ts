@@ -104,7 +104,6 @@ export class InngestRun<
       throw new Error('Event ID is not set');
     }
     const runOutput = await this.getRunOutput(eventId);
-    console.dir({ runOutput }, { depth: null });
     const result = runOutput?.output?.result;
     if (result.status === 'failed') {
       result.error = new Error(result.error);
@@ -129,8 +128,6 @@ export class InngestRun<
       runId: this.runId,
     });
 
-    console.dir({ snapshot, workflowId: this.workflowId, runId: this.runId }, { depth: 3 });
-
     const eventOutput = await this.inngest.send({
       name: `workflow.${this.workflowId}`,
       data: {
@@ -152,7 +149,6 @@ export class InngestRun<
       throw new Error('Event ID is not set');
     }
     const runOutput = await this.getRunOutput(eventId);
-    console.dir({ runOutput }, { depth: null });
     const result = runOutput?.output?.result;
     if (result.status === 'failed') {
       result.error = new Error(result.error);
@@ -161,7 +157,6 @@ export class InngestRun<
   }
 
   watch(cb: (event: any) => void): () => void {
-    console.log('WATCHING', `workflow:${this.workflowId}:${this.runId}`);
     const streamPromise = subscribe(
       {
         channel: `workflow:${this.workflowId}:${this.runId}`,
@@ -169,14 +164,12 @@ export class InngestRun<
         app: this.inngest,
       },
       (message: any) => {
-        console.dir({ subscribed: message.data }, { depth: null });
         cb(message.data);
       },
     );
 
     return () => {
       streamPromise.then((stream: any) => {
-        console.log('CANCELLING', `workflow:${this.workflowId}:${this.runId}`);
         stream.cancel();
       });
     };
@@ -250,20 +243,14 @@ export class InngestWorkflow<
 
         const emitter = {
           emit: async (event: string, data: any) => {
-            console.dir(
-              { publish: { data, channel: `workflow:${this.id}:${runId}`, topic: 'watch' } },
-              { depth: null },
-            );
-
             try {
               await publish({
                 channel: `workflow:${this.id}:${runId}`,
                 topic: 'watch',
                 data,
               });
-              console.log('FINISHED PUBLISHING EVENT', data);
             } catch (err: any) {
-              console.error('Error emitting event', err);
+              this.logger.error('Error emitting event: ' + (err?.stack ?? err?.message ?? err));
             }
           },
         };
@@ -540,18 +527,6 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
               // @ts-ignore
               const suspendPath: string[] = [stepName, ...(stepResult?.payload?.__workflow_meta?.path ?? [])];
               executionContext.suspendedPaths[step.id] = executionContext.executionPath;
-              console.dir(
-                {
-                  suspend: {
-                    runId,
-                    executionContext,
-                    suspendPath,
-                    stepResult,
-                    payload: { ...(stepResult as any)?.payload, __workflow_meta: { runId: runId, path: suspendPath } },
-                  },
-                },
-                { depth: 5 },
-              );
 
               await emitter.emit('watch', {
                 type: 'watch',
@@ -763,7 +738,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
               return result ? index : null;
               // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (e: unknown) {
-              console.log(e);
+              e;
               return null;
             }
           }),

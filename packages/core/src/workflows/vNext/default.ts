@@ -113,7 +113,6 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     runtimeContext: RuntimeContext;
   }): Promise<TOutput> {
     const { workflowId, runId, graph, input, resume, retryConfig } = params;
-    console.dir({ execute: { workflowId, runId, input, resume, retryConfig } }, { depth: 10 });
     const { attempts = 0, delay = 0 } = retryConfig ?? {};
     const steps = graph.steps;
 
@@ -151,12 +150,10 @@ export class DefaultExecutionEngine extends ExecutionEngine {
           emitter: params.emitter,
           runtimeContext: params.runtimeContext,
         });
-        if (!lastOutput) console.log('WTF last output is undefined ???', workflowId, runId, entry);
         if (lastOutput.status !== 'success') {
           return this.fmtReturnValue(params.emitter, stepResults, lastOutput);
         }
       } catch (e) {
-        console.log('WTF', e, workflowId, runId, entry);
         this.logger.error('Error executing step: ' + ((e as Error)?.stack ?? e));
         return this.fmtReturnValue(params.emitter, stepResults, lastOutput, e as Error);
       }
