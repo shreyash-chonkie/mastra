@@ -10,6 +10,7 @@ import { deploy } from './commands/deploy/index';
 import { dev } from './commands/dev/dev';
 import { init } from './commands/init/init';
 import { checkAndInstallCoreDeps, checkPkgJson, interactivePrompt } from './commands/init/utils';
+import { update } from './commands/update/index';
 import { DepsService } from './services/service.deps';
 import { logger } from './utils/logger';
 
@@ -202,6 +203,22 @@ program
       },
       origin,
     });
+  });
+
+program
+  .command('update')
+  .description('Update your Mastra packages')
+  .option('-a, --alpha', 'Update to the latest alpha versions')
+  .option('-l, --latest', 'Update to the latest versions')
+  .option('-r, --root <root>', 'Path to your root folder')
+  .action(async ({ alpha, latest, root }) => {
+    if (alpha) {
+      await update({ alpha: true, root });
+    } else if (latest) {
+      await update({ latest: true, root });
+    } else {
+      await update({ root });
+    }
   });
 
 program.parse(process.argv);
