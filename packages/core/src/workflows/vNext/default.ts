@@ -211,6 +211,28 @@ export class DefaultExecutionEngine extends ExecutionEngine {
     emitter: { emit: (event: string, data: any) => Promise<void> };
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
+    await emitter.emit('watch', {
+      type: 'watch',
+      payload: {
+        currentStep: {
+          id: step.id,
+          status: 'running',
+        },
+        workflowState: {
+          status: 'running',
+          steps: {
+            ...stepResults,
+            [step.id]: {
+              status: 'running',
+            },
+          },
+          result: null,
+          error: null,
+        },
+      },
+      eventTimestamp: Date.now(),
+    });
+
     let execResults: any;
 
     const retries = step.retries ?? executionContext.retryConfig.attempts ?? 0;
@@ -269,7 +291,16 @@ export class DefaultExecutionEngine extends ExecutionEngine {
         },
         workflowState: {
           status: 'running',
-          steps: stepResults,
+          steps: {
+            ...stepResults,
+            [step.id]: {
+              status: execResults.status,
+              output: execResults.output,
+              error: execResults.error,
+              payload: execResults.payload,
+            },
+          },
+
           result: null,
           error: null,
         },

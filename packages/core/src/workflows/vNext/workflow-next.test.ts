@@ -1952,8 +1952,8 @@ describe('Workflow', () => {
 
       const executionResult = await run.start({ inputData: {} });
 
-      expect(watchData.length).toBe(3);
-      expect(watchData[0]).toEqual({
+      expect(watchData.length).toBe(5);
+      expect(watchData[1]).toEqual({
         type: 'watch',
         payload: {
           currentStep: {
@@ -1965,6 +1965,10 @@ describe('Workflow', () => {
             status: 'running',
             steps: {
               input: {},
+              step1: {
+                status: 'success',
+                output: { result: 'success1' },
+              },
             },
             result: null,
             error: null,
@@ -2040,8 +2044,8 @@ describe('Workflow', () => {
 
       const executionResult = await run.start({ inputData: {} });
 
-      expect(watchData.length).toBe(3);
-      expect(watchData[0]).toEqual({
+      expect(watchData.length).toBe(5);
+      expect(watchData[1]).toEqual({
         type: 'watch',
         payload: {
           currentStep: {
@@ -2053,6 +2057,10 @@ describe('Workflow', () => {
             status: 'running',
             steps: {
               input: {},
+              step1: {
+                status: 'success',
+                output: { result: 'success1' },
+              },
             },
             result: null,
             error: null,
@@ -2124,8 +2132,8 @@ describe('Workflow', () => {
 
       await run.start({ inputData: {} });
 
-      expect(onTransition).toHaveBeenCalledTimes(3);
-      expect(onTransition2).toHaveBeenCalledTimes(3);
+      expect(onTransition).toHaveBeenCalledTimes(5);
+      expect(onTransition2).toHaveBeenCalledTimes(5);
 
       const run2 = workflow.createRun();
 
@@ -2133,8 +2141,8 @@ describe('Workflow', () => {
 
       await run2.start({ inputData: {} });
 
-      expect(onTransition).toHaveBeenCalledTimes(3);
-      expect(onTransition2).toHaveBeenCalledTimes(6);
+      expect(onTransition).toHaveBeenCalledTimes(5);
+      expect(onTransition2).toHaveBeenCalledTimes(10);
 
       const run3 = workflow.createRun();
 
@@ -2142,8 +2150,8 @@ describe('Workflow', () => {
 
       await run3.start({ inputData: {} });
 
-      expect(onTransition).toHaveBeenCalledTimes(6);
-      expect(onTransition2).toHaveBeenCalledTimes(6);
+      expect(onTransition).toHaveBeenCalledTimes(10);
+      expect(onTransition2).toHaveBeenCalledTimes(10);
     });
   });
 

@@ -490,6 +490,33 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     emitter: { emit: (event: string, data: any) => Promise<void> };
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
+    await this.inngestStep.run(
+      `workflow.${executionContext.workflowId}.run.${executionContext.runId}.step.${step.id}.running_ev`,
+      async () => {
+        await emitter.emit('watch', {
+          type: 'watch',
+          payload: {
+            currentStep: {
+              id: step.id,
+              status: 'running',
+            },
+            workflowState: {
+              status: 'running',
+              steps: {
+                ...stepResults,
+                [step.id]: {
+                  status: 'running',
+                },
+              },
+              result: null,
+              error: null,
+            },
+          },
+          eventTimestamp: Date.now(),
+        });
+      },
+    );
+
     if (step instanceof InngestWorkflow) {
       const isResume = !!resume?.steps?.length;
       let result: WorkflowResult<any, any>;
