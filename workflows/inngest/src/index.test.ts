@@ -2262,9 +2262,28 @@ describe('MastraInngestWorkflow', ctx => {
       const executionResult = await run.start({ inputData: {} });
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      expect(cnt).toBe(3);
-      expect(resps.length).toBe(3);
+      expect(cnt).toBe(5);
+      expect(resps.length).toBe(5);
       expect(resps[0]).toMatchObject({
+        type: 'watch',
+        payload: {
+          currentStep: {
+            id: 'step1',
+            status: 'running',
+          },
+          workflowState: {
+            status: 'running',
+            result: null,
+            error: null,
+            steps: {
+              step1: {
+                status: 'running',
+              },
+            },
+          },
+        },
+      });
+      expect(resps[1]).toMatchObject({
         type: 'watch',
         payload: {
           currentStep: {
@@ -2280,7 +2299,31 @@ describe('MastraInngestWorkflow', ctx => {
           },
         },
       });
-      expect(resps[1]).toMatchObject({
+      expect(resps[2]).toMatchObject({
+        type: 'watch',
+        payload: {
+          currentStep: {
+            id: 'step2',
+            status: 'running',
+          },
+          workflowState: {
+            status: 'running',
+            result: null,
+            error: null,
+            steps: {
+              step1: {
+                status: 'success',
+                output: { result: 'success1' },
+              },
+              step2: {
+                status: 'running',
+              },
+            },
+          },
+        },
+      });
+
+      expect(resps[3]).toMatchObject({
         type: 'watch',
         payload: {
           currentStep: {
@@ -2396,8 +2439,8 @@ describe('MastraInngestWorkflow', ctx => {
 
       await run.start({ inputData: {} });
 
-      expect(onTransition).toHaveBeenCalledTimes(3);
-      expect(onTransition2).toHaveBeenCalledTimes(3);
+      expect(onTransition).toHaveBeenCalledTimes(5);
+      expect(onTransition2).toHaveBeenCalledTimes(5);
 
       const run2 = workflow.createRun();
 
@@ -2405,8 +2448,8 @@ describe('MastraInngestWorkflow', ctx => {
 
       await run2.start({ inputData: {} });
 
-      expect(onTransition).toHaveBeenCalledTimes(3);
-      expect(onTransition2).toHaveBeenCalledTimes(6);
+      expect(onTransition).toHaveBeenCalledTimes(5);
+      expect(onTransition2).toHaveBeenCalledTimes(10);
 
       const run3 = workflow.createRun();
 
@@ -2416,8 +2459,8 @@ describe('MastraInngestWorkflow', ctx => {
 
       srv.close();
 
-      expect(onTransition).toHaveBeenCalledTimes(6);
-      expect(onTransition2).toHaveBeenCalledTimes(6);
+      expect(onTransition).toHaveBeenCalledTimes(10);
+      expect(onTransition2).toHaveBeenCalledTimes(10);
     });
   });
 
