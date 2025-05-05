@@ -1942,13 +1942,7 @@ describe('Workflow', () => {
 
       let watchData: WatchEvent[] = [];
       const onTransition = data => {
-        watchData.push({
-          ...data,
-          payload: {
-            currentStep: data.payload.currentStep ? { ...data.payload.currentStep } : undefined,
-            workflowState: { ...data.payload.workflowState },
-          },
-        });
+        watchData.push(JSON.parse(JSON.stringify(data)));
       };
 
       const run = workflow.createRun();
@@ -1958,8 +1952,8 @@ describe('Workflow', () => {
 
       const executionResult = await run.start({ inputData: {} });
 
-      expect(watchData.length).toBe(5);
-      expect(watchData[1]).toEqual({
+      expect(watchData.length).toBe(3);
+      expect(watchData[0]).toEqual({
         type: 'watch',
         payload: {
           currentStep: {
@@ -1971,7 +1965,6 @@ describe('Workflow', () => {
             status: 'running',
             steps: {
               input: {},
-              step1: { status: 'success', output: { result: 'success1' } },
             },
             result: null,
             error: null,
@@ -2036,13 +2029,7 @@ describe('Workflow', () => {
 
       let watchData: WatchEvent[] = [];
       const onTransition = data => {
-        watchData.push({
-          ...data,
-          payload: {
-            currentStep: data.payload.currentStep ? { ...data.payload.currentStep } : undefined,
-            workflowState: { ...data.payload.workflowState },
-          },
-        });
+        watchData.push(JSON.parse(JSON.stringify(data)));
       };
 
       const run = workflow.createRun();
@@ -2053,8 +2040,8 @@ describe('Workflow', () => {
 
       const executionResult = await run.start({ inputData: {} });
 
-      expect(watchData.length).toBe(5);
-      expect(watchData[1]).toEqual({
+      expect(watchData.length).toBe(3);
+      expect(watchData[0]).toEqual({
         type: 'watch',
         payload: {
           currentStep: {
@@ -2066,7 +2053,6 @@ describe('Workflow', () => {
             status: 'running',
             steps: {
               input: {},
-              step1: { status: 'success', output: { result: 'success1' } },
             },
             result: null,
             error: null,
@@ -2138,8 +2124,8 @@ describe('Workflow', () => {
 
       await run.start({ inputData: {} });
 
-      expect(onTransition).toHaveBeenCalledTimes(5);
-      expect(onTransition2).toHaveBeenCalledTimes(5);
+      expect(onTransition).toHaveBeenCalledTimes(3);
+      expect(onTransition2).toHaveBeenCalledTimes(3);
 
       const run2 = workflow.createRun();
 
@@ -2147,8 +2133,8 @@ describe('Workflow', () => {
 
       await run2.start({ inputData: {} });
 
-      expect(onTransition).toHaveBeenCalledTimes(5);
-      expect(onTransition2).toHaveBeenCalledTimes(10);
+      expect(onTransition).toHaveBeenCalledTimes(3);
+      expect(onTransition2).toHaveBeenCalledTimes(6);
 
       const run3 = workflow.createRun();
 
@@ -2156,8 +2142,8 @@ describe('Workflow', () => {
 
       await run3.start({ inputData: {} });
 
-      expect(onTransition).toHaveBeenCalledTimes(10);
-      expect(onTransition2).toHaveBeenCalledTimes(10);
+      expect(onTransition).toHaveBeenCalledTimes(6);
+      expect(onTransition2).toHaveBeenCalledTimes(6);
     });
   });
 
@@ -2564,10 +2550,14 @@ describe('Workflow', () => {
         let hasResumed = false;
         let hasResumedImproveResponse = false;
         run.watch(async data => {
-          const isHumanInterventionSuspended =
-            data.payload?.currentStep?.id === 'humanIntervention' && data.payload?.currentStep?.status === 'suspended';
-          const isImproveResponseSuspended =
-            data.payload?.currentStep?.id === 'improveResponse' && data.payload?.currentStep?.status === 'suspended';
+          const state = data.payload?.workflowState;
+
+          if (state.status !== 'suspended') {
+            return;
+          }
+
+          const isHumanInterventionSuspended = state.steps?.humanIntervention?.status === 'suspended';
+          const isImproveResponseSuspended = state.steps?.improveResponse?.status === 'suspended';
 
           if (isHumanInterventionSuspended) {
             if (!hasResumed) {
@@ -2600,6 +2590,7 @@ describe('Workflow', () => {
         });
       });
 
+      const result = await resultPromise;
       const initialResult = await started;
       expect(initialResult?.steps.improveResponse.status).toBe('suspended');
       // @ts-ignore
@@ -2609,7 +2600,6 @@ describe('Workflow', () => {
       expect(improvedResponseResult?.steps.improveResponse.status).toBe('success');
       expect(improvedResponseResult?.steps.evaluateImprovedResponse.status).toBe('success');
 
-      const result = await resultPromise;
       if (!result) {
         throw new Error('Resume failed to return a result');
       }
