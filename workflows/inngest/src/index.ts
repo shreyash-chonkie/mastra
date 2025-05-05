@@ -519,27 +519,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       const res = await this.inngestStep.run(
         `workflow.${executionContext.workflowId}.step.${step.id}.nestedwf-results`,
         async () => {
-          if (result.status === 'success') {
-            await emitter.emit('watch', {
-              type: 'watch',
-              payload: {
-                currentStep: {
-                  id: step.id,
-                  status: 'success',
-                  output: result?.result,
-                },
-                workflowState: {
-                  status: 'running',
-                  steps: stepResults,
-                  result: null,
-                  error: null,
-                },
-              },
-              eventTimestamp: Date.now(),
-            });
-
-            return { status: 'success', output: result?.result };
-          } else if (result.status === 'failed') {
+          if (result.status === 'failed') {
             await emitter.emit('watch', {
               type: 'watch',
               payload: {
@@ -629,10 +609,32 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
               payload: {},
             };
           }
+
+          // is success
+
+          await emitter.emit('watch', {
+            type: 'watch',
+            payload: {
+              currentStep: {
+                id: step.id,
+                status: 'success',
+                output: result?.result,
+              },
+              workflowState: {
+                status: 'running',
+                steps: stepResults,
+                result: null,
+                error: null,
+              },
+            },
+            eventTimestamp: Date.now(),
+          });
+
+          return { status: 'success', output: result?.result };
         },
       );
 
-      return res;
+      return res as StepResult<any>;
     }
 
     const stepRes = await this.inngestStep.run(`workflow.${executionContext.workflowId}.step.${step.id}`, async () => {
