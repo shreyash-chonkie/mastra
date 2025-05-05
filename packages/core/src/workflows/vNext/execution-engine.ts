@@ -1,4 +1,3 @@
-import type EventEmitter from 'events';
 import type { Mastra } from '../..';
 import { MastraBase } from '../../base';
 import type { RuntimeContext } from '../../di';
