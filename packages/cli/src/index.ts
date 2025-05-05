@@ -212,13 +212,20 @@ program
   .option('-l, --latest', 'Update to the latest versions')
   .option('-r, --root <root>', 'Path to your root folder')
   .action(async ({ alpha, latest, root }) => {
-    if (alpha) {
-      await update({ alpha: true, root });
-    } else if (latest) {
-      await update({ latest: true, root });
-    } else {
-      await update({ root });
-    }
+    await analytics.trackCommandExecution({
+      command: 'update',
+      args: { alpha, latest, root },
+      execution: async () => {
+        if (alpha) {
+          await update({ alpha: true, root });
+        } else if (latest) {
+          await update({ latest: true, root });
+        } else {
+          await update({ root });
+        }
+      },
+      origin,
+    });
   });
 
 program.parse(process.argv);
