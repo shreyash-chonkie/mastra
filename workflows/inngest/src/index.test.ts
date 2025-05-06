@@ -29,7 +29,7 @@ describe('MastraInngestWorkflow', ctx => {
     const inngestPort = await getPort();
     const handlerPort = await getPort();
     const containerName = randomUUID();
-    await $`docker run --rm -d --name ${containerName} -p ${inngestPort}:${inngestPort} inngest/inngest:v1.5.10 inngest dev -p ${inngestPort} -u http://host.docker.internal:${handlerPort}/api/inngest`;
+    await $`docker run --rm -d --name ${containerName} -p ${inngestPort}:${inngestPort} inngest/inngest:v1.5.10 inngest dev -p ${inngestPort} -u http://host.docker.internal:${handlerPort}/inngest/api`;
 
     ctx.inngestPort = inngestPort;
     ctx.handlerPort = handlerPort;
@@ -78,7 +78,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -155,7 +155,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -164,7 +164,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -239,7 +239,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -248,7 +248,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -314,7 +314,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -323,7 +323,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -404,7 +404,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -413,7 +413,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -474,7 +474,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -483,7 +483,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -552,7 +552,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -561,7 +561,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -637,7 +637,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -646,7 +646,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -743,7 +743,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -752,7 +752,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -822,7 +822,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -831,7 +831,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -930,7 +930,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -939,7 +939,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1016,7 +1016,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -1025,7 +1025,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1087,7 +1087,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -1096,7 +1096,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1174,7 +1174,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -1183,7 +1183,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1271,7 +1271,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1393,7 +1393,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -1402,7 +1402,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1498,7 +1498,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1595,7 +1595,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1678,7 +1678,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1825,7 +1825,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1968,7 +1968,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2134,7 +2134,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -2143,7 +2143,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2203,7 +2203,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -2212,7 +2212,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2267,7 +2267,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -2338,7 +2338,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -2347,7 +2347,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2412,7 +2412,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -2421,7 +2421,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2601,7 +2601,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -2610,7 +2610,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2782,7 +2782,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2926,7 +2926,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -2935,7 +2935,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3131,7 +3131,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -3140,7 +3140,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3328,7 +3328,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3446,7 +3446,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -3455,7 +3455,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3552,7 +3552,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -3561,7 +3561,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3691,7 +3691,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -3700,7 +3700,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3837,7 +3837,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3983,7 +3983,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -4137,7 +4137,7 @@ describe('MastraInngestWorkflow', ctx => {
         app.use('*', async (ctx, next) => {
           await next();
         });
-        app.all('/api/inngest', inngestServe({ mastra, ingest }));
+        app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
         const srv = serve({
           fetch: app.fetch,
@@ -4290,7 +4290,7 @@ describe('MastraInngestWorkflow', ctx => {
         app.use('*', async (ctx, next) => {
           await next();
         });
-        app.all('/api/inngest', inngestServe({ mastra, ingest }));
+        app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
         const srv = serve({
           fetch: app.fetch,
@@ -4481,7 +4481,7 @@ describe('MastraInngestWorkflow', ctx => {
         app.use('*', async (ctx, next) => {
           await next();
         });
-        app.all('/api/inngest', inngestServe({ mastra, ingest }));
+        app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
         const srv = serve({
           fetch: app.fetch,
@@ -4628,7 +4628,7 @@ describe('MastraInngestWorkflow', ctx => {
         });
 
         const app = await createHonoServer(mastra);
-        app.all('/api/inngest', inngestServe({ mastra, ingest }));
+        app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
         const srv = serve({
           fetch: app.fetch,
@@ -4774,7 +4774,7 @@ describe('MastraInngestWorkflow', ctx => {
           'middleware', ctx.req.method, ctx.req.url;
           await next();
         });
-        app.all('/api/inngest', inngestServe({ mastra, ingest }));
+        app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
         const srv = serve({
           fetch: app.fetch,
@@ -4949,7 +4949,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -5110,7 +5110,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -5179,7 +5179,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -5188,7 +5188,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -5245,7 +5245,7 @@ describe('MastraInngestWorkflow', ctx => {
         server: {
           apiRoutes: [
             {
-              path: '/api/inngest',
+              path: '/inngest/api',
               method: 'ALL',
               createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
             },
@@ -5254,7 +5254,7 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
