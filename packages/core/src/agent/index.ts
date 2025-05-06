@@ -69,6 +69,7 @@ function resoolveMaybePromise<T, R = void>(value: T | Promise<T>, cb: (value: T)
     'log',
     'getModel',
     'getInstructions',
+    'getWorkflows',
     'getTools',
     'getLLM',
   ],
