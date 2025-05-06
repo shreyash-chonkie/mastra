@@ -42,12 +42,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Basic Workflow Execution', () => {
     it('should execute a single step workflow successfully', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
       const execute = vi.fn<any>().mockResolvedValue({ result: 'success' });
       const step1 = createStep({
         id: 'step1',
@@ -80,7 +80,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -107,12 +107,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should execute multiple steps in parallel', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const step1Action = vi.fn().mockImplementation(async () => {
         return { value: 'step1' };
@@ -157,7 +157,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -186,12 +186,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should execute steps sequentially', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const executionOrder: string[] = [];
 
@@ -240,7 +240,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -270,12 +270,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Variable Resolution', () => {
     it('should resolve trigger data', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const execute = vi.fn<any>().mockResolvedValue({ result: 'success' });
 
@@ -314,7 +314,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -337,12 +337,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should provide access to step results and trigger data via getStepResult helper', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const step1Action = vi.fn().mockImplementation(async ({ inputData }) => {
         // Test accessing trigger data with correct type
@@ -403,7 +403,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -431,12 +431,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should resolve trigger data from context', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const execute = vi.fn<any>().mockResolvedValue({ result: 'success' });
       const triggerSchema = z.object({
@@ -472,7 +472,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -498,12 +498,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should resolve trigger data from getInitData', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const execute = vi.fn<any>().mockResolvedValue({ result: 'success' });
       const triggerSchema = z.object({
@@ -549,7 +549,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -577,12 +577,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should resolve variables from previous steps', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const step1Action = vi.fn<any>().mockResolvedValue({
         nested: { value: 'step1-data' },
@@ -633,7 +633,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -663,12 +663,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Simple Conditions', () => {
     it('should follow conditional chains', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const step1Action = vi.fn().mockImplementation(() => {
         return Promise.resolve({ status: 'success' });
@@ -738,7 +738,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -766,12 +766,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should handle failing dependencies', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       let err: Error | undefined;
       const step1Action = vi.fn<any>().mockImplementation(() => {
@@ -816,7 +816,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -848,12 +848,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should support simple string conditions', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const step1Action = vi.fn<any>().mockResolvedValue({ status: 'success' });
       const step2Action = vi.fn<any>().mockResolvedValue({ result: 'step2' });
@@ -923,7 +923,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -951,12 +951,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should support custom condition functions', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const step1Action = vi.fn<any>().mockResolvedValue({ count: 5 });
       const step2Action = vi.fn<any>();
@@ -1008,7 +1008,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -1039,12 +1039,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Error Handling', () => {
     it('should handle step execution errors', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const error = new Error('Step execution failed');
       const failingAction = vi.fn<any>().mockRejectedValue(error);
@@ -1078,7 +1078,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -1107,12 +1107,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should handle step execution errors within branches', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const error = new Error('Step execution failed');
       const failingAction = vi.fn<any>().mockRejectedValue(error);
@@ -1164,7 +1164,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -1195,12 +1195,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should handle step execution errors within nested workflows', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const error = new Error('Step execution failed');
       const failingAction = vi.fn<any>().mockRejectedValue(error);
@@ -1255,6 +1255,15 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'main-workflow': mainWorkflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/inngest/api',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+            },
+          ],
+        },
       });
 
       const app = await createHonoServer(mastra);
@@ -1281,12 +1290,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Complex Conditions', () => {
     it('should handle nested AND/OR conditions', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const step1Action = vi.fn<any>().mockResolvedValue({
         status: 'partial',
@@ -1381,7 +1390,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -1408,12 +1417,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Loops', () => {
     it('should run an until loop', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const increment = vi.fn().mockImplementation(async ({ inputData }) => {
         // Get the current value (either from trigger or previous increment)
@@ -1480,6 +1489,15 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': counterWorkflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/inngest/api',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+            },
+          ],
+        },
       });
 
       const app = await createHonoServer(mastra);
@@ -1504,12 +1522,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should run a while loop', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const increment = vi.fn().mockImplementation(async ({ inputData }) => {
         // Get the current value (either from trigger or previous increment)
@@ -1576,6 +1594,15 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': counterWorkflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/inngest/api',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+            },
+          ],
+        },
       });
 
       const app = await createHonoServer(mastra);
@@ -1602,12 +1629,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('foreach', () => {
     it('should run a single item concurrency (default) for loop', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const startTime = Date.now();
       const map = vi.fn().mockImplementation(async ({ inputData }) => {
@@ -1658,6 +1685,15 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': counterWorkflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/inngest/api',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+            },
+          ],
+        },
       });
 
       const app = await createHonoServer(mastra);
@@ -1688,12 +1724,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('if-else branching', () => {
     it('should run the if-then branch', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const start = vi.fn().mockImplementation(async ({ inputData }) => {
         // Get the current value (either from trigger or previous increment)
@@ -1804,6 +1840,15 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': counterWorkflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/inngest/api',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+            },
+          ],
+        },
       });
 
       const app = await createHonoServer(mastra);
@@ -1829,12 +1874,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should run the else branch', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const start = vi.fn().mockImplementation(async ({ inputData }) => {
         // Get the current value (either from trigger or previous increment)
@@ -1946,6 +1991,15 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': counterWorkflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/inngest/api',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+            },
+          ],
+        },
       });
 
       const app = await createHonoServer(mastra);
@@ -1973,12 +2027,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Schema Validation', () => {
     it.skip('should validate trigger data against schema', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const triggerSchema = z.object({
         required: z.string(),
@@ -2034,12 +2088,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('multiple chains', () => {
     it('should run multiple chains in parallel', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const step1 = createStep({
         id: 'step1',
@@ -2116,7 +2170,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -2142,12 +2196,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Retry', () => {
     it('should retry a step default 0 times', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const step1 = createStep({
         id: 'step1',
@@ -2184,7 +2238,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -2211,12 +2265,12 @@ describe('MastraInngestWorkflow', ctx => {
 
     // Need to fix so we can throw for inngest to recognize retries
     it.skip('should retry a step with a custom retry config', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const step1 = createStep({
         id: 'step1',
@@ -2247,7 +2301,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -2267,12 +2321,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Interoperability (Actions)', () => {
     it('should be able to use all action types in a workflow', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const step1Action = vi.fn<any>().mockResolvedValue({ name: 'step1' });
 
@@ -2318,7 +2372,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -2345,13 +2399,13 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Watch', () => {
     it('should watch workflow state changes and call onTransition', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
         middleware: [realtimeMiddleware()],
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const step1Action = vi.fn<any>().mockResolvedValue({ result: 'success1' });
       const step2Action = vi.fn<any>().mockResolvedValue({ result: 'success2' });
@@ -2391,7 +2445,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -2533,13 +2587,13 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should unsubscribe from transitions when unwatch is called', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
         middleware: [realtimeMiddleware()],
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const step1Action = vi.fn<any>().mockResolvedValue({ result: 'success1' });
       const step2Action = vi.fn<any>().mockResolvedValue({ result: 'success2' });
@@ -2579,7 +2633,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -2637,12 +2691,12 @@ describe('MastraInngestWorkflow', ctx => {
       }
     });
     it('should return the correct runId', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const workflow = createWorkflow({
         id: 'test-workflow',
@@ -2659,13 +2713,13 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should handle basic suspend and resume flow', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
         middleware: [realtimeMiddleware()],
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const getUserInputAction = vi.fn().mockResolvedValue({ userInput: 'test input' });
       const promptAgentAction = vi
@@ -2754,6 +2808,15 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': promptEvalWorkflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/inngest/api',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+            },
+          ],
+        },
       });
 
       const app = await createHonoServer(mastra);
@@ -2811,13 +2874,13 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should handle parallel steps with conditional suspend', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
         middleware: [realtimeMiddleware()],
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const getUserInputAction = vi.fn().mockResolvedValue({ userInput: 'test input' });
       const promptAgentAction = vi.fn().mockResolvedValue({ modelOutput: 'test output' });
@@ -2902,7 +2965,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -2972,13 +3035,13 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should handle complex workflow with multiple suspends', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
         middleware: [realtimeMiddleware()],
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const getUserInputAction = vi.fn().mockResolvedValue({ userInput: 'test input' });
       const promptAgentAction = vi.fn().mockResolvedValue({ modelOutput: 'test output' });
@@ -3106,7 +3169,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -3201,12 +3264,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should handle basic suspend and resume flow with async await syntax', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
       const getUserInputAction = vi.fn().mockResolvedValue({ userInput: 'test input' });
       const promptAgentAction = vi
         .fn()
@@ -3297,6 +3360,15 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': promptEvalWorkflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/inngest/api',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+            },
+          ],
+        },
       });
 
       const app = await createHonoServer(mastra);
@@ -3385,12 +3457,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Accessing Mastra', () => {
     it('should be able to access the deprecated mastra primitives', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
       let telemetry: Telemetry | undefined;
       const step1 = createStep({
         id: 'step1',
@@ -3419,7 +3491,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -3446,12 +3518,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Agent as step', () => {
     it('should be able to use an agent as a step', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const workflow = createWorkflow({
         id: 'test-workflow',
@@ -3524,7 +3596,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -3557,12 +3629,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should be able to use an agent in parallel', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const execute = vi.fn<any>().mockResolvedValue({ result: 'success' });
       const finalStep = createStep({
@@ -3662,7 +3734,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -3703,12 +3775,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Nested workflows', () => {
     it('should be able to nest workflows', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const start = vi.fn().mockImplementation(async ({ inputData }) => {
         // Get the current value (either from trigger or previous increment)
@@ -3802,6 +3874,15 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': counterWorkflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/inngest/api',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+            },
+          ],
+        },
       });
 
       const app = await createHonoServer(mastra);
@@ -3838,12 +3919,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should be able to nest workflows with conditions', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const start = vi.fn().mockImplementation(async ({ inputData }) => {
         // Get the current value (either from trigger or previous increment)
@@ -3947,6 +4028,15 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': counterWorkflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/inngest/api',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+            },
+          ],
+        },
       });
 
       const app = await createHonoServer(mastra);
@@ -3984,12 +4074,12 @@ describe('MastraInngestWorkflow', ctx => {
 
     describe('new if else branching syntax with nested workflows', () => {
       it('should execute if-branch', async ctx => {
-        const ingest = new Inngest({
+        const inngest = new Inngest({
           id: 'mastra',
           baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
         });
 
-        const { createWorkflow, createStep } = init(ingest);
+        const { createWorkflow, createStep } = init(inngest);
 
         const start = vi.fn().mockImplementation(async ({ inputData }) => {
           // Get the current value (either from trigger or previous increment)
@@ -4097,6 +4187,15 @@ describe('MastraInngestWorkflow', ctx => {
           vnext_workflows: {
             'test-workflow': counterWorkflow,
           },
+          server: {
+            apiRoutes: [
+              {
+                path: '/inngest/api',
+                method: 'ALL',
+                createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+              },
+            ],
+          },
         });
 
         const app = await createHonoServer(mastra);
@@ -4136,12 +4235,12 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       it('should execute else-branch', async ctx => {
-        const ingest = new Inngest({
+        const inngest = new Inngest({
           id: 'mastra',
           baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
         });
 
-        const { createWorkflow, createStep } = init(ingest);
+        const { createWorkflow, createStep } = init(inngest);
 
         const start = vi.fn().mockImplementation(async ({ inputData }) => {
           // Get the current value (either from trigger or previous increment)
@@ -4249,6 +4348,15 @@ describe('MastraInngestWorkflow', ctx => {
           vnext_workflows: {
             'test-workflow': counterWorkflow,
           },
+          server: {
+            apiRoutes: [
+              {
+                path: '/inngest/api',
+                method: 'ALL',
+                createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+              },
+            ],
+          },
         });
 
         const app = await createHonoServer(mastra);
@@ -4289,12 +4397,12 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       it('should execute nested else and if-branch', async ctx => {
-        const ingest = new Inngest({
+        const inngest = new Inngest({
           id: 'mastra',
           baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
         });
 
-        const { createWorkflow, createStep } = init(ingest);
+        const { createWorkflow, createStep } = init(inngest);
 
         const start = vi.fn().mockImplementation(async ({ inputData }) => {
           // Get the current value (either from trigger or previous increment)
@@ -4439,6 +4547,15 @@ describe('MastraInngestWorkflow', ctx => {
           vnext_workflows: {
             'test-workflow': counterWorkflow,
           },
+          server: {
+            apiRoutes: [
+              {
+                path: '/inngest/api',
+                method: 'ALL',
+                createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+              },
+            ],
+          },
         });
 
         const app = await createHonoServer(mastra);
@@ -4481,12 +4598,12 @@ describe('MastraInngestWorkflow', ctx => {
 
     describe('suspending and resuming nested workflows', () => {
       it('should be able to suspend nested workflow step', async ctx => {
-        const ingest = new Inngest({
+        const inngest = new Inngest({
           id: 'mastra',
           baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
         });
 
-        const { createWorkflow, createStep } = init(ingest);
+        const { createWorkflow, createStep } = init(inngest);
 
         const start = vi.fn().mockImplementation(async ({ inputData, resume }) => {
           // Get the current value (either from trigger or previous increment)
@@ -4588,6 +4705,15 @@ describe('MastraInngestWorkflow', ctx => {
           vnext_workflows: {
             'test-workflow': counterWorkflow,
           },
+          server: {
+            apiRoutes: [
+              {
+                path: '/inngest/api',
+                method: 'ALL',
+                createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+              },
+            ],
+          },
         });
 
         const app = await createHonoServer(mastra);
@@ -4631,12 +4757,12 @@ describe('MastraInngestWorkflow', ctx => {
 
     describe('Workflow results', () => {
       it('should be able to spec out workflow result via variables', async ctx => {
-        const ingest = new Inngest({
+        const inngest = new Inngest({
           id: 'mastra',
           baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
         });
 
-        const { createWorkflow, createStep } = init(ingest);
+        const { createWorkflow, createStep } = init(inngest);
 
         const start = vi.fn().mockImplementation(async ({ inputData }) => {
           // Get the current value (either from trigger or previous increment)
@@ -4729,6 +4855,15 @@ describe('MastraInngestWorkflow', ctx => {
           vnext_workflows: {
             'test-workflow': counterWorkflow,
           },
+          server: {
+            apiRoutes: [
+              {
+                path: '/inngest/api',
+                method: 'ALL',
+                createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+              },
+            ],
+          },
         });
 
         const app = await createHonoServer(mastra);
@@ -4769,12 +4904,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should be able to suspend nested workflow step in a nested workflow step', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const start = vi.fn().mockImplementation(async ({ inputData }) => {
         // Get the current value (either from trigger or previous increment)
@@ -4907,6 +5042,15 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': counterWorkflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/inngest/api',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+            },
+          ],
+        },
       });
 
       const app = await createHonoServer(mastra);
@@ -4964,12 +5108,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should be able clone workflows as steps', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep, cloneStep, cloneWorkflow } = init(ingest);
+      const { createWorkflow, createStep, cloneStep, cloneWorkflow } = init(inngest);
 
       const start = vi.fn().mockImplementation(async ({ inputData }) => {
         // Get the current value (either from trigger or previous increment)
@@ -5067,6 +5211,15 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': counterWorkflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/inngest/api',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
+            },
+          ],
+        },
       });
 
       const app = await createHonoServer(mastra);
@@ -5105,12 +5258,12 @@ describe('MastraInngestWorkflow', ctx => {
 
   describe('Accessing Mastra', () => {
     it('should be able to access the deprecated mastra primitives', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       let telemetry: Telemetry | undefined;
       const step1 = createStep({
@@ -5140,7 +5293,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -5168,12 +5321,12 @@ describe('MastraInngestWorkflow', ctx => {
   // TODO: can we support this on inngest?
   describe.skip('Dependency Injection', () => {
     it('should inject runtimeContext dependencies into steps during run', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const runtimeContext = new RuntimeContext();
       const testValue = 'test-dependency';
@@ -5205,7 +5358,7 @@ describe('MastraInngestWorkflow', ctx => {
             {
               path: '/inngest/api',
               method: 'ALL',
-              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+              createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
             },
           ],
         },
@@ -5228,12 +5381,12 @@ describe('MastraInngestWorkflow', ctx => {
     });
 
     it('should inject runtimeContext dependencies into steps during resume', async ctx => {
-      const ingest = new Inngest({
+      const inngest = new Inngest({
         id: 'mastra',
         baseUrl: `http://localhost:${(ctx as any).inngestPort}`,
       });
 
-      const { createWorkflow, createStep } = init(ingest);
+      const { createWorkflow, createStep } = init(inngest);
 
       const initialStorage = new DefaultStorage({
         config: {
@@ -5292,4 +5445,4 @@ describe('MastraInngestWorkflow', ctx => {
       expect(result?.steps.step1.output.injectedValue).toBe(testValue + '2');
     });
   });
-}, 30e3);
+}, 40e3);
