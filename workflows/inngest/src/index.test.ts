@@ -164,7 +164,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -248,7 +247,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -323,7 +321,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -413,7 +410,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -483,7 +479,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -561,7 +556,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -646,7 +640,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -752,7 +745,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -831,7 +823,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -939,7 +930,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1025,7 +1015,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1096,7 +1085,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1183,7 +1171,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1271,7 +1258,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1402,7 +1388,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1498,7 +1483,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1595,7 +1579,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1678,7 +1661,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1825,7 +1807,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -1968,7 +1949,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2143,7 +2123,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2212,7 +2191,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2347,7 +2325,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2421,7 +2398,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2610,7 +2586,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2782,7 +2757,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -2935,7 +2909,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3140,7 +3113,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3328,7 +3300,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3455,7 +3426,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3561,7 +3531,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3700,7 +3669,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3837,7 +3805,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -3983,7 +3950,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -4137,7 +4103,6 @@ describe('MastraInngestWorkflow', ctx => {
         app.use('*', async (ctx, next) => {
           await next();
         });
-        app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
         const srv = serve({
           fetch: app.fetch,
@@ -4290,7 +4255,6 @@ describe('MastraInngestWorkflow', ctx => {
         app.use('*', async (ctx, next) => {
           await next();
         });
-        app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
         const srv = serve({
           fetch: app.fetch,
@@ -4481,7 +4445,6 @@ describe('MastraInngestWorkflow', ctx => {
         app.use('*', async (ctx, next) => {
           await next();
         });
-        app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
         const srv = serve({
           fetch: app.fetch,
@@ -4628,7 +4591,6 @@ describe('MastraInngestWorkflow', ctx => {
         });
 
         const app = await createHonoServer(mastra);
-        app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
         const srv = serve({
           fetch: app.fetch,
@@ -4774,7 +4736,6 @@ describe('MastraInngestWorkflow', ctx => {
           'middleware', ctx.req.method, ctx.req.url;
           await next();
         });
-        app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
         const srv = serve({
           fetch: app.fetch,
@@ -4949,7 +4910,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -5110,7 +5070,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -5188,7 +5147,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
@@ -5254,7 +5212,6 @@ describe('MastraInngestWorkflow', ctx => {
       });
 
       const app = await createHonoServer(mastra);
-      app.all('/inngest/api', inngestServe({ mastra, ingest }));
 
       const srv = serve({
         fetch: app.fetch,
