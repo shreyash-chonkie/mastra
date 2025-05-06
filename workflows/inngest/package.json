@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@ai-sdk/openai": "^1.2.1",
+    "@mastra/deployer": "workspace:*",
     "@hono/node-server": "^1.14.1",
     "@internal/lint": "workspace:*",
     "@microsoft/api-extractor": "^7.52.2",

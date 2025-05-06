@@ -8,6 +8,7 @@ import { $ } from 'execa';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { createTool, Mastra, Telemetry } from '@mastra/core';
+import { createHonoServer } from '@mastra/deployer/server';
 import { Agent } from '@mastra/core/agent';
 import { DefaultStorage } from '@mastra/core/storage/libsql';
 import { Hono } from 'hono';
@@ -74,10 +75,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
-      app.all('/api/inngest', inngestServe({ mastra, ingest }));
+      const app = await createHonoServer(mastra);
 
       const srv = serve({
         fetch: app.fetch,
@@ -143,9 +152,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -218,9 +236,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -284,9 +311,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -365,9 +401,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -426,9 +471,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -495,9 +549,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -571,9 +634,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -668,9 +740,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -738,9 +819,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -837,9 +927,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -914,9 +1013,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -976,9 +1084,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1054,9 +1171,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1144,7 +1270,7 @@ describe('MastraInngestWorkflow', ctx => {
         },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1264,9 +1390,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1362,7 +1497,7 @@ describe('MastraInngestWorkflow', ctx => {
         },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1459,7 +1594,7 @@ describe('MastraInngestWorkflow', ctx => {
         },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1542,7 +1677,7 @@ describe('MastraInngestWorkflow', ctx => {
         },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1689,7 +1824,7 @@ describe('MastraInngestWorkflow', ctx => {
         },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1832,7 +1967,7 @@ describe('MastraInngestWorkflow', ctx => {
         },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -1996,9 +2131,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -2056,9 +2200,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -2110,6 +2263,15 @@ describe('MastraInngestWorkflow', ctx => {
       new Mastra({
         vnext_workflows: {
           'test-workflow': workflow,
+        },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
         },
       });
 
@@ -2173,9 +2335,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -2238,9 +2409,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -2418,9 +2598,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -2592,7 +2781,7 @@ describe('MastraInngestWorkflow', ctx => {
         },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -2734,9 +2923,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -2930,9 +3128,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -3120,7 +3327,7 @@ describe('MastraInngestWorkflow', ctx => {
         },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -3236,9 +3443,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -3333,9 +3549,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -3463,9 +3688,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -3602,7 +3836,7 @@ describe('MastraInngestWorkflow', ctx => {
         },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -3748,7 +3982,7 @@ describe('MastraInngestWorkflow', ctx => {
         },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -3899,7 +4133,7 @@ describe('MastraInngestWorkflow', ctx => {
           },
         });
 
-        const app = new Hono();
+        const app = await createHonoServer(mastra);
         app.use('*', async (ctx, next) => {
           await next();
         });
@@ -4052,7 +4286,7 @@ describe('MastraInngestWorkflow', ctx => {
           },
         });
 
-        const app = new Hono();
+        const app = await createHonoServer(mastra);
         app.use('*', async (ctx, next) => {
           await next();
         });
@@ -4243,7 +4477,7 @@ describe('MastraInngestWorkflow', ctx => {
           },
         });
 
-        const app = new Hono();
+        const app = await createHonoServer(mastra);
         app.use('*', async (ctx, next) => {
           await next();
         });
@@ -4393,7 +4627,7 @@ describe('MastraInngestWorkflow', ctx => {
           },
         });
 
-        const app = new Hono();
+        const app = await createHonoServer(mastra);
         app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
         const srv = serve({
@@ -4535,7 +4769,7 @@ describe('MastraInngestWorkflow', ctx => {
           },
         });
 
-        const app = new Hono();
+        const app = await createHonoServer(mastra);
         app.use('*', async (ctx, next) => {
           'middleware', ctx.req.method, ctx.req.url;
           await next();
@@ -4714,7 +4948,7 @@ describe('MastraInngestWorkflow', ctx => {
         },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -4875,7 +5109,7 @@ describe('MastraInngestWorkflow', ctx => {
         },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -4942,9 +5176,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
@@ -4999,9 +5242,18 @@ describe('MastraInngestWorkflow', ctx => {
         vnext_workflows: {
           'test-workflow': workflow,
         },
+        server: {
+          apiRoutes: [
+            {
+              path: '/api/inngest',
+              method: 'ALL',
+              createHandler: async ({ mastra }) => inngestServe({ mastra, ingest }),
+            },
+          ],
+        },
       });
 
-      const app = new Hono();
+      const app = await createHonoServer(mastra);
       app.all('/api/inngest', inngestServe({ mastra, ingest }));
 
       const srv = serve({
