@@ -48,7 +48,7 @@ export interface AgentConfig<
   defaultGenerateOptions?: AgentGenerateOptions;
   defaultStreamOptions?: AgentStreamOptions;
   mastra?: Mastra;
-  workflows?: Record<string, NewWorkflow>;
+  workflows?: DynamicArgument<Record<string, NewWorkflow>>;
   evals?: TMetrics;
   memory?: MastraMemory;
   voice?: CompositeVoice;

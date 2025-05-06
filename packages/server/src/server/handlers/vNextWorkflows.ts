@@ -11,11 +11,58 @@ import { handleError } from './error';
 interface VNextWorkflowContext extends Context {
   workflowId?: string;
   runId?: string;
+  runtimeContext?: RuntimeContext;
 }
 
-export async function getVNextWorkflowsHandler({ mastra }: VNextWorkflowContext) {
+async function getVNextWorkflow({ mastra, runtimeContext, workflowId }: VNextWorkflowContext & { workflowId: string }) {
+  let workflow: NewWorkflow | undefined;
+
+  const agents = mastra.getAgents();
+
+  if (Object.values(agents || {}).length > 0) {
+    await Promise.all(
+      Object.values(agents).map(async agent => {
+        if ('getWorkflows' in agent) {
+          const wfs = await agent.getWorkflows({ runtimeContext });
+
+          if (wfs?.[workflowId]) {
+            workflow = wfs[workflowId];
+          }
+        }
+        return {};
+      }),
+    );
+  }
+
+  if (!workflow) {
+    workflow = mastra.vnext_getWorkflow(workflowId);
+  }
+
+  return { workflow };
+}
+
+export async function getVNextWorkflowsHandler({ mastra, runtimeContext }: VNextWorkflowContext) {
   try {
-    const workflows = mastra.vnext_getWorkflows({ serialized: false });
+    const agents = mastra.getAgents();
+
+    let workflows = mastra.vnext_getWorkflows({ serialized: false });
+
+    if (Object.values(agents || {}).length > 0) {
+      await Promise.all(
+        Object.values(agents).map(async agent => {
+          if ('getWorkflows' in agent) {
+            const wfs = await agent.getWorkflows({ runtimeContext });
+
+            workflows = {
+              ...workflows,
+              ...wfs,
+            };
+          }
+          return {};
+        }),
+      );
+    }
+
     const _workflows = Object.entries(workflows).reduce<any>((acc, [key, workflow]) => {
       acc[key] = {
         name: workflow.name,
@@ -42,13 +89,13 @@ export async function getVNextWorkflowsHandler({ mastra }: VNextWorkflowContext)
   }
 }
 
-export async function getVNextWorkflowByIdHandler({ mastra, workflowId }: VNextWorkflowContext) {
+export async function getVNextWorkflowByIdHandler({ mastra, workflowId, runtimeContext }: VNextWorkflowContext) {
   try {
     if (!workflowId) {
       throw new HTTPException(400, { message: 'Workflow ID is required' });
     }
 
-    const workflow = mastra.vnext_getWorkflow(workflowId);
+    const { workflow } = await getVNextWorkflow({ mastra, runtimeContext, workflowId });
 
     if (!workflow) {
       throw new HTTPException(404, { message: 'Workflow not found' });
@@ -80,7 +127,10 @@ export async function getVNextWorkflowRunHandler({
   mastra,
   workflowId,
   runId,
-}: Pick<VNextWorkflowContext, 'mastra' | 'workflowId' | 'runId'>): Promise<ReturnType<NewWorkflow['getWorkflowRun']>> {
+  runtimeContext,
+}: Pick<VNextWorkflowContext, 'mastra' | 'workflowId' | 'runId' | 'runtimeContext'>): Promise<
+  ReturnType<NewWorkflow['getWorkflowRun']>
+> {
   try {
     if (!workflowId) {
       throw new HTTPException(400, { message: 'Workflow ID is required' });
@@ -90,7 +140,7 @@ export async function getVNextWorkflowRunHandler({
       throw new HTTPException(400, { message: 'Run ID is required' });
     }
 
-    const workflow = mastra.vnext_getWorkflow(workflowId);
+    const { workflow } = await getVNextWorkflow({ mastra, runtimeContext, workflowId });
 
     if (!workflow) {
       throw new HTTPException(404, { message: 'Workflow not found' });
@@ -112,13 +162,14 @@ export async function createVNextWorkflowRunHandler({
   mastra,
   workflowId,
   runId: prevRunId,
-}: Pick<VNextWorkflowContext, 'mastra' | 'workflowId' | 'runId'>) {
+  runtimeContext,
+}: Pick<VNextWorkflowContext, 'mastra' | 'workflowId' | 'runId' | 'runtimeContext'>) {
   try {
     if (!workflowId) {
       throw new HTTPException(400, { message: 'Workflow ID is required' });
     }
 
-    const workflow = mastra.vnext_getWorkflow(workflowId);
+    const { workflow } = await getVNextWorkflow({ mastra, runtimeContext, workflowId });
 
     if (!workflow) {
       throw new HTTPException(404, { message: 'Workflow not found' });
@@ -138,16 +189,15 @@ export async function startAsyncVNextWorkflowHandler({
   workflowId,
   runId,
   inputData,
-}: Pick<VNextWorkflowContext, 'mastra' | 'workflowId' | 'runId'> & {
+}: Pick<VNextWorkflowContext, 'mastra' | 'workflowId' | 'runId' | 'runtimeContext'> & {
   inputData?: unknown;
-  runtimeContext?: RuntimeContext;
 }) {
   try {
     if (!workflowId) {
       throw new HTTPException(400, { message: 'Workflow ID is required' });
     }
 
-    const workflow = mastra.vnext_getWorkflow(workflowId);
+    const { workflow } = await getVNextWorkflow({ mastra, runtimeContext, workflowId });
 
     if (!workflow) {
       throw new HTTPException(404, { message: 'Workflow not found' });
@@ -170,9 +220,8 @@ export async function startVNextWorkflowRunHandler({
   workflowId,
   runId,
   inputData,
-}: Pick<VNextWorkflowContext, 'mastra' | 'workflowId' | 'runId'> & {
+}: Pick<VNextWorkflowContext, 'mastra' | 'workflowId' | 'runId' | 'runtimeContext'> & {
   inputData?: unknown;
-  runtimeContext?: RuntimeContext;
 }) {
   try {
     if (!workflowId) {
@@ -183,7 +232,7 @@ export async function startVNextWorkflowRunHandler({
       throw new HTTPException(400, { message: 'runId required to start run' });
     }
 
-    const workflow = mastra.vnext_getWorkflow(workflowId);
+    const { workflow } = await getVNextWorkflow({ mastra, runtimeContext, workflowId });
     const run = await workflow.getWorkflowRun(runId);
 
     if (!run) {
@@ -204,9 +253,10 @@ export async function startVNextWorkflowRunHandler({
 
 export async function watchVNextWorkflowHandler({
   mastra,
+  runtimeContext,
   workflowId,
   runId,
-}: Pick<VNextWorkflowContext, 'mastra' | 'workflowId' | 'runId'>): Promise<ReadableStream<string>> {
+}: Pick<VNextWorkflowContext, 'mastra' | 'workflowId' | 'runId' | 'runtimeContext'>): Promise<ReadableStream<string>> {
   try {
     if (!workflowId) {
       throw new HTTPException(400, { message: 'Workflow ID is required' });
@@ -216,7 +266,7 @@ export async function watchVNextWorkflowHandler({
       throw new HTTPException(400, { message: 'runId required to watch workflow' });
     }
 
-    const workflow = mastra.vnext_getWorkflow(workflowId);
+    const { workflow } = await getVNextWorkflow({ mastra, runtimeContext, workflowId });
     const run = await workflow.getWorkflowRun(runId);
 
     if (!run) {
@@ -280,7 +330,7 @@ export async function resumeAsyncVNextWorkflowHandler({
       throw new HTTPException(400, { message: 'step required to resume workflow' });
     }
 
-    const workflow = mastra.vnext_getWorkflow(workflowId);
+    const { workflow } = await getVNextWorkflow({ mastra, runtimeContext, workflowId });
     const run = await workflow.getWorkflowRun(runId);
 
     if (!run) {
@@ -324,7 +374,7 @@ export async function resumeVNextWorkflowHandler({
       throw new HTTPException(400, { message: 'step required to resume workflow' });
     }
 
-    const workflow = mastra.vnext_getWorkflow(workflowId);
+    const { workflow } = await getVNextWorkflow({ mastra, runtimeContext, workflowId });
     const run = await workflow.getWorkflowRun(runId);
 
     if (!run) {
@@ -353,6 +403,7 @@ export async function getVNextWorkflowRunsHandler({
   limit,
   offset,
   resourceId,
+  runtimeContext,
 }: VNextWorkflowContext & {
   fromDate?: Date;
   toDate?: Date;
@@ -365,7 +416,7 @@ export async function getVNextWorkflowRunsHandler({
       throw new HTTPException(400, { message: 'Workflow ID is required' });
     }
 
-    const workflow = mastra.vnext_getWorkflow(workflowId);
+    const { workflow } = await getVNextWorkflow({ mastra, runtimeContext, workflowId });
     const workflowRuns = (await workflow.getWorkflowRuns({ fromDate, toDate, limit, offset, resourceId })) || {
       runs: [],
       total: 0,

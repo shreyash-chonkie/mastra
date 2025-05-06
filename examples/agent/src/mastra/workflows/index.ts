@@ -28,4 +28,20 @@ const step = createStep({
   },
 });
 
-myWorkflow.then(step).commit();
+const step2 = createStep({
+  id: 'my-step-2',
+  description: 'My step description',
+  inputSchema: z.object({
+    result: z.string(),
+  }),
+  outputSchema: z.object({
+    result: z.string(),
+  }),
+  execute: async ({ inputData }) => {
+    return {
+      result: inputData.result,
+    };
+  },
+});
+
+myWorkflow.then(step).then(step2).commit();

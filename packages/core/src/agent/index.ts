@@ -91,7 +91,7 @@ export class Agent<
   metrics: TMetrics;
   evals: TMetrics;
   #voice: CompositeVoice;
-  #workflows?: Record<string, NewWorkflow>;
+  #workflows?: DynamicArgument<Record<string, NewWorkflow>>;
 
   constructor(config: AgentConfig<TAgentId, TTools, TMetrics>) {
     super({ component: RegisteredLogger.AGENT });
@@ -125,16 +125,6 @@ export class Agent<
 
     if (config.workflows) {
       this.#workflows = config.workflows;
-
-      Object.entries(config.workflows).forEach(([_workflowName, workflow]) => {
-        if (config.mastra) {
-          workflow.__registerMastra(config.mastra);
-          workflow.__registerPrimitives({
-            telemetry: config.mastra.getTelemetry(),
-            logger: config.mastra.getLogger(),
-          });
-        }
-      });
     }
 
     if (config.metrics) {
@@ -170,6 +160,29 @@ export class Agent<
 
   public getMemory(): MastraMemory | undefined {
     return this.#memory ?? this.#mastra?.memory;
+  }
+
+  public async getWorkflows({
+    runtimeContext = new RuntimeContext(),
+  }: { runtimeContext?: RuntimeContext } = {}): Promise<Record<string, NewWorkflow>> {
+    let workflowRecord;
+    if (typeof this.#workflows === 'function') {
+      workflowRecord = await Promise.resolve(this.#workflows({ runtimeContext }));
+    } else {
+      workflowRecord = this.#workflows ?? {};
+    }
+
+    Object.entries(workflowRecord || {}).forEach(([_workflowName, workflow]) => {
+      if (this.#mastra) {
+        workflow.__registerMastra(this.#mastra);
+        workflow.__registerPrimitives({
+          telemetry: this.#mastra.getTelemetry(),
+          logger: this.#mastra.getLogger(),
+        });
+      }
+    });
+
+    return workflowRecord;
   }
 
   get voice() {
@@ -757,8 +770,9 @@ export class Agent<
     }
 
     let convertedWorkflowTools: Record<string, CoreTool> = {};
-    if (this.#workflows && Object.keys(this.#workflows).length > 0) {
-      convertedWorkflowTools = Object.entries(this.#workflows).reduce(
+    const workflows = await this.getWorkflows({ runtimeContext });
+    if (Object.keys(workflows).length > 0) {
+      convertedWorkflowTools = Object.entries(workflows).reduce(
         (memo, [workflowName, workflow]) => {
           memo[workflowName] = {
             description: workflow.description || `Workflow: ${workflowName}`,
