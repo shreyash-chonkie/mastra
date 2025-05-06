@@ -16,11 +16,11 @@ import type {
   StepResult,
   WorkflowResult,
 } from '@mastra/core/workflows/vNext';
+import { type Span } from '@opentelemetry/api';
 import { Inngest, type BaseContext } from 'inngest';
 import { subscribe } from '@inngest/realtime';
 import { serve as inngestServe } from 'inngest/hono';
-import EventEmitter from 'events';
-import { deepMerge, type Mastra } from '@mastra/core';
+import { type Mastra } from '@mastra/core';
 import type { z } from 'zod';
 import { RuntimeContext } from '@mastra/core/di';
 import { randomUUID } from 'crypto';
@@ -355,6 +355,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
   }
 
   protected async fmtReturnValue<TOutput>(
+    executionSpan: Span | undefined,
     emitter: { emit: (event: string, data: any) => Promise<void> },
     stepResults: Record<string, StepResult<any>>,
     lastOutput: StepResult<any>,
@@ -423,10 +424,13 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
       base.suspended = suspendedStepIds;
     }
 
+    executionSpan?.end();
     return base as TOutput;
   }
 
   async superExecuteStep({
+    workflowId,
+    runId,
     step,
     stepResults,
     executionContext,
@@ -435,15 +439,11 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     emitter,
     runtimeContext,
   }: {
+    workflowId: string;
+    runId: string;
     step: Step<string, any, any>;
     stepResults: Record<string, StepResult<any>>;
-    executionContext: {
-      workflowId: string;
-      runId: string;
-      executionPath: number[];
-      suspendedPaths: Record<string, number[]>;
-      retryConfig: { attempts: number; delay: number };
-    };
+    executionContext: ExecutionContext;
     resume?: {
       steps: string[];
       resumePayload: any;
@@ -453,6 +453,8 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
     runtimeContext: RuntimeContext;
   }): Promise<StepResult<any>> {
     return super.executeStep({
+      workflowId,
+      runId,
       step,
       stepResults,
       executionContext,
@@ -864,6 +866,7 @@ export class InngestExecutionEngine extends DefaultExecutionEngine {
             executionPath: [...executionContext.executionPath, index],
             suspendedPaths: executionContext.suspendedPaths,
             retryConfig: executionContext.retryConfig,
+            executionSpan: executionContext.executionSpan,
           },
           emitter,
           runtimeContext,
