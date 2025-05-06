@@ -72,4 +72,4 @@ jobs:
         if: steps.check-examples.outputs.examples_changed == 'true'
         run: |
           chmod +x .github/scripts/install-deps.bash
-          .github/scripts/install-deps.bash
+          source .github/scripts/install-deps.bash
