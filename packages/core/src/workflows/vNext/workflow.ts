@@ -51,7 +51,7 @@ export type StepFlowEntry =
 
 export type SerializedStep = Pick<Step, 'id' | 'description'> & {
   component?: string;
-  stepFlow?: SerializedStepFlowEntry[];
+  serializedStepFlow?: SerializedStepFlowEntry[];
 };
 
 export type SerializedStepFlowEntry =
@@ -405,7 +405,7 @@ export class NewWorkflow<
         id: step.id,
         description: step.description,
         component: (step as SerializedStep).component,
-        stepFlow: (step as SerializedStep).stepFlow,
+        serializedStepFlow: (step as SerializedStep).serializedStepFlow,
       },
     });
     this.steps[step.id] = step;
@@ -506,7 +506,7 @@ export class NewWorkflow<
         id: mappingStep.id,
         description: mappingStep.description,
         component: (mappingStep as SerializedStep).component,
-        stepFlow: (mappingStep as SerializedStep).stepFlow,
+        serializedStepFlow: (mappingStep as SerializedStep).serializedStepFlow,
       },
     });
     return this as unknown as NewWorkflow<TSteps, TWorkflowId, TInput, TOutput, MappedOutputSchema>;
@@ -523,7 +523,7 @@ export class NewWorkflow<
           id: step.id,
           description: step.description,
           component: (step as SerializedStep).component,
-          stepFlow: (step as SerializedStep).stepFlow,
+          serializedStepFlow: (step as SerializedStep).serializedStepFlow,
         },
       })),
     });
@@ -565,7 +565,7 @@ export class NewWorkflow<
           id: step.id,
           description: step.description,
           component: (step as SerializedStep).component,
-          stepFlow: (step as SerializedStep).stepFlow,
+          serializedStepFlow: (step as SerializedStep).serializedStepFlow,
         },
       })),
       serializedConditions: steps.map(([cond, _step]) => ({ id: `${_step.id}-condition`, fn: cond.toString() })),
@@ -613,7 +613,7 @@ export class NewWorkflow<
         id: step.id,
         description: step.description,
         component: (step as SerializedStep).component,
-        stepFlow: (step as SerializedStep).stepFlow,
+        serializedStepFlow: (step as SerializedStep).serializedStepFlow,
       },
       serializedCondition: { id: `${step.id}-condition`, fn: condition.toString() },
       loopType: 'dowhile',
@@ -639,7 +639,7 @@ export class NewWorkflow<
         id: step.id,
         description: step.description,
         component: (step as SerializedStep).component,
-        stepFlow: (step as SerializedStep).stepFlow,
+        serializedStepFlow: (step as SerializedStep).serializedStepFlow,
       },
       serializedCondition: { id: `${step.id}-condition`, fn: condition.toString() },
       loopType: 'dountil',
@@ -668,7 +668,7 @@ export class NewWorkflow<
         id: (step as SerializedStep).id,
         description: (step as SerializedStep).description,
         component: (step as SerializedStep).component,
-        stepFlow: (step as SerializedStep).stepFlow,
+        serializedStepFlow: (step as SerializedStep).serializedStepFlow,
       },
       opts: opts ?? { concurrency: 1 },
     });
