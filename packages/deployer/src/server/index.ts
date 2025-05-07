@@ -89,28 +89,28 @@ export async function createHonoServer(mastra: Mastra, options: ServerBundleOpti
   const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
   const server = mastra.getServer();
 
-  const toolsPath = './tools.mjs';
-  let toolImports = [];
+  let tools: Record<string, any> = {};
   try {
+    const toolsPath = './tools.mjs';
     const mastraToolsPaths = (await import(toolsPath)).tools;
-    if (mastraToolsPaths) {
-      toolImports = await Promise.all(
-        // @ts-ignore
-        mastraToolsPaths.map(async toolPath => {
-          return import(toolPath);
-        }),
-      );
-    }
-  } catch (error) {
-    console.error(error);
-  }
+    const toolImports = mastraToolsPaths
+      ? await Promise.all(
+          // @ts-ignore
+          mastraToolsPaths.map(async toolPath => {
+            return import(toolPath);
+          }),
+        )
+      : [];
 
-  const tools = toolImports.reduce((acc, toolModule) => {
-    Object.entries(toolModule).forEach(([key, tool]) => {
-      acc[key] = tool;
-    });
-    return acc;
-  }, {});
+    tools = toolImports.reduce((acc, toolModule) => {
+      Object.entries(toolModule).forEach(([key, tool]) => {
+        acc[key] = tool;
+      });
+      return acc;
+    }, {});
+  } catch {
+    console.error('Failed to import tools');
+  }
 
   // Middleware
   app.use('*', async function setTelemetryInfo(c, next) {
