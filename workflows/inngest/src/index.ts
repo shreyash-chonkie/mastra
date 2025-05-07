@@ -31,6 +31,7 @@ export function serve({ mastra, inngest }: { mastra: Mastra; inngest: Inngest })
   const wfs = mastra.vnext_getWorkflows();
   const functions = Object.values(wfs).flatMap(wf => {
     if (wf instanceof InngestWorkflow) {
+      wf.__registerMastra(mastra);
       return wf.getFunctions();
     }
     return [];
@@ -203,12 +204,22 @@ export class InngestWorkflow<
   __registerMastra(mastra: Mastra) {
     this.#mastra = mastra;
     this.executionEngine.__registerMastra(mastra);
+    const updateNested = (step: StepFlowEntry) => {
+      if (
+        (step.type === 'step' || step.type === 'loop' || step.type === 'foreach') &&
+        step.step instanceof InngestWorkflow
+      ) {
+        step.step.__registerMastra(mastra);
+      } else if (step.type === 'parallel' || step.type === 'conditional') {
+        for (const subStep of step.steps) {
+          updateNested(subStep);
+        }
+      }
+    };
 
     if (this.executionGraph.steps.length) {
       for (const step of this.executionGraph.steps) {
-        if (step.type === 'step' && step.step instanceof InngestWorkflow) {
-          step.step.__registerMastra(mastra);
-        }
+        updateNested(step);
       }
     }
   }
