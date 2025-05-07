@@ -1,15 +1,16 @@
 import type { Mastra, MastraMCPServer } from '@mastra/core';
+import type { ConvertedTool } from '@mastra/core/mcp';
 
 /**
  * Handler for GET /api/mcp/servers
  * Lists all MCP servers registered on the Mastra instance
  */
 export const getMcpServersHandler = async ({ mastra }: { mastra: Mastra }) => {
-  const servers = mastra.getMCPServers();
+  const serversMap = mastra.getMCPServersRecord() || {};
 
   return {
-    servers: servers.map((server: MastraMCPServer) => ({
-      id: server.name,
+    servers: Object.entries(serversMap as Record<string, MastraMCPServer>).map(([serverId, server]) => ({
+      id: serverId,
       name: server.name,
       version: server.version,
       tools: Object.keys(server.tools()).length,
@@ -30,15 +31,16 @@ export const getMcpServerHandler = async ({ mastra, serverId }: { mastra: Mastra
     };
   }
 
-  const tools = server.tools();
+  const tools = server.tools(); // Record<string, ConvertedTool>
 
   return {
-    id: server.name,
+    id: serverId,
     name: server.name,
     version: server.version,
-    tools: Object.entries(tools).map(([name, tool]: [string, any]) => ({
-      name,
+    tools: Object.entries(tools).map(([toolName, tool]: [string, ConvertedTool]) => ({
+      name: toolName,
       description: tool.description,
+      inputSchema: tool.inputSchema ? JSON.stringify(tool.inputSchema) : undefined,
     })),
   };
 };

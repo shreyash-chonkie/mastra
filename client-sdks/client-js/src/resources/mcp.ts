@@ -1,4 +1,4 @@
-import type { ClientOptions } from '../types';
+import type { ClientOptions, GetMCPServerResponse } from '../types';
 import { BaseResource } from './base';
 
 /**
@@ -16,7 +16,7 @@ export class MCPServer extends BaseResource {
    * Get details about the MCP server
    * @returns Promise containing server details
    */
-  details() {
+  details(): Promise<GetMCPServerResponse> {
     return this.request(`/api/mcp/servers/${this.serverId}`);
   }
 }

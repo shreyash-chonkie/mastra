@@ -618,4 +618,12 @@ Do:
   public getMCPServer(serverId: string): MastraMCPServer | undefined {
     return this.#mcpServers?.[serverId];
   }
+
+  /**
+   * Get all registered MCP servers as a Record, with keys being their IDs.
+   * @returns Record of MCP server IDs to MastraMCPServer instances, or undefined if none.
+   */
+  public getMCPServersRecord(): TMCPServers | undefined {
+    return this.#mcpServers;
+  }
 }

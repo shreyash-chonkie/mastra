@@ -1161,32 +1161,7 @@ export async function createHonoServer(mastra: Mastra, options: ServerBundleOpti
       ],
       responses: {
         200: {
-          description: 'SSE connection established',
-        },
-        404: {
-          description: 'MCP server not found',
-        },
-      },
-    }),
-    getMcpServerMessageHandler,
-  );
-
-  app.post(
-    '/api/mcp/servers/:serverId',
-    describeRoute({
-      description: 'Send a message to an MCP server',
-      tags: ['mcp'],
-      parameters: [
-        {
-          name: 'serverId',
-          in: 'path',
-          required: true,
-          schema: { type: 'string' },
-        },
-      ],
-      responses: {
-        200: {
-          description: 'Message sent successfully',
+          description: 'Streamable HTTP connection established',
         },
         404: {
           description: 'MCP server not found',

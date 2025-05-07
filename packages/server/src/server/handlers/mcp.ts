@@ -1,4 +1,5 @@
 import type { Mastra, MastraMCPServer } from '@mastra/core';
+import { HTTPException } from '../http-exception';
 
 /**
  * Handler for GET /api/mcp/servers
@@ -23,8 +24,9 @@ export const getMcpServersHandler = async ({ mastra }: { mastra: Mastra }) => {
  */
 export const getMcpServerHandler = async ({ mastra, serverId }: { mastra: Mastra; serverId: string }) => {
   const server = mastra.getMCPServer(serverId);
+
   if (!server) {
-    throw new Error(`MCP server '${serverId}' not found`);
+    throw new HTTPException(404, { message: `MCP server '${serverId}' not found` });
   }
 
   const tools = server.tools();
@@ -36,6 +38,7 @@ export const getMcpServerHandler = async ({ mastra, serverId }: { mastra: Mastra
     tools: Object.entries(tools).map(([name, tool]: [string, any]) => ({
       name,
       description: tool.description,
+      parameters: tool.parameters,
     })),
   };
 };
