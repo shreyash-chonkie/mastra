@@ -51,7 +51,8 @@
   "author": "",
   "license": "Elastic-2.0",
   "dependencies": {
-    "@mastra/core": "workspace:^"
+    "@mastra/core": "workspace:^",
+    "redis": "^4.7.0"
   },
   "devDependencies": {
     "@internal/lint": "workspace:*",
