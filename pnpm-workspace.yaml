@@ -1,14 +1,18 @@
 packages:
-  - "packages/*"
-  - "deployers/*"
-  - "stores/*"
-  - "speech/*"
-  - "voice/*"
-  - "workflows/*"
-  - "client-sdks/*"
-  - "!packages/cli/admin"
-  - "integrations/*"
-  - "examples/dane"
-  - "packages/cli/src/playground"
-  - "packages/*/integration-tests"
-  - "packages/cloud"
+  - packages/*
+  - deployers/*
+  - stores/*
+  - speech/*
+  - voice/*
+  - workflows/*
+  - client-sdks/*
+  - '!packages/cli/admin'
+  - integrations/*
+  - examples/dane
+  - packages/cli/src/playground
+  - packages/*/integration-tests
+  - packages/cloud
+overrides:
+  typescript: ^5.8.3
+  '@types/node': ^20.17.32
+  cloudflare: link:../../Library/pnpm/global/5/node_modules/@mastra/workflows/cloudflare
