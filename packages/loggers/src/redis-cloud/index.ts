@@ -1,6 +1,7 @@
 import { LoggerTransport } from '@mastra/core/logger';
 import type { BaseLogMessage } from '@mastra/core/logger';
-import { createClient, type RedisClientType } from 'redis';
+import { createClient } from 'redis';
+import type { RedisClientType } from 'redis';
 
 export class RedisCloudTransport extends LoggerTransport {
   redisUrl: string;
@@ -46,14 +47,6 @@ export class RedisCloudTransport extends LoggerTransport {
       });
     }, this.flushInterval);
   }
-
-  // private async executeRedisCommand(command: any[]): Promise<any> {
-  //   try {
-  //     await this.client.lPush(this.listName, command);
-  //   } catch (error) {
-  //     throw new Error(`Failed to execute Redis command: ${error}`);
-  //   }
-  // }
 
   async _flush() {
     if (this.logBuffer.length === 0) {
@@ -132,16 +125,32 @@ export class RedisCloudTransport extends LoggerTransport {
   _destroy(err: Error, cb: Function) {
     clearInterval(this.flushIntervalId);
 
-    // Final flush
+    const finalize = () => {
+      // Close Redis connection after flushing
+      if (this.client.isOpen) {
+        this.client
+          .quit()
+          .then(() => cb(err))
+          .catch(quitErr => {
+            console.error('Error closing Redis connection:', quitErr);
+            cb(err || quitErr);
+          });
+      } else {
+        cb(err);
+      }
+    };
+
+    // Final flush if needed
     if (this.logBuffer.length > 0) {
       this._flush()
-        .then(() => cb(err))
+        .then(finalize)
         .catch(flushErr => {
           console.error('Error in final flush:', flushErr);
-          cb(err || flushErr);
+          // Still try to close the connection even if flush fails
+          finalize();
         });
     } else {
-      cb(err);
+      finalize();
     }
   }
 
