@@ -19,6 +19,16 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./redis-cloud": {
+      "import": {
+        "types": "./dist/redis-cloud/index.d.ts",
+        "default": "./dist/redis-cloud/index.js"
+      },
+      "require": {
+        "types": "./dist/redis-cloud/index.d.cts",
+        "default": "./dist/redis-cloud/index.cjs"
+      }
+    },
     "./file": {
       "import": {
         "types": "./dist/file/index.d.ts",
