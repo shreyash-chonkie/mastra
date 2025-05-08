@@ -30,7 +30,19 @@ export class RedisCloudTransport extends LoggerTransport {
     }
 
     this.redisUrl = opts.redisUrl;
-    this.client = createClient({ url: this.redisUrl });
+    this.client = createClient({
+      url: this.redisUrl,
+      socket: {
+        reconnectStrategy: function (retries) {
+          if (retries > 20) {
+            return new Error('Too many retries.');
+          } else {
+            return retries * 500;
+          }
+        },
+      },
+    });
+
     this.listName = opts.listName || 'application-logs';
     this.maxListLength = opts.maxListLength || 10000;
     this.batchSize = opts.batchSize || 100;
