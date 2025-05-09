@@ -1,4 +1,5 @@
 const meta = {
+  index: "Overview",
   providers: "Providers",
   logger: "Logger",
   "otel-config": "OTelConfig",

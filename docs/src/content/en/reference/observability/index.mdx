@@ -1,0 +1,24 @@
+---
+title: "Reference: Observability Integration Matrix | Mastra Docs"
+description: Quick reference showing which observability providers support tracing, metrics and log capture with Mastra.
+---
+
+# Observability Integration Feature Matrix
+
+Mastra can export telemetry data to a range of observability backends. The table below provides a quick summary of which core features are supported by each provider. Refer to the individual provider pages for configuration instructions.
+
+| Provider   | Tracing | Metrics | Log capture |
+|------------|:-------:|:-------:|:-----------:|
+| [Braintrust](./providers/braintrust) | \u2713 |         |             |
+| [Dash0](./providers/dash0) | \u2713 | \u2713  | \u2713      |
+| [Laminar](./providers/laminar) | \u2713 |         |             |
+| [Langfuse](./providers/langfuse) | \u2713 |         |             |
+| [Langsmith](./providers/langsmith) | \u2713 |         |             |
+| [New&nbsp;Relic](./providers/new-relic) | \u2713 | \u2713  | \u2713      |
+| [SigNoz](./providers/signoz) | \u2713 | \u2713  | \u2713      |
+| [Traceloop](./providers/traceloop) | \u2713 |         |             |
+
+*\u2713 indicates that the provider can capture and export that type of telemetry.*
+
+See the [Mastra Cloud documentation](../../docs/mastra-cloud/overview) for how to monitor
+applications deployed on Mastra Cloud.
