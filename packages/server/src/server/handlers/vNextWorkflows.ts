@@ -17,25 +17,34 @@ interface VNextWorkflowContext extends Context {
 async function getVNextWorkflow({ mastra, runtimeContext, workflowId }: VNextWorkflowContext & { workflowId: string }) {
   let workflow: NewWorkflow | undefined;
 
-  const agents = mastra.getAgents();
-
-  if (Object.values(agents || {}).length > 0) {
-    await Promise.all(
-      Object.values(agents).map(async agent => {
-        if ('getWorkflows' in agent) {
-          const wfs = await agent.getWorkflows({ runtimeContext });
-
-          if (wfs?.[workflowId]) {
-            workflow = wfs[workflowId];
-          }
-        }
-        return {};
-      }),
-    );
+  try {
+    workflow = mastra.vnext_getWorkflow(workflowId);
+    // eslint-disable-next-line
+  } catch (error) {
+    // ignore
   }
 
   if (!workflow) {
-    workflow = mastra.vnext_getWorkflow(workflowId);
+    const agents = mastra.getAgents();
+
+    if (Object.values(agents || {}).length > 0) {
+      await Promise.all(
+        Object.values(agents).map(async agent => {
+          if ('getWorkflows' in agent) {
+            const wfs = await agent.getWorkflows({ runtimeContext });
+
+            if (wfs?.[workflowId]) {
+              workflow = wfs[workflowId];
+            }
+          }
+          return {};
+        }),
+      );
+    }
+  }
+
+  if (!workflow) {
+    throw new Error('Workflow not found');
   }
 
   return { workflow };
@@ -123,13 +132,13 @@ export async function getVNextWorkflowByIdHandler({ mastra, workflowId, runtimeC
   }
 }
 
-export async function getVNextWorkflowRunHandler({
+export async function getVNextWorkflowRunByIdHandler({
   mastra,
   workflowId,
   runId,
   runtimeContext,
 }: Pick<VNextWorkflowContext, 'mastra' | 'workflowId' | 'runId' | 'runtimeContext'>): Promise<
-  ReturnType<NewWorkflow['getWorkflowRun']>
+  ReturnType<NewWorkflow['getWorkflowRunById']>
 > {
   try {
     if (!workflowId) {
@@ -146,7 +155,7 @@ export async function getVNextWorkflowRunHandler({
       throw new HTTPException(404, { message: 'Workflow not found' });
     }
 
-    const run = await workflow.getWorkflowRun(runId);
+    const run = await workflow.getWorkflowRunById(runId);
 
     if (!run) {
       throw new HTTPException(404, { message: 'Workflow run not found' });
@@ -233,7 +242,7 @@ export async function startVNextWorkflowRunHandler({
     }
 
     const { workflow } = await getVNextWorkflow({ mastra, runtimeContext, workflowId });
-    const run = await workflow.getWorkflowRun(runId);
+    const run = await workflow.getWorkflowRunById(runId);
 
     if (!run) {
       throw new HTTPException(404, { message: 'Workflow run not found' });
@@ -267,7 +276,7 @@ export async function watchVNextWorkflowHandler({
     }
 
     const { workflow } = await getVNextWorkflow({ mastra, runtimeContext, workflowId });
-    const run = await workflow.getWorkflowRun(runId);
+    const run = await workflow.getWorkflowRunById(runId);
 
     if (!run) {
       throw new HTTPException(404, { message: 'Workflow run not found' });
@@ -331,7 +340,7 @@ export async function resumeAsyncVNextWorkflowHandler({
     }
 
     const { workflow } = await getVNextWorkflow({ mastra, runtimeContext, workflowId });
-    const run = await workflow.getWorkflowRun(runId);
+    const run = await workflow.getWorkflowRunById(runId);
 
     if (!run) {
       throw new HTTPException(404, { message: 'Workflow run not found' });
@@ -375,7 +384,7 @@ export async function resumeVNextWorkflowHandler({
     }
 
     const { workflow } = await getVNextWorkflow({ mastra, runtimeContext, workflowId });
-    const run = await workflow.getWorkflowRun(runId);
+    const run = await workflow.getWorkflowRunById(runId);
 
     if (!run) {
       throw new HTTPException(404, { message: 'Workflow run not found' });
