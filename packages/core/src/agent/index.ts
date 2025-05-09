@@ -174,13 +174,9 @@ export class Agent<
     }
 
     Object.entries(workflowRecord || {}).forEach(([_workflowName, workflow]) => {
-      // if (this.#mastra) {
-      //   workflow.__registerMastra(this.#mastra);
-      //   workflow.__registerPrimitives({
-      //     telemetry: this.#mastra.getTelemetry(),
-      //     logger: this.#mastra.getLogger(),
-      //   });
-      // }
+      if (this.#mastra) {
+        workflow.__registerMastra(this.#mastra);
+      }
     });
 
     return workflowRecord;

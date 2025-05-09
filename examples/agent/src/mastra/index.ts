@@ -6,7 +6,7 @@ import { myWorkflow } from './workflows';
 
 export const mastra = new Mastra({
   agents: { chefAgent, chefAgentResponses, dynamicAgent },
-  logger: createLogger({ name: 'Chef', level: 'info' }),
+  logger: createLogger({ name: 'Chef', level: 'debug' }),
   // vnext_workflows: {
   //   myWorkflow,
   // },

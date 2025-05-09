@@ -37,9 +37,11 @@ const step2 = createStep({
   outputSchema: z.object({
     result: z.string(),
   }),
-  execute: async ({ inputData }) => {
+  execute: async ({ inputData, mastra }) => {
+    // const agent = mastra.getAgent('chefAgentResponses');
+    // const response = await agent.generate(inputData.result);
     return {
-      result: inputData.result,
+      result: 'suh',
     };
   },
 });
