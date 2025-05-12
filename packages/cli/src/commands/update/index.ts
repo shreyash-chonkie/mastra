@@ -46,7 +46,17 @@ function getMastraPackages(packageJson: PackageJson): MastraPackage[] {
   }));
 }
 
-export async function update({ alpha, latest, root }: { alpha?: boolean; latest?: boolean; root?: string }) {
+export async function update({
+  alpha,
+  latest,
+  root,
+  version,
+}: {
+  alpha?: boolean;
+  latest?: boolean;
+  root?: string;
+  version?: string;
+}) {
   const rootDir = root || process.cwd();
   const s = p.spinner();
 
@@ -64,7 +74,7 @@ export async function update({ alpha, latest, root }: { alpha?: boolean; latest?
     const hasAlpha = mastraPackages.some(pkg => pkg.isAlpha);
     const hasLatest = mastraPackages.some(pkg => !pkg.isAlpha);
 
-    let targetVersion = latest ? 'latest' : alpha ? 'alpha' : undefined;
+    let targetVersion = version ? version : latest ? 'latest' : alpha ? 'alpha' : undefined;
 
     if (!targetVersion && hasAlpha && hasLatest) {
       const versionChoice = await p.select({

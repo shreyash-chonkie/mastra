@@ -18,6 +18,7 @@ mastra update [options]
 | `-a, --alpha` | Update to the latest alpha versions |
 | `-l, --latest` | Update to the latest stable versions |
 | `-r, --root <path>` | Path to your root folder |
+| `-v, --version <version>` | Update to a specific version |
 
 ## Examples
 
@@ -29,6 +30,11 @@ mastra update --latest
 Update to latest alpha version:
 ```bash
 mastra update --alpha
+```
+
+Update to a specific version:
+```bash
+mastra update --version 5.0.4-alpha.1
 ```
 
 If you have both alpha and stable versions in your project, the command will prompt you to choose which version to update to.

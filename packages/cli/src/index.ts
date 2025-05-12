@@ -236,13 +236,16 @@ program
   .description('Update your Mastra packages')
   .option('-a, --alpha', 'Update to the latest alpha versions')
   .option('-l, --latest', 'Update to the latest versions')
+  .option('-v, --version <version>', 'Update to a specific version')
   .option('-r, --root <root>', 'Path to your root folder')
   .action(async ({ alpha, latest, root }) => {
     await analytics.trackCommandExecution({
       command: 'update',
-      args: { alpha, latest, root },
+      args: { alpha, latest, root, version },
       execution: async () => {
-        if (alpha) {
+        if (version) {
+          await update({ version, root });
+        } else if (alpha) {
           await update({ alpha: true, root });
         } else if (latest) {
           await update({ latest: true, root });
