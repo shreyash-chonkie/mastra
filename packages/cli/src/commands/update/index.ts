@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import * as p from '@clack/prompts';
 import color from 'picocolors';
+import { prerelease } from 'semver';
 import { DepsService } from '../../services/service.deps';
 import { logger } from '../../utils/logger';
 
@@ -13,11 +14,13 @@ interface PackageJson {
 interface MastraPackage {
   name: string;
   version: string;
-  isAlpha: boolean;
+  isPrerelease: boolean;
+  prereleaseTag: string | null;
 }
 
 function readPackageJson(dir: string): PackageJson {
   const packageJsonPath = join(dir, 'package.json');
+
   try {
     const packageJsonContent = readFileSync(packageJsonPath, 'utf-8');
     return JSON.parse(packageJsonContent);
@@ -39,23 +42,27 @@ function getMastraPackages(packageJson: PackageJson): MastraPackage[] {
     ([name]) => name.startsWith('@mastra/') || name === 'mastra',
   );
 
-  return mastraPackages.map(([name, version]) => ({
-    name,
-    version,
-    isAlpha: version.includes('alpha'),
-  }));
+  return mastraPackages.map(([name, version]) => {
+    const prereleaseInfo = prerelease(version);
+    return {
+      name,
+      version,
+      isPrerelease: prereleaseInfo !== null,
+      prereleaseTag: prereleaseInfo?.[0] as string | null,
+    };
+  });
 }
 
 export async function update({
   alpha,
   latest,
   root,
-  version,
+  target,
 }: {
   alpha?: boolean;
   latest?: boolean;
   root?: string;
-  version?: string;
+  target?: string;
 }) {
   const rootDir = root || process.cwd();
   const s = p.spinner();
@@ -71,17 +78,17 @@ export async function update({
       return;
     }
 
-    const hasAlpha = mastraPackages.some(pkg => pkg.isAlpha);
-    const hasLatest = mastraPackages.some(pkg => !pkg.isAlpha);
+    const hasPrerelease = mastraPackages.some(pkg => pkg.isPrerelease);
+    const hasLatest = mastraPackages.some(pkg => !pkg.isPrerelease);
 
-    let targetVersion = version ? version : latest ? 'latest' : alpha ? 'alpha' : undefined;
+    let targetVersion = target ? target : latest ? 'latest' : alpha ? 'alpha' : undefined;
 
-    if (!targetVersion && hasAlpha && hasLatest) {
+    if (!targetVersion && hasPrerelease && hasLatest) {
       const versionChoice = await p.select({
-        message: 'Found both alpha and latest versions. Which version would you like to install?',
+        message: 'Found both pre-release and latest versions. Which version would you like to install?',
         options: [
-          { value: 'latest', label: 'Latest', hint: 'stable version' },
-          { value: 'alpha', label: 'Alpha', hint: 'pre-release version' },
+          { value: 'latest', label: 'Latest (stable)', hint: 'stable version' },
+          { value: 'alpha', label: 'Alpha (pre-release)', hint: 'Latest pre-release version' },
         ],
       });
 
@@ -92,7 +99,7 @@ export async function update({
 
       targetVersion = versionChoice;
     } else if (!targetVersion) {
-      targetVersion = hasAlpha ? 'alpha' : 'latest';
+      targetVersion = hasPrerelease ? 'alpha' : 'latest';
     }
 
     s.start('Updating Mastra packages');
