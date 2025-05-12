@@ -4,6 +4,7 @@ const meta = {
   build: "mastra build",
   lint: "mastra lint",
   update: "mastra update",
+  "mcp-docs-server": "mcp-docs-server",
 };
 
 export default meta;

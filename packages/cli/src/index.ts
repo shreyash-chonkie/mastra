@@ -58,6 +58,7 @@ program
     '-p, --project-name <string>',
     'Project name that will be used in package.json and as the project directory name.',
   )
+  .option('-m, --mcp <editor>', 'MCP Server for code editor (cursor, cursor-global, windsurf, vscode)')
   .action(async (projectNameArg, args) => {
     // Unify: use argument if present, else option
     const projectName = projectNameArg || args.projectName;
@@ -70,8 +71,9 @@ program
           await create({
             components: ['agents', 'tools', 'workflows'],
             llmProvider: 'openai',
-            addExample: false,
+            addExample: true,
             timeout,
+            mcpServer: args.mcp,
           });
           return;
         }
@@ -83,6 +85,7 @@ program
           timeout,
           projectName,
           directory: args.dir,
+          mcpServer: args.mcp,
         });
       },
       origin,
@@ -99,6 +102,7 @@ program
   .option('-k, --llm-api-key <api-key>', 'API key for the model provider')
   .option('-e, --example', 'Include example code')
   .option('-n, --no-example', 'Do not include example code')
+  .option('-m, --mcp <editor>', 'MCP Server for code editor (cursor, cursor-global, windsurf, vscode)')
   .action(async args => {
     await analytics.trackCommandExecution({
       command: 'init',
@@ -121,7 +125,8 @@ program
             directory: 'src/',
             components: ['agents', 'tools', 'workflows'],
             llmProvider: 'openai',
-            addExample: false,
+            addExample: true,
+            configureEditorWithDocsMCP: args.mcp,
           });
           return;
         }
@@ -133,6 +138,7 @@ program
           llmProvider: args.llm,
           addExample: args.example,
           llmApiKey: args['llm-api-key'],
+          configureEditorWithDocsMCP: args.mcp,
         });
         return;
       },
