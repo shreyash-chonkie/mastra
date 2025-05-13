@@ -16,6 +16,7 @@ export class PubSubTransport extends LoggerTransport {
     maxListLength?: number;
     batchSize?: number;
     gcpProjectId: string;
+    gcpServiceAccountKey?: string;
     attributes?: Record<string, string>;
     topicName: string;
     flushInterval?: number;
@@ -29,6 +30,7 @@ export class PubSubTransport extends LoggerTransport {
     this.topicName = opts.topicName;
     this.pubsub = new PubSub({
       projectId: opts.gcpProjectId,
+      keyFilename: opts.gcpServiceAccountKey,
     });
 
     this.topic = this.pubsub.topic(this.topicName, {
