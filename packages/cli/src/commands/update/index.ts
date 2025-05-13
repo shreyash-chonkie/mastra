@@ -57,12 +57,12 @@ export async function update({
   alpha,
   latest,
   root,
-  target,
+  tag,
 }: {
   alpha?: boolean;
   latest?: boolean;
   root?: string;
-  target?: string;
+  tag?: string;
 }) {
   const rootDir = root || process.cwd();
   const s = p.spinner();
@@ -81,7 +81,7 @@ export async function update({
     const hasPrerelease = mastraPackages.some(pkg => pkg.isPrerelease);
     const hasLatest = mastraPackages.some(pkg => !pkg.isPrerelease);
 
-    let targetVersion = target ? target : latest ? 'latest' : alpha ? 'alpha' : undefined;
+    let targetVersion = tag ? tag : latest ? 'latest' : alpha ? 'alpha' : undefined;
 
     if (!targetVersion && hasPrerelease && hasLatest) {
       const versionChoice = await p.select({
