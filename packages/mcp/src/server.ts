@@ -18,7 +18,13 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import type { StreamableHTTPServerTransportOptions } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
+import type { Resource } from '@modelcontextprotocol/sdk/types.js';
 import type { SSEStreamingApi } from 'hono/streaming';
 import { streamSSE } from 'hono/streaming';
 import { SSETransport } from 'hono-mcp-server-sse-transport';
@@ -32,6 +38,10 @@ export class MCPServer extends MCPServerBase {
   private streamableHTTPTransport?: StreamableHTTPServerTransport;
   private listToolsHandlerIsRegistered: boolean = false;
   private callToolHandlerIsRegistered: boolean = false;
+  private listResourcesHandlerIsRegistered: boolean = false;
+  private readResourceHandlerIsRegistered: boolean = false;
+
+  private definedResources: Resource[] = [];
 
   /**
    * Get the current stdio transport.
@@ -65,21 +75,31 @@ export class MCPServer extends MCPServerBase {
    * Construct a new MCPServer instance.
    * @param opts - Configuration options for the server, including registry metadata.
    */
-  constructor(opts: MCPServerConfig) {
+  constructor(opts: MCPServerConfig & { definedResources?: Resource[] }) {
     super(opts);
+
+    this.definedResources = opts.definedResources || [];
 
     this.server = new Server(
       { name: this.name, version: this.version },
-      { capabilities: { tools: {}, logging: { enabled: true } } },
+      {
+        capabilities: {
+          tools: {},
+          logging: { enabled: true },
+          resources: this.definedResources.length > 0 ? {} : undefined,
+        },
+      },
     );
 
     this.logger.info(
-      `Initialized MCPServer '${this.name}' v${this.version} (ID: ${this.id}) with tools: ${Object.keys(this.convertedTools).join(', ')}`,
+      `Initialized MCPServer '${this.name}' v${this.version} (ID: ${this.id}) with tools: ${Object.keys(this.convertedTools).join(', ')} and ${this.definedResources.length} resources.`,
     );
 
     this.sseHonoTransports = new Map();
     this.registerListToolsHandler();
     this.registerCallToolHandler();
+    this.registerListResourcesHandler();
+    this.registerReadResourceHandler();
   }
 
   /**
@@ -218,6 +238,68 @@ export class MCPServer extends MCPServerBase {
           content: [{ type: 'text', text: `Error: ${error instanceof Error ? error.message : String(error)}` }],
           isError: true,
         };
+      }
+    });
+  }
+
+  /**
+   * Register the ListResources handler for listing all available resources.
+   */
+  private registerListResourcesHandler() {
+    if (this.listResourcesHandlerIsRegistered || this.definedResources.length === 0) {
+      return;
+    }
+    this.listResourcesHandlerIsRegistered = true;
+    this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
+      this.logger.debug('Handling ListResources request');
+      return {
+        resources: this.definedResources.map(resource => ({
+          uri: resource.uri,
+          name: resource.name,
+          description: resource.description,
+          mimeType: resource.mimeType,
+        })),
+      };
+    });
+  }
+
+  /**
+   * Register the ReadResource handler for reading a resource by URI.
+   */
+  private registerReadResourceHandler() {
+    if (this.readResourceHandlerIsRegistered || this.definedResources.length === 0) {
+      return;
+    }
+    this.readResourceHandlerIsRegistered = true;
+    this.server.setRequestHandler(ReadResourceRequestSchema, async request => {
+      const startTime = Date.now();
+      const uri = request.params.uri;
+      this.logger.debug(`Handling ReadResource request for URI: ${uri}`);
+
+      const resource = this.definedResources.find(r => r.uri === uri);
+
+      if (!resource) {
+        this.logger.warn(`ReadResource: Unknown resource URI '${uri}' requested.`);
+        throw new Error(`Resource not found: ${uri}`);
+      }
+
+      try {
+        const contentText = await resource.getContent();
+        const duration = Date.now() - startTime;
+        this.logger.info(`Resource '${uri}' read successfully in ${duration}ms.`);
+        return {
+          contents: [
+            {
+              uri: resource.uri,
+              mimeType: resource.mimeType,
+              text: contentText,
+            },
+          ],
+        };
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        this.logger.error(`Failed to get content for resource URI '${uri}' in ${duration}ms`, { error });
+        throw error;
       }
     });
   }
@@ -413,6 +495,8 @@ export class MCPServer extends MCPServerBase {
   async close() {
     this.callToolHandlerIsRegistered = false;
     this.listToolsHandlerIsRegistered = false;
+    this.listResourcesHandlerIsRegistered = false;
+    this.readResourceHandlerIsRegistered = false;
     try {
       if (this.stdioTransport) {
         await this.stdioTransport.close?.();
