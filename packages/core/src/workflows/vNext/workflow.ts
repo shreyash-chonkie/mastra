@@ -9,6 +9,7 @@ import { RuntimeContext } from '../../di';
 import { RegisteredLogger } from '../../logger';
 import { Tool } from '../../tools';
 import type { ToolExecutionContext } from '../../tools/types';
+import type { Prettify } from '../../utils';
 import { DefaultExecutionEngine } from './default';
 import type { ExecutionEngine, ExecutionGraph } from './execution-engine';
 import type { ExecuteFunction, NewStep, NewStep as Step } from './step';
@@ -50,10 +51,12 @@ export type StepFlowEntry =
       };
     };
 
-export type SerializedStep = Pick<Step, 'id' | 'description'> & {
-  component?: string;
-  serializedStepFlow?: SerializedStepFlowEntry[];
-};
+export type SerializedStep = Prettify<
+  Pick<Step, 'id' | 'description'> & {
+    component?: string;
+    serializedStepFlow?: SerializedStepFlowEntry[];
+  }
+>;
 
 export type SerializedStepFlowEntry =
   | {
