@@ -1,6 +1,73 @@
 import { createTool } from '@mastra/core/tools';
-import { MCPServer } from '@mastra/mcp';
+import { MCPServer, MCPServerResources } from '@mastra/mcp';
 import { z } from 'zod';
+
+// Resources implementation
+const weatherResources: MCPServerResources = {
+  resources: [
+    {
+      uri: 'weather://current',
+      name: 'Current Weather Data',
+      description: 'Real-time weather data for the current location',
+      mimeType: 'application/json',
+    },
+    {
+      uri: 'weather://forecast',
+      name: 'Weather Forecast',
+      description: '5-day weather forecast',
+      mimeType: 'application/json',
+    },
+    {
+      uri: 'weather://historical',
+      name: 'Historical Weather Data',
+      description: 'Weather data from the past 30 days',
+      mimeType: 'application/json',
+    },
+  ],
+  getResourceContent: async ({ uri }) => {
+    if (uri === 'weather://current') {
+      return [
+        {
+          text: JSON.stringify({
+            location: 'San Francisco',
+            temperature: 18,
+            conditions: 'Partly Cloudy',
+            humidity: 65,
+            windSpeed: 12,
+            updated: new Date().toISOString(),
+          }),
+        },
+      ];
+    } else if (uri === 'weather://forecast') {
+      return [
+        {
+          text: JSON.stringify([
+            { day: 1, high: 19, low: 12, conditions: 'Sunny' },
+            { day: 2, high: 22, low: 14, conditions: 'Clear' },
+            { day: 3, high: 20, low: 13, conditions: 'Partly Cloudy' },
+            { day: 4, high: 18, low: 11, conditions: 'Rain' },
+            { day: 5, high: 17, low: 10, conditions: 'Showers' },
+          ]),
+        },
+      ];
+    } else if (uri === 'weather://historical') {
+      return [
+        {
+          text: JSON.stringify({
+            averageHigh: 20,
+            averageLow: 12,
+            rainDays: 8,
+            sunnyDays: 18,
+            recordHigh: 28,
+            recordLow: 7,
+          }),
+        },
+      ];
+    }
+
+    throw new Error(`Resource not found: ${uri}`);
+  },
+};
 
 export const myMcpServer = new MCPServer({
   name: 'My Calculation & Data MCP Server',
@@ -48,6 +115,7 @@ export const myMcpServer = new MCPServer({
 export const myMcpServerTwo = new MCPServer({
   name: 'My Utility MCP Server',
   version: '1.0.0',
+  resources: weatherResources,
   tools: {
     stringUtils: createTool({
       id: 'stringUtils',

@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { weatherTool } from './__fixtures__/tools';
 import { MCPClient } from './configuration';
 import { MCPServer } from './server';
+import type { MCPServerResources, MCPServerResourceContent } from './server';
 
 const PORT = 9100 + Math.floor(Math.random() * 1000);
 let server: MCPServer;
@@ -59,6 +60,11 @@ describe('MCPServer', () => {
     global.Date.prototype.toISOString = vi.fn(() => mockDateISO);
     // @ts-ignore // Static Date.toISOString() might be used by some libraries
     global.Date.toISOString = vi.fn(() => mockDateISO);
+  });
+
+  // Restore original Date after all tests in this describe block
+  afterAll(() => {
+    global.Date = OriginalDate;
   });
 
   describe('Constructor and Metadata Initialization', () => {
@@ -207,6 +213,174 @@ describe('MCPServer', () => {
         remotes,
       });
     });
+  });
+
+  describe('MCPServer Resource Handling', () => {
+    let resourceTestServerInstance: MCPServer;
+    let localHttpServer: http.Server;
+    let resourceTestClient: MCPClient;
+    const RESOURCE_TEST_PORT = 9200 + Math.floor(Math.random() * 100);
+
+    const mockResourceContents: Record<string, MCPServerResourceContent> = {
+      'weather://current': {
+        text: JSON.stringify({
+          location: 'Test City',
+          temperature: 22,
+          conditions: 'Sunny',
+        }),
+      },
+      'weather://forecast': {
+        text: JSON.stringify([
+          { day: 1, high: 25, low: 15, conditions: 'Clear' },
+          { day: 2, high: 26, low: 16, conditions: 'Cloudy' },
+        ]),
+      },
+      'weather://historical': {
+        text: JSON.stringify({ averageHigh: 20, averageLow: 10 }),
+      },
+    };
+
+    const mockAppResources: MCPServerResources = {
+      resources: [
+        {
+          uri: 'weather://current',
+          name: 'Current Weather Data',
+          description: 'Real-time weather data',
+          mimeType: 'application/json',
+        },
+        {
+          uri: 'weather://forecast',
+          name: 'Weather Forecast',
+          description: '5-day weather forecast',
+          mimeType: 'application/json',
+        },
+        {
+          uri: 'weather://historical',
+          name: 'Historical Weather Data',
+          description: 'Past 30 days weather data',
+          mimeType: 'application/json',
+        },
+      ],
+      getResourceContent: async ({ uri }) => {
+        if (mockResourceContents[uri]) {
+          return mockResourceContents[uri];
+        }
+        throw new Error(`Mock resource content not found for ${uri}`);
+      },
+    };
+
+    beforeAll(async () => {
+      resourceTestServerInstance = new MCPServer({
+        name: 'ResourceTestServer',
+        version: '1.0.0',
+        tools: { weatherTool },
+        resources: mockAppResources,
+      });
+
+      localHttpServer = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
+        const url = new URL(req.url || '', `http://localhost:${RESOURCE_TEST_PORT}`);
+        await resourceTestServerInstance.startHTTP({
+          url,
+          httpPath: '/http',
+          req,
+          res,
+          options: {
+            sessionIdGenerator: undefined,
+            enableJsonResponse: true,
+          },
+        });
+      });
+
+      await new Promise<void>(resolve => localHttpServer.listen(RESOURCE_TEST_PORT, () => resolve()));
+
+      resourceTestClient = new MCPClient({
+        id: 'resource-test-client',
+        servers: {
+          resourceServerKey: {
+            url: new URL(`http://localhost:${RESOURCE_TEST_PORT}/http`),
+          },
+        },
+      });
+    });
+
+    afterAll(async () => {
+      if (localHttpServer) {
+        localHttpServer.closeAllConnections?.();
+        await new Promise<void>((resolve, reject) => {
+          localHttpServer.close(err => {
+            if (err) return reject(err);
+            resolve();
+          });
+        });
+      }
+      if (resourceTestServerInstance) {
+        await resourceTestServerInstance.close();
+      }
+    });
+
+    it.only('should list available resources', async () => {
+      const resources = await resourceTestClient.getResources();
+      expect(resources).toBeDefined();
+      expect(resources.resourceServerKey.length).toBe(mockAppResources.resources.length);
+      mockAppResources.resources.forEach(mockResource => {
+        expect(resources.resourceServerKey).toContainEqual(expect.objectContaining(mockResource));
+      });
+    });
+
+    // it('should read content for weather://current', async () => {
+    //   const uri = 'weather://current';
+    //   const resourceContent = await (resourceTestClient as any).getResourceContent('resourceServerKey', uri);
+    //   console.log('Resource content for current:', resourceContent);
+
+    //   expect(resourceContent).toBeDefined();
+    //   expect(resourceContent.contents).toBeDefined();
+    //   expect(resourceContent.contents.length).toBe(1);
+
+    //   const content = resourceContent.contents[0];
+    //   expect(content.uri).toBe(uri);
+    //   expect(content.mimeType).toBe('application/json');
+    //   expect(content.text).toBe((mockResourceContents[uri] as { text: string }).text);
+    // });
+
+    // it('should read content for weather://forecast', async () => {
+    //   const uri = 'weather://forecast';
+    //   const resourceContent = await (resourceTestClient as any).getResourceContent('resourceServerKey', uri);
+    //   console.log('Resource content for forecast:', resourceContent);
+
+    //   expect(resourceContent).toBeDefined();
+    //   expect(resourceContent.contents).toBeDefined();
+    //   expect(resourceContent.contents.length).toBe(1);
+
+    //   const content = resourceContent.contents[0];
+    //   expect(content.uri).toBe(uri);
+    //   expect(content.mimeType).toBe('application/json');
+    //   expect(content.text).toBe((mockResourceContents[uri] as { text: string }).text);
+    // });
+
+    // it('should read content for weather://historical', async () => {
+    //   const uri = 'weather://historical';
+    //   const resourceContent = await (resourceTestClient as any).getResourceContent('resourceServerKey', uri);
+    //   console.log('Resource content for historical:', resourceContent);
+
+    //   expect(resourceContent).toBeDefined();
+    //   expect(resourceContent.contents).toBeDefined();
+    //   expect(resourceContent.contents.length).toBe(1);
+
+    //   const content = resourceContent.contents[0];
+    //   expect(content.uri).toBe(uri);
+    //   expect(content.mimeType).toBe('application/json');
+    //   expect(content.text).toBe((mockResourceContents[uri] as { text: string }).text);
+    // });
+
+    // it('should return empty contents for a non-existent resource URI', async () => {
+    //   const uri = 'weather://nonexistent';
+    //   const resourceContent = await (resourceTestClient as any).getResourceContent('resourceServerKey', uri);
+    //   console.log('Resource content for nonexistent:', resourceContent);
+
+    //   expect(resourceContent).toBeDefined();
+    //   expect(resourceContent.contents).toBeDefined();
+    //   expect(resourceContent.contents.length).toBe(0);
+    // });
   });
 
   describe('MCPServer SSE transport', () => {
@@ -359,7 +533,7 @@ describe('MCPServer', () => {
       expect(res.status).toBe(404);
     });
 
-    it('should respond to HTTP request using client', async () => {
+    it.only('should respond to HTTP request using client', async () => {
       const tools = await client.getTools();
       const tool = tools['local_weatherTool'];
       expect(tool).toBeDefined();

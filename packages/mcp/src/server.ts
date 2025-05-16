@@ -24,12 +24,22 @@ import {
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import type { Resource } from '@modelcontextprotocol/sdk/types.js';
+import type { ResourceContents, Resource } from '@modelcontextprotocol/sdk/types.js';
 import type { SSEStreamingApi } from 'hono/streaming';
 import { streamSSE } from 'hono/streaming';
 import { SSETransport } from 'hono-mcp-server-sse-transport';
 import { z } from 'zod';
 
+export type MCPServerResourceContentCallback = ({
+  uri,
+}: {
+  uri: string;
+}) => Promise<MCPServerResourceContent | MCPServerResourceContent[]>;
+export type MCPServerResourceContent = { text?: string } | { blob?: string };
+export type MCPServerResources = {
+  resources: Resource[];
+  getResourceContent: MCPServerResourceContentCallback;
+};
 export class MCPServer extends MCPServerBase {
   private server: Server;
   private stdioTransport?: StdioServerTransport;
@@ -41,7 +51,7 @@ export class MCPServer extends MCPServerBase {
   private listResourcesHandlerIsRegistered: boolean = false;
   private readResourceHandlerIsRegistered: boolean = false;
 
-  private definedResources: Resource[] = [];
+  private definedResources: Resource[];
 
   /**
    * Get the current stdio transport.
@@ -75,20 +85,14 @@ export class MCPServer extends MCPServerBase {
    * Construct a new MCPServer instance.
    * @param opts - Configuration options for the server, including registry metadata.
    */
-  constructor(opts: MCPServerConfig & { definedResources?: Resource[] }) {
+  constructor(opts: MCPServerConfig & { resources?: MCPServerResources }) {
     super(opts);
 
-    this.definedResources = opts.definedResources || [];
+    this.definedResources = opts.resources?.resources || [];
 
     this.server = new Server(
       { name: this.name, version: this.version },
-      {
-        capabilities: {
-          tools: {},
-          logging: { enabled: true },
-          resources: this.definedResources.length > 0 ? {} : undefined,
-        },
-      },
+      { capabilities: { tools: {}, logging: { enabled: true }, resources: opts.resources ? {} : undefined } },
     );
 
     this.logger.info(
@@ -98,8 +102,10 @@ export class MCPServer extends MCPServerBase {
     this.sseHonoTransports = new Map();
     this.registerListToolsHandler();
     this.registerCallToolHandler();
-    this.registerListResourcesHandler();
-    this.registerReadResourceHandler();
+    if (opts.resources) {
+      this.registerListResourcesHandler();
+      this.registerReadResourceHandler({ getResourcesCallback: opts.resources.getResourceContent });
+    }
   }
 
   /**
@@ -246,7 +252,7 @@ export class MCPServer extends MCPServerBase {
    * Register the ListResources handler for listing all available resources.
    */
   private registerListResourcesHandler() {
-    if (this.listResourcesHandlerIsRegistered || this.definedResources.length === 0) {
+    if (this.listResourcesHandlerIsRegistered) {
       return;
     }
     this.listResourcesHandlerIsRegistered = true;
@@ -266,7 +272,11 @@ export class MCPServer extends MCPServerBase {
   /**
    * Register the ReadResource handler for reading a resource by URI.
    */
-  private registerReadResourceHandler() {
+  private registerReadResourceHandler({
+    getResourcesCallback,
+  }: {
+    getResourcesCallback: MCPServerResourceContentCallback;
+  }) {
     if (this.readResourceHandlerIsRegistered || this.definedResources.length === 0) {
       return;
     }
@@ -280,21 +290,35 @@ export class MCPServer extends MCPServerBase {
 
       if (!resource) {
         this.logger.warn(`ReadResource: Unknown resource URI '${uri}' requested.`);
-        throw new Error(`Resource not found: ${uri}`);
+        return {
+          contents: [],
+        };
       }
 
       try {
-        const contentText = await resource.getContent();
+        const resourcesOrResourceContent = await getResourcesCallback({ uri });
+        const resourcesContent = Array.isArray(resourcesOrResourceContent)
+          ? resourcesOrResourceContent
+          : [resourcesOrResourceContent];
+        const contents: ResourceContents[] = resourcesContent.map(resourceContent => {
+          const content: ResourceContents = {
+            uri: resource.uri,
+            mimeType: resource.mimeType,
+          };
+          if ('text' in resourceContent) {
+            content.text = resourceContent.text;
+          }
+
+          if ('blob' in resourceContent) {
+            content.blob = resourceContent.blob;
+          }
+
+          return content;
+        });
         const duration = Date.now() - startTime;
         this.logger.info(`Resource '${uri}' read successfully in ${duration}ms.`);
         return {
-          contents: [
-            {
-              uri: resource.uri,
-              mimeType: resource.mimeType,
-              text: contentText,
-            },
-          ],
+          contents,
         };
       } catch (error) {
         const duration = Date.now() - startTime;
