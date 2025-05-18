@@ -36,7 +36,6 @@ Primitives such as `.then()`, `.parallel()` and `.branch()` describe the executi
 Steps are the building blocks of workflows. Create a step using `createStep`:
 
 ```typescript
-// Create a step with defined input/output schemas and execution logic
 const inputSchema = z.object({
   inputValue: z.string(),
 });
@@ -48,11 +47,13 @@ const myStep = createStep({
   outputSchema: z.object({
     outputValue: z.string(),
   }),
-  // Optional: Define the resume schema for step resumption
+  // Optional: Define the resume schema for step resumption.
+  // The resume schema is used to validate the data that can be passed to the step when it is resumed from a suspended state.
   resumeSchema: z.object({
     resumeValue: z.string(),
   }),
-  // Optional: Define the suspend schema for step suspension
+  // Optional: Define the suspend schema for step suspension.
+  // The suspend schema is used to validate the data that can be passed to the step when it is suspended.
   suspendSchema: z.object({
     suspendValue: z.string(),
   }),
@@ -95,14 +96,11 @@ The `execute` function receives a context object with:
 Create a workflow using `createWorkflow`:
 
 ```typescript
-// Create a workflow with defined steps and execution flow
 const myWorkflow = createWorkflow({
   id: "my-workflow",
-  // Define the expected input structure (should match the first step's inputSchema)
   inputSchema: z.object({
     startValue: z.string(),
   }),
-  // Define the expected output structure (should match the last step's outputSchema)
   outputSchema: z.object({
     result: z.string(),
   }),
@@ -113,14 +111,12 @@ const myWorkflow = createWorkflow({
   .then(step3)
   .commit();
 
-// Register workflow with Mastra instance
 const mastra = new Mastra({
   vnext_workflows: {
     myWorkflow,
   },
 });
 
-// Create a run instance of the workflow
 const run = mastra.vnext_getWorkflow("myWorkflow").createRun();
 ```
 
@@ -190,10 +186,10 @@ const parentWorkflow = createWorkflow({
   steps: [myWorkflow, step4],
 });
 parentWorkflow
-  .then(myWorkflow) // nested workflow
+  .then(myWorkflow)
   .then(step4)
-  .then(cloneWorkflow(myWorkflow, { id: "cloned-workflow" })) // cloned workflow
-  .then(cloneStep(step4, { id: "cloned-step-4" })) // cloned step
+  .then(cloneWorkflow(myWorkflow, { id: "cloned-workflow" }))
+  .then(cloneStep(step4, { id: "cloned-step-4" }))
   .commit();
 ```
 

@@ -76,9 +76,9 @@ When the state is `suspended`, you can identify any and all steps that have been
 const run = counterWorkflow.createRun();
 const result = await run.start({ inputData: { startValue: 0 } });
 
-// Check if the workflow is in suspended state
+// Check if the workflow is in suspended state and resume it with new data. 
+// This data could be human input or some other data that was collected while the workflow was suspended.
 if (result.status === "suspended") {
-  // Resume the first suspended step with new data
   const resumedResults = await run.resume({
     step: result.suspended[0],
     resumeData: { newValue: 0 },
@@ -93,7 +93,6 @@ The `suspended` property is of type `string[][]`, where every array is a path to
 ### Resume
 
 ```typescript
-// Resume a suspended workflow with user input
 const result = await workflowRun.resume({
   step: userInputStep, // or 'myStepId' as a string
   resumeData: {
@@ -105,7 +104,6 @@ const result = await workflowRun.resume({
 To resume a suspended nested workflow:
 
 ```typescript
-// Resume a suspended nested workflow with user input
 const result = await workflowRun.resume({
   step: [nestedWorkflow, userInputStep], // or ['nestedWorkflowId', 'myStepId'] as a string array
   resumeData: {

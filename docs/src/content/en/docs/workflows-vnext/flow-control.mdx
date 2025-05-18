@@ -8,11 +8,11 @@ description: "Control flow in Mastra (vNext) workflows allows you to manage bran
 Chain steps to execute in sequence using `.then()`:
 
 ```typescript
-// Chain steps to execute in sequence
+// Chain steps to execute in sequence. The output from each step is automatically passed to the next step.
 myWorkflow
-  .then(step1) // First step
-  .then(step2) // Second step, receives output from step1
-  .then(step3) // Third step, receives output from step2
+  .then(step1)
+  .then(step2)
+  .then(step3)
   .commit();
 ```
 
@@ -24,10 +24,9 @@ Step chaining is type-safe and checked at compile time.
 Execute steps in parallel using `.parallel()`:
 
 ```typescript
-// Execute step1 and step2 in parallel
+// Execute step1 and step2 in parallel. The output from step1 and step2 is passed to step3 as an object.
 myWorkflow
   .parallel([step1, step2])
-  // Continue with step3 after both parallel steps complete
   .then(step3)
   .commit();
 ```
@@ -64,7 +63,6 @@ myWorkflow
     // If value <= 10, run extremelyLowValueStep
     [async ({ inputData }) => inputData.value <= 10, extremelyLowValueStep],
   ])
-  // After branching, continue with finalStep
   .then(finalStep)
   .commit();
 ```
@@ -80,7 +78,6 @@ vNext supports two types of loops. When looping a step (or nested workflow or an
 **Do-While Loop**: Executes a step repeatedly while a condition is true.
 
 ```typescript
-// Repeat incrementStep while value is less than 10
 myWorkflow
   .dowhile(incrementStep, async ({ inputData }) => inputData.value < 10)
   .then(finalStep)
@@ -90,7 +87,6 @@ myWorkflow
 **Do-Until Loop**: Executes a step repeatedly until a condition becomes true.
 
 ```typescript
-// Repeat incrementStep while value is more than 10
 myWorkflow
   .dountil(incrementStep, async ({ inputData }) => inputData.value >= 10)
   .then(finalStep)
@@ -102,7 +98,6 @@ myWorkflow
 Foreach is a step that executes a step for each item in an array type input.
 
 ```typescript
-// Step that adds 11 to the current value
 const mapStep = createStep({
   id: "map",
   description: "Maps (+11) on the current value",
@@ -117,7 +112,6 @@ const mapStep = createStep({
   },
 });
 
-// final step that prints the result
 const finalStep = createStep({
   id: "final",
   description: "Final step that prints the result",
@@ -139,7 +133,6 @@ const counterWorkflow = createWorkflow({
   }),
 });
 
-// Apply mapStep to each item in the input array, then run finalStep
 counterWorkflow.foreach(mapStep).then(finalStep).commit();
 
 const run = counterWorkflow.createRun();
@@ -179,9 +172,9 @@ const mainWorkflow = createWorkflow({
   inputSchema: z.object({...}),
   outputSchema: z.object({...}),
 })
-  .then(initialStep)    // Run initialStep first
-  .then(nestedWorkflow) // Then run the nested workflow as a step
-  .then(finalStep)      // Finally, run finalStep
+  .then(initialStep)
+  .then(nestedWorkflow)
+  .then(finalStep)
   .commit();
 ```
 
@@ -199,12 +192,10 @@ const planBothWorkflow = createWorkflow({
   }),
   steps: [planActivities, planIndoorActivities, sythesizeStep],
 })
-  // Run planActivities and planIndoorActivities in parallel
   .parallel([planActivities, planIndoorActivities])
   .then(sythesizeStep)
   .commit();
 
-// Define the main weather workflow
 const weatherWorkflow = createWorkflow({
   id: "weather-workflow-step3-concurrency",
   inputSchema: z.object({
@@ -215,7 +206,6 @@ const weatherWorkflow = createWorkflow({
   }),
   steps: [fetchWeather, planBothWorkflow, planActivities],
 })
-  // First, fetch the weather for the given city
   .then(fetchWeather)
   .branch([
     // If precipitationChance > 20, plan both indoor and outdoor activities (nested workflow)
