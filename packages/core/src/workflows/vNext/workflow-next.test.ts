@@ -4840,5 +4840,101 @@ describe('Workflow', () => {
       // @ts-ignore
       expect(result?.steps.step1.output.injectedValue).toBe(testValue + '2');
     });
+
+    it('should be able to pass and modify runtime context between nested workflows', async () => {
+      // Define schemas
+      const MessageSchema = z.object({
+        message: z.string(),
+      });
+
+      const ResponseSchema = z.object({
+        response: z.string(),
+        context: z.string().optional(),
+      });
+
+      // Create inner step
+      const innerStep = createStep({
+        id: 'innerStep',
+        inputSchema: MessageSchema,
+        outputSchema: ResponseSchema,
+        execute: vi.fn(async ({ inputData, runtimeContext }) => {
+          const sharedValue = runtimeContext.get('sharedValue');
+          runtimeContext.set('innerWorkflowValue', 'modified-by-inner');
+          runtimeContext.set('sharedValue', 'context-from-outer-modified-by-inner');
+
+          return {
+            response: `Inner step processed: ${inputData.message}`,
+            context: sharedValue || 'no-context-found',
+          };
+        }),
+      });
+
+      // Create inner workflow
+      const innerWorkflow = createWorkflow({
+        id: 'innerWorkflow',
+        inputSchema: MessageSchema,
+        outputSchema: ResponseSchema,
+        steps: [innerStep],
+      })
+        .then(innerStep)
+        .commit();
+
+      // Create outer step
+      const outerStep = createStep({
+        id: 'outerStep',
+        inputSchema: MessageSchema,
+        outputSchema: MessageSchema,
+        execute: vi.fn(async ({ inputData, runtimeContext }) => {
+          runtimeContext.set('sharedValue', 'context-from-outer');
+          return inputData;
+        }),
+      });
+
+      // Create final step
+      const finalStep = createStep({
+        id: 'finalStep',
+        inputSchema: ResponseSchema,
+        outputSchema: ResponseSchema,
+        execute: vi.fn(async ({ inputData, runtimeContext }) => {
+          const sharedValue = runtimeContext.get('sharedValue');
+          const innerWorkflowValue = runtimeContext.get('innerWorkflowValue');
+
+          return {
+            ...inputData,
+            context: `${inputData.context} + final-step: shared=${sharedValue || 'no-context'}, inner=${innerWorkflowValue || 'no-inner-context'}`,
+          };
+        }),
+      });
+
+      // Create main workflow
+      const mainWorkflow = createWorkflow({
+        id: 'mainWorkflow',
+        inputSchema: MessageSchema,
+        outputSchema: ResponseSchema,
+        steps: [outerStep, innerWorkflow, finalStep],
+      })
+        .then(outerStep)
+        .then(innerWorkflow)
+        .then(finalStep)
+        .commit();
+
+      // Run the workflow
+      const run = mainWorkflow.createRun();
+      const result = await run.start({
+        inputData: { message: 'test message' },
+        runtimeContext: new RuntimeContext(),
+      });
+
+      // Assertions
+      expect(result.status).toBe('success');
+      if (result.status === 'success') {
+        // @ts-ignore
+        expect(result.steps.finalStep.output.context).toContain('context-from-outer');
+        // @ts-ignore
+        expect(result.steps.finalStep.output.context).toContain('modified-by-inner');
+        // @ts-ignore
+        expect(result.steps.finalStep.output.context).toContain('context-from-outer-modified-by-inner');
+      }
+    });
   });
 });
