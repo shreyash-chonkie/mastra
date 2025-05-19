@@ -9,6 +9,7 @@ packages:
   - "!packages/cli/admin"
   - "integrations/*"
   - "examples/dane"
+  - "examples/experimental-auth-weather-agent"
   - "packages/cli/src/playground"
   - "packages/*/integration-tests"
   - "packages/cloud"
