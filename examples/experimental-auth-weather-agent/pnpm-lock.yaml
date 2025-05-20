@@ -21,9 +21,6 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.49.4
         version: 2.49.6
-      '@types/jsonwebtoken':
-        specifier: ^9.0.9
-        version: 9.0.9
       '@workos-inc/node':
         specifier: ^7.50.1
         version: 7.50.1
@@ -43,6 +40,9 @@ importers:
         specifier: ^3.24.3
         version: 3.25.7
     devDependencies:
+      '@types/jsonwebtoken':
+        specifier: ^9.0.9
+        version: 9.0.9
       dotenv-cli:
         specifier: ^8.0.0
         version: 8.0.0
