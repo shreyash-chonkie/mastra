@@ -1,6 +1,5 @@
 import { defineAuth } from '@mastra/core/server';
-import jwksClient from 'jwks-rsa';
-import jwt, { JwtPayload } from 'jsonwebtoken';
+import { verifyJwks } from '../verify';
 
 import { WorkOS } from '@workos-inc/node';
 
@@ -15,17 +14,9 @@ if (process.env.WORKOS_API_KEY) {
 
 export const workosAuth = defineAuth({
   async authenticateToken(token, request) {
-    const decoded = jwt.decode(token, { complete: true });
-    if (!decoded) {
-      return null;
-    }
-
     const jwksUri = workos.userManagement.getJwksUrl(process.env.WORKOS_CLIENT_ID!);
-    const client = jwksClient({ jwksUri });
-    const key = await client.getSigningKey(decoded.header.kid);
-    const signingKey = key.getPublicKey();
-    const user = jwt.verify(token, signingKey);
-    return user as JwtPayload;
+    const user = await verifyJwks(token, jwksUri);
+    return user;
   },
   async authorize(request, method, user) {
     if (!user) {

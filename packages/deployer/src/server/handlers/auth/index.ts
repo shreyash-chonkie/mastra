@@ -1,5 +1,6 @@
 import type { ContextWithMastra } from '@mastra/core/server';
 import type { Context, Next } from 'hono';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import jwt from 'jsonwebtoken';
 import { defaultAuthConfig } from './defaults';
 import { canAccessPublicly, checkRules } from './helpers';
@@ -91,7 +92,8 @@ export const authorizationMiddleware = async (c: ContextWithMastra, next: Next) 
       return c.json({ error: 'Access denied' }, 403);
     } catch (err) {
       console.error(err);
-      return c.json({ error: 'Authorization error' }, 500);
+      const statusCode = getStatusCode(err);
+      return c.json({ error: 'Authorization error' }, statusCode);
     }
   }
 
@@ -133,3 +135,16 @@ export const generateTokenHandler = async (c: Context) => {
 
   return c.json({ token });
 };
+
+function getStatusCode(err: unknown): ContentfulStatusCode {
+  if (typeof err === 'object' && err !== null) {
+    if ('status' in err && typeof err.status === 'number') {
+      return err.status as ContentfulStatusCode;
+    }
+
+    if ('statusCode' in err && typeof err.statusCode === 'number') {
+      return err.statusCode as ContentfulStatusCode;
+    }
+  }
+  return 500;
+}
