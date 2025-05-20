@@ -16,6 +16,10 @@ if (process.env.WORKOS_API_KEY) {
 export const workosAuth = defineAuth({
   async authenticateToken(token, request) {
     const decoded = jwt.decode(token, { complete: true });
+    if (!decoded) {
+      return null;
+    }
+
     const jwksUri = workos.userManagement.getJwksUrl(process.env.WORKOS_CLIENT_ID!);
     const client = jwksClient({ jwksUri });
     const key = await client.getSigningKey(decoded.header.kid);
@@ -24,6 +28,10 @@ export const workosAuth = defineAuth({
     return user as JwtPayload;
   },
   async authorize(request, method, user) {
+    if (!user) {
+      return false;
+    }
+
     const org = await workos.userManagement.listOrganizationMemberships({
       userId: user.sub,
     });
