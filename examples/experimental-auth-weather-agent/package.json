@@ -17,6 +17,7 @@
     "@supabase/supabase-js": "^2.49.4",
     "@workos-inc/node": "^7.50.1",
     "firebase-admin": "^13.4.0",
+    "jose": "^6.0.11",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "mastra": "latest",
