@@ -41,6 +41,8 @@ export const authenticationMiddleware = async (c: ContextWithMastra, next: Next)
     } else if (authConfig.authenticateToken) {
       // Use custom authenticateToken function if available
       user = await authConfig.authenticateToken(token, c.req);
+    } else {
+      throw new Error('No token verification method configured');
     }
 
     if (!user) {
