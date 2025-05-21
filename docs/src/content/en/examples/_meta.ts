@@ -1,3 +1,5 @@
+import { title } from "process";
+
 const meta = {
   index: {
     title: "Overview",
@@ -19,6 +21,9 @@ const meta = {
   },
   evals: {
     title: "Evals",
+  },
+  storage: {
+    title: "Storage",
   },
   voice: {
     title: "Voice",
