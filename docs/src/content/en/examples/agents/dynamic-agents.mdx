@@ -63,8 +63,7 @@ const supportAgent = new Agent({
 });
 ```
 
-RuntimeContext can then be from passed from the client/server direclty to your
-agent generate and stream calls
+RuntimeContext can be passed from the client/server directly to your
 
 ```typescript
 async function handleSupportRequest(userId: string, message: string) {
