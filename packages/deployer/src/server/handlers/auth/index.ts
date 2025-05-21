@@ -1,6 +1,5 @@
 import type { ContextWithMastra } from '@mastra/core/server';
-import type { Context, Next } from 'hono';
-import jwt from 'jsonwebtoken';
+import type { Next } from 'hono';
 import { defaultAuthConfig } from './defaults';
 import { canAccessPublicly, checkRules } from './helpers';
 
@@ -38,10 +37,6 @@ export const authenticationMiddleware = async (c: ContextWithMastra, next: Next)
     // Client provided verify function
     if (typeof authConfig.authenticateToken === 'function') {
       user = await authConfig.authenticateToken(token, c.req);
-    }
-    // JWT verification
-    else if (process.env.MASTRA_JWT_SECRET) {
-      user = (await jwt.verify(token, process.env.MASTRA_JWT_SECRET)) as Record<string, any>;
     } else {
       throw new Error('No token verification method configured');
     }
@@ -116,20 +111,4 @@ export const authorizationMiddleware = async (c: ContextWithMastra, next: Next) 
   }
 
   return c.json({ error: 'Access denied' }, 403);
-};
-
-// Token generation endpoint handler
-export const generateTokenHandler = async (c: Context) => {
-  // This endpoint only available in development
-  if (!c.get('isDev')) {
-    return c.json({ error: 'This endpoint is only available in development mode' }, 403);
-  }
-
-  // Get user data from request body
-  const userData = (await c.req.json()) as Record<string, any>;
-
-  // Generate token with whatever user data was provided
-  const token = jwt.sign(userData, process.env.MASTRA_JWT_SECRET || 'dev-secret', { expiresIn: '1d' });
-
-  return c.json({ token });
 };
