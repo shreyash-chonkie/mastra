@@ -3,6 +3,7 @@ import path from 'path';
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
 import { RuntimeContext } from '@mastra/core/di';
+import type { ResourceTemplate } from '@modelcontextprotocol/sdk/types.js';
 import { describe, it, expect, beforeEach, afterEach, afterAll, beforeAll, vi } from 'vitest';
 import { allTools, mcpServerName } from './__fixtures__/fire-crawl-complex-schema';
 import type { LogHandler, LogMessage } from './client';
@@ -14,10 +15,14 @@ describe('MCPClient', () => {
   let mcp: MCPClient;
   let weatherProcess: ReturnType<typeof spawn>;
   let clients: MCPClient[] = [];
+  let weatherServerPort: number;
 
   beforeAll(async () => {
+    weatherServerPort = 60000 + Math.floor(Math.random() * 1000); // Generate a random port
     // Start the weather SSE server
-    weatherProcess = spawn('npx', ['-y', 'tsx', path.join(__dirname, '__fixtures__/weather.ts')]);
+    weatherProcess = spawn('npx', ['-y', 'tsx', path.join(__dirname, '__fixtures__/weather.ts')], {
+      env: { ...process.env, WEATHER_SERVER_PORT: String(weatherServerPort) }, // Pass port as env var
+    });
 
     // Wait for SSE server to be ready
     let resolved = false;
@@ -32,6 +37,7 @@ describe('MCPClient', () => {
       }
       if (weatherProcess.stdout) {
         weatherProcess.stdout.on('data', chunk => {
+          console.log('weatherProcess.stdout.on', chunk.toString());
           if (chunk.toString().includes('server is running on SSE')) {
             resolve();
             resolved = true;
@@ -42,7 +48,10 @@ describe('MCPClient', () => {
   });
 
   beforeEach(async () => {
+    // Give each MCPClient a unique ID to prevent re-initialization errors across tests
+    const testId = expect.getState().currentTestName || `mcp-client-${Math.random().toString(36).substring(7)}`;
     mcp = new MCPClient({
+      id: testId,
       servers: {
         stockPrice: {
           command: 'npx',
@@ -52,7 +61,7 @@ describe('MCPClient', () => {
           },
         },
         weather: {
-          url: new URL('http://localhost:60808/sse'),
+          url: new URL(`http://localhost:${weatherServerPort}/sse`), // Use the dynamic port
         },
       },
     });
@@ -70,7 +79,9 @@ describe('MCPClient', () => {
 
   afterAll(async () => {
     // Kill the weather SSE server
-    weatherProcess.kill('SIGINT');
+    if (weatherProcess && !weatherProcess.killed) {
+      weatherProcess.kill('SIGKILL'); // Use SIGKILL for a more forceful termination
+    }
   });
 
   it('should initialize with server configurations', () => {
@@ -83,7 +94,7 @@ describe('MCPClient', () => {
         },
       },
       weather: {
-        url: new URL('http://localhost:60808/sse'),
+        url: new URL(`http://localhost:${weatherServerPort}/sse`),
       },
     });
   });
@@ -142,12 +153,109 @@ describe('MCPClient', () => {
     });
   });
 
+  it('should list resource templates from connected MCP servers', async () => {
+    const templates = await mcp.listResourceTemplates();
+    expect(templates).toHaveProperty('weather');
+    expect(templates.weather).toBeDefined();
+    expect(templates.weather.length).toBeGreaterThan(0);
+    const customForecastTemplate = templates.weather.find(
+      (t: ResourceTemplate) => t.uriTemplate === 'weather://custom/{city}/{days}',
+    );
+    expect(customForecastTemplate).toBeDefined();
+    expect(customForecastTemplate).toMatchObject({
+      uriTemplate: 'weather://custom/{city}/{days}',
+      name: 'Custom Weather Forecast',
+      description: expect.any(String),
+      mimeType: 'application/json',
+    });
+  });
+
+  it('should read a specific resource from a server', async () => {
+    const resourceContent = await mcp.readResource('weather', 'weather://current');
+    expect(resourceContent).toBeDefined();
+    expect(resourceContent.contents).toBeInstanceOf(Array);
+    expect(resourceContent.contents.length).toBe(1);
+    const contentItem = resourceContent.contents[0];
+    expect(contentItem.uri).toBe('weather://current');
+    expect(contentItem.mimeType).toBe('application/json');
+    expect(contentItem.text).toBeDefined();
+    const parsedText = JSON.parse(contentItem.text!);
+    expect(parsedText).toHaveProperty('location');
+  });
+
+  it('should subscribe and unsubscribe from a resource on a specific server', async () => {
+    const serverName = 'weather';
+    const resourceUri = 'weather://current';
+
+    const subResult = await mcp.subscribeResource(serverName, resourceUri);
+    expect(subResult).toEqual({});
+
+    const unsubResult = await mcp.unsubscribeResource(serverName, resourceUri);
+    expect(unsubResult).toEqual({});
+  });
+
+  it('should receive resource updated notification from a specific server', async () => {
+    const serverName = 'weather';
+    const resourceUri = 'weather://current';
+    let notificationReceived = false;
+    let receivedUri = '';
+
+    await mcp.getResources();
+    // Create the promise for the notification BEFORE subscribing
+    const resourceUpdatedPromise = new Promise<void>((resolve, reject) => {
+      mcp.setResourceUpdatedNotificationHandler(serverName, (params: { uri: string }) => {
+        if (params.uri === resourceUri) {
+          notificationReceived = true;
+          receivedUri = params.uri;
+          resolve();
+        } else {
+          console.log(`[Test LOG] Received update for ${params.uri}, waiting for ${resourceUri}`);
+        }
+      });
+      setTimeout(() => reject(new Error(`Timeout waiting for resourceUpdated notification for ${resourceUri}`)), 4500);
+    });
+
+    await mcp.subscribeResource(serverName, resourceUri); // Ensure subscription is active
+
+    await expect(resourceUpdatedPromise).resolves.toBeUndefined(); // Wait for the notification
+
+    expect(notificationReceived).toBe(true);
+    expect(receivedUri).toBe(resourceUri);
+
+    await mcp.unsubscribeResource(serverName, resourceUri); // Cleanup
+  }, 5000);
+
+  it('should receive resource list changed notification from a specific server', async () => {
+    const serverName = 'weather';
+    let notificationReceived = false;
+
+    await mcp.getResources();
+
+    const resourceListChangedPromise = new Promise<void>((resolve, reject) => {
+      mcp.setResourceListChangedNotificationHandler(serverName, () => {
+        notificationReceived = true;
+        resolve();
+      });
+      setTimeout(() => reject(new Error('Timeout waiting for resourceListChanged notification')), 4500);
+    });
+
+    try {
+      await mcp.listResourceTemplates();
+    } catch (e) {
+      console.warn('[Test WARN] listResourceTemplates call failed during setup for listChanged notification test', e);
+    }
+
+    await expect(resourceListChangedPromise).resolves.toBeUndefined(); // Wait for the notification
+
+    expect(notificationReceived).toBe(true);
+  });
+
   it('should handle errors when getting resources', async () => {
     const errorClient = new MCPClient({
       id: 'error-test-client',
       servers: {
         weather: {
-          url: new URL('http://localhost:60808/sse'),
+          url: new URL(`http://localhost:${weatherServerPort}/sse`),
         },
         nonexistentServer: {
           command: 'nonexistent-command',
@@ -215,7 +323,7 @@ describe('MCPClient', () => {
             },
           },
           weather: {
-            url: new URL('http://localhost:60808/sse'),
+            url: new URL(`http://localhost:${weatherServerPort}/sse`),
           },
         },
       });

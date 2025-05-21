@@ -2,28 +2,47 @@ import { createTool } from '@mastra/core/tools';
 import { MCPServer, MCPServerResources } from '@mastra/mcp';
 import { z } from 'zod';
 
+// Example Resource Templates
+const weatherResourceTemplatesDefinitions: MCPServerResources['resourceTemplates'] = () =>
+  Promise.resolve([
+    {
+      uriTemplate: 'weather://custom/{city}/{days}',
+      name: 'Custom Weather Forecast',
+      description: 'Generates a custom weather forecast for a city and number of days.',
+      mimeType: 'application/json',
+    },
+    {
+      uriTemplate: 'weather://alerts?region={region}&level={level}',
+      name: 'Weather Alerts',
+      description: 'Get weather alerts for a specific region and severity level.',
+      mimeType: 'application/json',
+    },
+  ]);
+
 // Resources implementation
 const weatherResources: MCPServerResources = {
-  resources: [
-    {
-      uri: 'weather://current',
-      name: 'Current Weather Data',
-      description: 'Real-time weather data for the current location',
-      mimeType: 'application/json',
-    },
-    {
-      uri: 'weather://forecast',
-      name: 'Weather Forecast',
-      description: '5-day weather forecast',
-      mimeType: 'application/json',
-    },
-    {
-      uri: 'weather://historical',
-      name: 'Historical Weather Data',
-      description: 'Weather data from the past 30 days',
-      mimeType: 'application/json',
-    },
-  ],
+  listResources: async () => {
+    return [
+      {
+        uri: 'weather://current',
+        name: 'Current Weather Data',
+        description: 'Real-time weather data for the current location',
+        mimeType: 'application/json',
+      },
+      {
+        uri: 'weather://forecast',
+        name: 'Weather Forecast',
+        description: '5-day weather forecast',
+        mimeType: 'application/json',
+      },
+      {
+        uri: 'weather://historical',
+        name: 'Historical Weather Data',
+        description: 'Weather data from the past 30 days',
+        mimeType: 'application/json',
+      },
+    ];
+  },
   getResourceContent: async ({ uri }) => {
     if (uri === 'weather://current') {
       return [
@@ -66,6 +85,22 @@ const weatherResources: MCPServerResources = {
     }
 
     throw new Error(`Resource not found: ${uri}`);
+  },
+  resourceTemplates: async () => {
+    return [
+      {
+        uriTemplate: 'weather://custom/{city}/{days}',
+        name: 'Custom Weather Forecast',
+        description: 'Generates a custom weather forecast for a city and number of days.',
+        mimeType: 'application/json',
+      },
+      {
+        uriTemplate: 'weather://alerts?region={region}&level={level}',
+        name: 'Weather Alerts',
+        description: 'Get weather alerts for a specific region and severity level.',
+        mimeType: 'application/json',
+      },
+    ];
   },
 };
 
@@ -147,3 +182,28 @@ export const myMcpServerTwo = new MCPServer({
     }),
   },
 });
+
+/**
+ * Simulates an update to the content of 'weather://current'.
+ * In a real application, this would be called when the underlying data for that resource changes.
+ */
+export const simulateCurrentWeatherUpdate = async () => {
+  console.log('[Example] Simulating update for weather://current');
+  // If you have access to the server instance that uses these resources (e.g., myMcpServerTwo)
+  // you would call its notification method.
+  await myMcpServerTwo.notifyResourcesUpdated({ uri: 'weather://current' });
+  console.log('[Example] Notification sent for weather://current update.');
+};
+
+/**
+ * Simulates a change in the list of available weather resources (e.g., a new forecast type becomes available).
+ * In a real application, this would be called when the overall list of resources changes.
+ */
+export const simulateResourceListChange = async () => {
+  console.log('[Example] Simulating a change in the list of available weather resources.');
+  // This would typically involve updating the actual list returned by `listResources`
+  // and then notifying the server.
+  // For this example, we'll just show the notification part.
+  await myMcpServerTwo.notifyResourceListChanged();
+  console.log('[Example] Notification sent for resource list change.');
+};
