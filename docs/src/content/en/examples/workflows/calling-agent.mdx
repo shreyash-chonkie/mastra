@@ -74,7 +74,9 @@ export { planningAgent };
 ```
 
 ## Define Activity Planning Workflow
+
 Define the activity planning workflow with 2 steps: one to fetch the weather via a network call, and another to plan activities using the planning agent.
+
 ```ts showLineNumbers copy filename="workflows/agent-workflow.ts"
 import { createWorkflow, createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
@@ -110,8 +112,11 @@ const forecastSchema = z.object({
   condition: z.string(),
   location: z.string(),
 })
- 
-// Step 1: Create a step to fetch weather data for a given city
+```
+
+### Step 1: Create a step to fetch weather data for a given city
+
+```ts showLineNumbers copy filename="workflows/agent-workflow.ts"
 const fetchWeather = createStep({
   id: "fetch-weather",
   description: "Fetches weather forecast for a given city",
@@ -167,8 +172,12 @@ const fetchWeather = createStep({
     return forecast
   },
 })
+```
  
-// Step 2: Create a step to generate activity recommendations using the agent
+
+### Step 2: Create a step to generate activity recommendations using the agent
+
+```ts showLineNumbers copy filename="workflows/agent-workflow.ts"
 const planActivities = createStep({
   id: "plan-activities",
   description: "Suggests activities based on weather conditions",
