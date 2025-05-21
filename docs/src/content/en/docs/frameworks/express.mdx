@@ -36,7 +36,6 @@ Once you have a new Mastra project created, you can now install Express.
 ```bash copy
 npm install express
 ```
-
 ### Create API
 
 The following steps will create an `api` directory and set up an Express server that accepts a `city` query parameter, which is used by the Weather Agent. Upon a successful request, the server returns the agent's response.
@@ -60,20 +59,20 @@ touch api/index.ts
 Add the following code:
 
 ```typescript filename="/api/index.ts" showLineNumber copy
-import express from "express";
+import express, { Request, Response } from "express";
 import { mastraClient } from "../lib/mastra";
 
 const app = express();
-const port = 3000;
+const port = 8080;
 
-app.get("/api/weather", async (req, res) => {
-  const { city } = req.query;
+app.get("/api/weather", async (req: Request, res: Response) => {
+  const { city } = req.query as { city?: string };
 
   if (!city) {
     return res.status(400).send("Missing 'city' query parameter");
   }
 
-  const agent = mastraClient.getAgent("weatherAgent");
+  const agent = mastraClient.getAgent("tAgent");
 
   try {
     const result = await agent.generate({
@@ -83,8 +82,7 @@ app.get("/api/weather", async (req, res) => {
     });
     res.send(result.text);
   } catch (error) {
-    console.error("Agent error:", error);
-    res.status(500).send("Something went wrong.");
+    res.status(500).send(`Agent error: ${error}`);
   }
 });
 
