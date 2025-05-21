@@ -102,7 +102,7 @@ export { synthesizeAgent };
 
 ## 並列ワークフローの定義
 
-ここでは、計画ステップと合成ステップの間で並列から順次へのフローをオーケストレーションするワークフローを定義します。
+ここでは、計画ステップと合成ステップの間で並列→逐次フローを調整するワークフローを定義します。
 
 ```ts showLineNumbers copy filename="workflows/parallel-workflow.ts"
 import { z } from 'zod'
@@ -173,9 +173,12 @@ const fetchWeather = createStep({
 
   },
 });
+```
 
-// Step to plan outdoor activities based on weather conditions
-// Uses the planning agent to generate activity recommendations
+### 天気状況に基づいて屋外活動を計画するステップ
+計画エージェントを使用してアクティビティの推奨事項を生成します
+
+```ts showLineNumbers copy filename="workflows/parallel-workflow.ts"
 const planActivities = createStep({
   id: "plan-activities",
   description: "Suggests activities based on weather conditions",
@@ -217,9 +220,12 @@ const planActivities = createStep({
     };
   },
 })
- 
-// Helper function to convert weather codes to human-readable conditions
-// Maps numeric codes from the weather API to descriptive strings
+```
+
+### 天気コードを人間が読める状態に変換するヘルパー関数
+天気APIからの数値コードを説明的な文字列にマッピングします
+
+```ts showLineNumbers copy filename="workflows/parallel-workflow.ts"
 function getWeatherCondition(code: number): string {
   const conditions: Record<number, string> = {
     0: "Clear sky",
@@ -241,17 +247,12 @@ function getWeatherCondition(code: number): string {
   };
   return conditions[code] || "Unknown";
 }
-```
-
-# ステップによる並列実行
-
-## 並列ワークフローの定義
 
 // Step to plan indoor activities as backup options
 // Generates alternative indoor activities in case of bad weather
 const planIndoorActivities = createStep({
   id: "plan-indoor-activities",
-  description: "天候条件に基づいて屋内アクティビティを提案します",
+  description: "Suggests indoor activities based on weather conditions",
   inputSchema: forecastSchema,
   outputSchema: z.object({
     activities: z.string(),
@@ -260,14 +261,14 @@ const planIndoorActivities = createStep({
     const forecast = inputData
 
     if (!forecast) {
-      throw new Error("予報データが見つかりません");
+      throw new Error("Forecast data not found");
     }
  
-    const prompt = `雨が降った場合、${forecast.location}の${forecast.date}のために屋内アクティビティを計画してください`
+    const prompt = `In case it rains, plan indoor activities for ${forecast.location} on ${forecast.date}`
  
     const agent = mastra?.getAgent('planningAgent')
     if (!agent) {
-      throw new Error("Planning agentが見つかりません");
+      throw new Error("Planning agent not found");
     }
  
     const response = await agent.stream([
@@ -287,12 +288,15 @@ const planIndoorActivities = createStep({
     };
   },
 });
+```
 
-// Step to synthesize and combine indoor/outdoor activity plans
-// Creates a comprehensive plan that considers both options
+### 屋内/屋外のアクティビティプランを統合するステップ
+包括的なプランを作成し、両方のオプションを考慮します
+
+```ts showLineNumbers copy filename="workflows/parallel-workflow.ts"
 const synthesizeStep = createStep({
   id: 'sythesize-step',
-  description: '屋内および屋外アクティビティの結果を統合します',
+  description: 'Synthesizes the results of the indoor and outdoor activities',
   inputSchema: z.object({
     "plan-activities": z.object({
       activities: z.string(),
@@ -308,17 +312,17 @@ const synthesizeStep = createStep({
     const indoorActivities = inputData?.['plan-indoor-activities']
     const outdoorActivities = inputData?.['plan-activities']
  
-    const prompt = `屋内アクティビティ:
+    const prompt = `Indoor activities:
       ${indoorActivities?.activities}
  
-      屋外アクティビティ:
+      Outdoor activities:
       ${outdoorActivities?.activities}
  
-      雨が降る可能性があるため、必要に応じて屋内アクティビティができるように準備してください。`
+      There is a chance of rain so be prepared to do indoor activities if needed.`
  
     const agent = mastra?.getAgent('synthesizeAgent')
     if (!agent) {
-      throw new Error('Synthesize agentが見つかりません')
+      throw new Error('Synthesize agent not found')
     }
  
     const response = await agent.stream([
@@ -340,7 +344,11 @@ const synthesizeStep = createStep({
     };
   },
 })
- 
+```
+
+### メインワークフロー
+
+```ts showLineNumbers copy filename="workflows/parallel-workflow.ts"
 const activityPlanningWorkflow = createWorkflow({
   id: 'plan-both-workflow',
   inputSchema: z.object({
@@ -358,8 +366,6 @@ const activityPlanningWorkflow = createWorkflow({
  
 export { activityPlanningWorkflow }
 ```
-
-
 
 ## Mastra クラスで Agent と Workflow インスタンスを登録する
 
