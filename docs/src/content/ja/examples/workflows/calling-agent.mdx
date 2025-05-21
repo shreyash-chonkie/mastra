@@ -74,7 +74,9 @@ export { planningAgent };
 ```
 
 ## アクティビティ計画ワークフローの定義
-アクティビティ計画ワークフローを2つのステップで定義します。1つ目はネットワークコールで天気を取得し、2つ目はplanning agentを使ってアクティビティを計画します。
+
+アクティビティ計画ワークフローを2つのステップで定義します：1つはネットワーク呼び出しを介して天気を取得するステップ、もう1つは計画エージェントを使用してアクティビティを計画するステップです。
+
 ```ts showLineNumbers copy filename="workflows/agent-workflow.ts"
 import { createWorkflow, createStep } from '@mastra/core/workflows'
 import { z } from 'zod'
@@ -110,8 +112,11 @@ const forecastSchema = z.object({
   condition: z.string(),
   location: z.string(),
 })
- 
-// Step 1: Create a step to fetch weather data for a given city
+```
+
+### ステップ1：指定された都市の天気データを取得するステップを作成する
+
+```ts showLineNumbers copy filename="workflows/agent-workflow.ts"
 const fetchWeather = createStep({
   id: "fetch-weather",
   description: "Fetches weather forecast for a given city",
@@ -167,8 +172,12 @@ const fetchWeather = createStep({
     return forecast
   },
 })
+```
  
-// Step 2: Create a step to generate activity recommendations using the agent
+
+### ステップ2：エージェントを使用してアクティビティの推奨事項を生成するステップを作成する
+
+```ts showLineNumbers copy filename="workflows/agent-workflow.ts"
 const planActivities = createStep({
   id: "plan-activities",
   description: "Suggests activities based on weather conditions",
@@ -211,11 +220,6 @@ const planActivities = createStep({
   },
 })
  
-# ワークフローからエージェントを呼び出す
-
-## アクティビティ計画ワークフローの定義
-
-```
 const activityPlanningWorkflow = createWorkflow({
   steps: [fetchWeather, planActivities],
   id: 'activity-planning-step1-single-day',
@@ -233,8 +237,6 @@ activityPlanningWorkflow.commit()
  
 export { activityPlanningWorkflow }
 ```
-
-
 
 ## MastraクラスにAgentとWorkflowインスタンスを登録する
 planning agentとactivity planning workflowをmastraインスタンスに登録します。
