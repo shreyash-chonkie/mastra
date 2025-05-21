@@ -33,7 +33,15 @@ export const authenticationMiddleware = async (c: ContextWithMastra, next: Next)
 
   try {
     // Verify token and get user data
-    const user = await verify(token, process.env.MASTRA_JWT_SECRET);
+    let user: any;
+
+    if (process.env.MASTRA_JWT_SECRET) {
+      // Use JWT secret if available
+      user = await verify(token, process.env.MASTRA_JWT_SECRET);
+    } else if (authConfig.authenticateToken) {
+      // Use custom authenticateToken function if available
+      user = await authConfig.authenticateToken(token, c.req);
+    }
 
     if (!user) {
       return c.json({ error: 'Invalid or expired token' }, 401);
