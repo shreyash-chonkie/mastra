@@ -332,4 +332,17 @@ export class MastraClient extends BaseResource {
   public getA2A(agentId: string) {
     return new A2A(this.options, agentId);
   }
+
+  /**
+   * Exchanges a token for an API key
+   * @param params - Parameters containing the token
+   * @returns Promise containing the API key
+   */
+  public async exchangeToken(params: { token: string }) {
+    const response = await this.request<{ apiKey: string }>('/auth/exchange', { method: 'POST', body: params });
+    if (response.apiKey) {
+      this.setAuthToken(response.apiKey);
+    }
+    return response;
+  }
 }

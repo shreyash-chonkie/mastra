@@ -38,12 +38,12 @@ export type MastraAuthConfig<TUser = unknown> = {
   public?: (RegExp | string | [string, Methods | Methods[]])[];
 
   /**
-   * Public paths for the server
+   * Authenticate token function for the server
    */
   authenticateToken?: (token: string, request: HonoRequest) => Promise<TUser>;
 
   /**
-   * Authorization function for the server
+   * Authorize function for the server
    */
   authorize?: (path: string, method: string, user: TUser, context: ContextWithMastra) => Promise<boolean>;
 

@@ -67,4 +67,11 @@ export class BaseResource {
 
     throw lastError || new Error('Request failed');
   }
+
+  setAuthToken(token: string) {
+    this.options.headers = {
+      ...this.options.headers,
+      Authorization: `Bearer ${token}`,
+    };
+  }
 }
