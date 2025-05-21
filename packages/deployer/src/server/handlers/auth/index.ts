@@ -1,5 +1,6 @@
 import type { ContextWithMastra } from '@mastra/core/server';
 import type { Next } from 'hono';
+import { verify, sign } from 'hono/jwt';
 import { defaultAuthConfig } from './defaults';
 import { canAccessPublicly, checkRules } from './helpers';
 
@@ -32,14 +33,7 @@ export const authenticationMiddleware = async (c: ContextWithMastra, next: Next)
 
   try {
     // Verify token and get user data
-    let user: unknown;
-
-    // Client provided verify function
-    if (typeof authConfig.authenticateToken === 'function') {
-      user = await authConfig.authenticateToken(token, c.req);
-    } else {
-      throw new Error('No token verification method configured');
-    }
+    const user = await verify(token, process.env.MASTRA_JWT_SECRET);
 
     if (!user) {
       return c.json({ error: 'Invalid or expired token' }, 401);
@@ -111,4 +105,38 @@ export const authorizationMiddleware = async (c: ContextWithMastra, next: Next) 
   }
 
   return c.json({ error: 'Access denied' }, 403);
+};
+
+// Exchange token handler
+export const exchangeTokenHandler = async (c: ContextWithMastra) => {
+  try {
+    const mastra = c.get('mastra');
+    const authConfig = mastra.getServer()?.experimental_auth;
+
+    if (!authConfig) {
+      return c.json({ error: 'Authentication not enabled' }, 401);
+    }
+
+    const { token } = await c.req.json();
+
+    if (typeof authConfig.authenticateToken !== 'function') {
+      throw new Error('No token verification method configured');
+    }
+
+    const user = await authConfig.authenticateToken(token, c.req);
+
+    const payload = {
+      iss: c.req.url,
+      ...user,
+    };
+
+    if (!process.env.MASTRA_JWT_SECRET) throw new Error('Missing MASTRA_JWT_SECRET');
+
+    const apiKey = await sign(payload, process.env.MASTRA_JWT_SECRET);
+
+    return c.json({ apiKey });
+  } catch (error) {
+    console.error(error);
+    return c.json({ error: 'Invalid token' }, 401);
+  }
 };
