@@ -1,5 +1,5 @@
-import { createTool } from '@mastra/core';
 import { LegacyWorkflow } from '@mastra/core/workflows/legacy';
+import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 
 async function main() {
