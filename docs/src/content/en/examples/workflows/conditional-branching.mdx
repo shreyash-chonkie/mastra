@@ -114,9 +114,12 @@ const forecastSchema = z.object({
   condition: z.string(),
   location: z.string(),
 });
+```
 
-// Step to fetch weather data for a given city
-// Makes API calls to get current weather conditions and forecast
+### Step to fetch weather data for a given city
+Makes API calls to get current weather conditions and forecast
+
+```ts showLineNumbers copy filename="workflows/conditional-workflow.ts"
 const fetchWeather = createStep({
   id: "fetch-weather",
   description: "Fetches weather forecast for a given city",
@@ -170,9 +173,12 @@ const fetchWeather = createStep({
     return forecast;
   },
 });
+```
 
-// Step to plan activities based on weather conditions
-// Uses the planning agent to generate activity recommendations
+### Step to plan activities based on weather conditions
+Uses the planning agent to generate activity recommendations
+
+```ts showLineNumbers copy filename="workflows/conditional-workflow.ts"
 const planActivities = createStep({
   id: "plan-activities",
   description: "Suggests activities based on weather conditions",
@@ -215,9 +221,12 @@ const planActivities = createStep({
     };
   },
 });
+```
 
-// Step to plan indoor activities only
-// Used when precipitation chance is high
+### Step to plan indoor activities only
+Used when precipitation chance is high
+
+```ts showLineNumbers copy filename="workflows/conditional-workflow.ts"
 const planIndoorActivities = createStep({
   id: "plan-indoor-activities",
   description: "Suggests indoor activities based on weather conditions",
@@ -258,12 +267,11 @@ const planIndoorActivities = createStep({
     };
   },
 });
+```
 
-// Main workflow that:
-// 1. Fetches weather data
-// 2. Branches based on precipitation chance:
-//    - If >50%: Plans indoor activities
-//    - If <=50%: Plans outdoor activities
+### Main workflow
+
+```ts showLineNumbers copy filename="workflows/conditional-workflow.ts"
 const activityPlanningWorkflow = createWorkflow({
   id: 'activity-planning-workflow-step2-if-else',
   inputSchema: z.object({

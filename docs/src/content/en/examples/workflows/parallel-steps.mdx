@@ -173,9 +173,12 @@ const fetchWeather = createStep({
 
   },
 });
+```
 
-// Step to plan outdoor activities based on weather conditions
-// Uses the planning agent to generate activity recommendations
+### Step to plan outdoor activities based on weather conditions
+Uses the planning agent to generate activity recommendations
+
+```ts showLineNumbers copy filename="workflows/parallel-workflow.ts"
 const planActivities = createStep({
   id: "plan-activities",
   description: "Suggests activities based on weather conditions",
@@ -217,9 +220,12 @@ const planActivities = createStep({
     };
   },
 })
- 
-// Helper function to convert weather codes to human-readable conditions
-// Maps numeric codes from the weather API to descriptive strings
+```
+
+### Helper function to convert weather codes to human-readable conditions
+Maps numeric codes from the weather API to descriptive strings
+
+```ts showLineNumbers copy filename="workflows/parallel-workflow.ts"
 function getWeatherCondition(code: number): string {
   const conditions: Record<number, string> = {
     0: "Clear sky",
@@ -282,9 +288,12 @@ const planIndoorActivities = createStep({
     };
   },
 });
+```
 
-// Step to synthesize and combine indoor/outdoor activity plans
-// Creates a comprehensive plan that considers both options
+### Step to synthesize and combine indoor/outdoor activity plans
+Creates a comprehensive plan that considers both options
+
+```ts showLineNumbers copy filename="workflows/parallel-workflow.ts"
 const synthesizeStep = createStep({
   id: 'sythesize-step',
   description: 'Synthesizes the results of the indoor and outdoor activities',
@@ -335,7 +344,11 @@ const synthesizeStep = createStep({
     };
   },
 })
- 
+```
+
+### Main workflow
+
+```ts showLineNumbers copy filename="workflows/parallel-workflow.ts"
 const activityPlanningWorkflow = createWorkflow({
   id: 'plan-both-workflow',
   inputSchema: z.object({
