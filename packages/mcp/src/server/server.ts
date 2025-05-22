@@ -27,7 +27,12 @@ import {
   SubscribeRequestSchema,
   UnsubscribeRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import type { ResourceContents, Resource, ResourceTemplate, ServerCapabilities } from '@modelcontextprotocol/sdk/types.js';
+import type {
+  ResourceContents,
+  Resource,
+  ResourceTemplate,
+  ServerCapabilities,
+} from '@modelcontextprotocol/sdk/types.js';
 import type { SSEStreamingApi } from 'hono/streaming';
 import { streamSSE } from 'hono/streaming';
 import { SSETransport } from 'hono-mcp-server-sse-transport';
@@ -133,8 +138,12 @@ export class MCPServer extends MCPServerBase {
       getSubscriptions: () => this.subscriptions,
       getLogger: () => this.logger,
       getSdkServer: () => this.server,
-      clearDefinedResources: () => { this.definedResources = undefined; },
-      clearDefinedResourceTemplates: () => { this.definedResourceTemplates = undefined; },
+      clearDefinedResources: () => {
+        this.definedResources = undefined;
+      },
+      clearDefinedResourceTemplates: () => {
+        this.definedResourceTemplates = undefined;
+      },
     });
   }
 
