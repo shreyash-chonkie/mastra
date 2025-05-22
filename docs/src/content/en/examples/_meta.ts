@@ -1,5 +1,3 @@
-import { title } from "process";
-
 const meta = {
   index: {
     title: "Overview",
