@@ -1,144 +1,121 @@
 import type { IMastraLogger } from "@mastra/core/logger";
+import { ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import type { Resource, ResourceTemplate } from "@modelcontextprotocol/sdk/types.js";
-import type { InternalMastraMCPClient, MastraMCPServerDefinition } from "./client";
+import type { InternalMastraMCPClient } from "./client";
 
-interface ResourceClientActionsDependencies {
-  getServerConfigs: () => Readonly<Record<string, MastraMCPServerDefinition>>;
-  getConnectedClient: (name: string, config: MastraMCPServerDefinition) => Promise<InternalMastraMCPClient>;
-  getConnectedClientForServer: (serverName: string) => Promise<InternalMastraMCPClient>;
-  addToInstanceCache: () => void;
-  getLogger: () => IMastraLogger;
+interface ResourceClientActionsConfig {
+  client: InternalMastraMCPClient;
+  logger: IMastraLogger;
 }
 
 export class ResourceClientActions {
-  private readonly getServerConfigs: () => Readonly<Record<string, MastraMCPServerDefinition>>;
-  private readonly getConnectedClient: (name: string, config: MastraMCPServerDefinition) => Promise<InternalMastraMCPClient>;
-  private readonly getConnectedClientForServer: (serverName: string) => Promise<InternalMastraMCPClient>;
-  private readonly addToInstanceCache: () => void;
-  private readonly getLogger: () => IMastraLogger;
+  private readonly client: InternalMastraMCPClient;
+  private readonly logger: IMastraLogger;
 
-  constructor(dependencies: ResourceClientActionsDependencies) {
-    this.getServerConfigs = dependencies.getServerConfigs;
-    this.getConnectedClient = dependencies.getConnectedClient;
-    this.getConnectedClientForServer = dependencies.getConnectedClientForServer;
-    this.addToInstanceCache = dependencies.addToInstanceCache;
-    this.getLogger = dependencies.getLogger;
+  constructor({ client, logger }: ResourceClientActionsConfig) {
+    this.client = client;
+    this.logger = logger;
   }
 
   /**
-   * Get all resources from connected MCP servers, grouped by server name.
-   * @returns A record of server names to their resources.
+   * Get all resources from the connected MCP server.
+   * @returns A list of resources.
    */
-  public async list(): Promise<Record<string, Resource[]>> {
-    this.addToInstanceCache();
-    const connectedResources: Record<string, Resource[]> = {};
-
-    await Promise.all(
-      Object.entries(this.getServerConfigs()).map(async ([serverName, serverConfig]) => {
-        try {
-          const client = await this.getConnectedClient(serverName, serverConfig);
-          const response = await client.listResources();
-          if (response && response.resources && Array.isArray(response.resources)) {
-            connectedResources[serverName] = response.resources;
-          } else {
-            this.getLogger().warn(`Resources response from server ${serverName} did not have expected structure.`, {
-              response,
-            });
-          }
-        } catch (e) {
-          this.getLogger().error(`Error getting resources from server ${serverName}`, {
-            error: e instanceof Error ? e.message : String(e),
-          });
-          // Optionally rethrow or handle as per desired error strategy for aggregated calls
-        }
-      }),
-    );
-    return connectedResources;
+  public async list(): Promise<Resource[]> {
+    try {
+      const response = await this.client.listResources();
+      if (response && response.resources && Array.isArray(response.resources)) {
+        return response.resources;
+      } else {
+        this.logger.warn(`Resources response from server ${this.client.name} did not have expected structure.`, {
+          response,
+        });
+        return [];
+      }
+    } catch (e: any) {
+      // MCP Server might not support resources, so we return an empty array
+      if (e.code === ErrorCode.MethodNotFound) {      
+        return []
+      }
+      this.logger.error(`Error getting resources from server ${this.client.name}`, {
+        error: e instanceof Error ? e.message : String(e),
+      });
+      console.log('errorheere', e)
+      throw new Error(
+        `Failed to fetch resources from server ${this.client.name}: ${e instanceof Error ? e.stack || e.message : String(e)}`,
+      );
+    }
   }
 
   /**
-   * Get all resource templates from connected MCP servers, grouped by server name.
-   * @returns A record of server names to their resource templates.
+   * Get all resource templates from the connected MCP server.
+   * @returns A list of resource templates.
    */
-  public async templates(): Promise<Record<string, ResourceTemplate[]>> {
-    this.addToInstanceCache();
-    const connectedTemplates: Record<string, ResourceTemplate[]> = {};
-    await Promise.all(
-      Object.entries(this.getServerConfigs()).map(async ([serverName, serverConfig]) => {
-        try {
-          const client = await this.getConnectedClient(serverName, serverConfig);
-          const response = await client.listResourceTemplates();
-          if (response && response.resourceTemplates && Array.isArray(response.resourceTemplates)) {
-            connectedTemplates[serverName] = response.resourceTemplates;
-          } else {
-            this.getLogger().warn(
-              `Resource templates response from server ${serverName} did not have expected structure.`,
-              { response },
-            );
-          }
-        } catch (e) {
-          this.getLogger().error(`Error getting resource templates from server ${serverName}`, {
-            error: e instanceof Error ? e.message : String(e),
-          });
-        }
-      }),
-    );
-    return connectedTemplates;
+  public async templates(): Promise<ResourceTemplate[]> {
+    try {
+      const response = await this.client.listResourceTemplates();
+      if (response && response.resourceTemplates && Array.isArray(response.resourceTemplates)) {
+        return response.resourceTemplates;
+      } else {
+        this.logger.warn(
+          `Resource templates response from server ${this.client.name} did not have expected structure.`,
+          { response },
+        );
+        return [];
+      }
+    } catch (e: any) {
+      // MCP Server might not support resources, so we return an empty array
+      console.log({ errorcooode: e.code })
+      if (e.code === ErrorCode.MethodNotFound) {      
+        return []
+      }
+      this.logger.error(`Error getting resource templates from server ${this.client.name}`, {
+        error: e instanceof Error ? e.message : String(e),
+      });
+      throw new Error(
+        `Failed to fetch resource templates from server ${this.client.name}: ${e instanceof Error ? e.stack || e.message : String(e)}`,
+      );
+    }
   }
 
   /**
-   * Read a specific resource from a named server.
-   * @param serverName The name of the server config.
+   * Read a specific resource.
    * @param uri The URI of the resource to read.
    * @returns The resource content.
    */
-  public async read(serverName: string, uri: string) {
-    this.addToInstanceCache();
-    const client = await this.getConnectedClientForServer(serverName);
-    return client.readResource(uri);
+  public async read(uri: string) {
+    return this.client.readResource(uri);
   }
 
   /**
-   * Subscribe to a specific resource on a named server.
-   * @param serverName The name of the server config.
+   * Subscribe to a specific resource.
    * @param uri The URI of the resource to subscribe to.
    */
-  public async subscribe(serverName: string, uri: string) {
-    this.addToInstanceCache();
-    const client = await this.getConnectedClientForServer(serverName);
-    return client.subscribeResource(uri);
+  public async subscribe(uri: string) {
+    return this.client.subscribeResource(uri);
   }
 
   /**
-   * Unsubscribe from a specific resource on a named server.
-   * @param serverName The name of the server config.
+   * Unsubscribe from a specific resource.
    * @param uri The URI of the resource to unsubscribe from.
    */
-  public async unsubscribe(serverName: string, uri: string) {
-    this.addToInstanceCache();
-    const client = await this.getConnectedClientForServer(serverName);
-    return client.unsubscribeResource(uri);
+  public async unsubscribe(uri: string) {
+    return this.client.unsubscribeResource(uri);
   }
 
   /**
-   * Set a notification handler for when a specific resource is updated on a named server.
-   * @param serverName The name of the server config.
+   * Set a notification handler for when a specific resource is updated.
    * @param handler The callback function to handle the notification.
    */
-  public async onUpdated(serverName: string, handler: (params: { uri: string }) => void): Promise<void> {
-    this.addToInstanceCache();
-    const client = await this.getConnectedClientForServer(serverName);
-    client.setResourceUpdatedNotificationHandler(handler);
+  public async onUpdated(handler: (params: { uri: string }) => void): Promise<void> {
+    this.client.setResourceUpdatedNotificationHandler(handler);
   }
 
   /**
-   * Set a notification handler for when the list of available resources changes on a named server.
-   * @param serverName The name of the server config.
+   * Set a notification handler for when the list of available resources changes.
    * @param handler The callback function to handle the notification.
    */
-  public async onListChanged(serverName: string, handler: () => void): Promise<void> {
-    this.addToInstanceCache();
-    const client = await this.getConnectedClientForServer(serverName);
-    client.setResourceListChangedNotificationHandler(handler);
+  public async onListChanged(handler: () => void): Promise<void> {
+    this.client.setResourceListChangedNotificationHandler(handler);
   }
 }

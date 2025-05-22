@@ -1,5 +1,6 @@
 import { MastraBase } from '@mastra/core/base';
 import { DEFAULT_REQUEST_TIMEOUT_MSEC } from '@modelcontextprotocol/sdk/shared/protocol.js';
+import type { Resource, ResourceTemplate } from '@modelcontextprotocol/sdk/types.js';
 import equal from 'fast-deep-equal';
 import { v5 as uuidv5 } from 'uuid';
 import { InternalMastraMCPClient } from './client';
@@ -20,7 +21,7 @@ export class MCPClient extends MastraBase {
   private defaultTimeout: number;
   private mcpClientsById = new Map<string, InternalMastraMCPClient>();
   private disconnectPromise: Promise<void> | null = null;
-  public readonly resources: ResourceClientActions;
+  private resourceActionsCache = new Map<string, ResourceClientActions>();
 
   constructor(args: MCPClientOptions) {
     super({ name: 'MCPClient' });
@@ -36,6 +37,7 @@ export class MCPClient extends MastraBase {
         const existingInstance = mcpClientInstances.get(this.id);
         if (existingInstance) {
           void existingInstance.disconnect();
+          mcpClientInstances.delete(this.id);
         }
       }
     } else {
@@ -56,20 +58,80 @@ To fix this you have three different options:
 3. If you only need one instance of MCPClient in your app, refactor your code so it's only created one time (ex. move it out of a loop into a higher scope code block)
 `);
       }
-      this.resources = existingInstance.resources; // Reuse resources object
       return existingInstance;
     }
 
     mcpClientInstances.set(this.id, this);
     this.addToInstanceCache();
-    this.resources = new ResourceClientActions({
-      getServerConfigs: () => this.serverConfigs,
-      getConnectedClient: (name, config) => this.getConnectedClient(name, config),
-      getConnectedClientForServer: (serverName) => this.getConnectedClientForServer(serverName),
-      addToInstanceCache: () => this.addToInstanceCache(),
-      getLogger: () => this.logger,
-    });
     return this;
+  }
+
+  private async _getResourceActions(serverName: string): Promise<ResourceClientActions> {
+    if (this.resourceActionsCache.has(serverName)) {
+      return this.resourceActionsCache.get(serverName)!;
+    }
+
+    const serverConfig = this.serverConfigs[serverName];
+    if (!serverConfig) {
+      throw new Error(`Server configuration not found for name: ${serverName}`);
+    }
+
+    const internalClient = await this.getConnectedClientForServer(serverName);
+    
+    const actions = new ResourceClientActions({
+      client: internalClient,
+      logger: this.logger,
+    });
+
+    this.resourceActionsCache.set(serverName, actions);
+    return actions;
+  }
+
+  public get resources() {
+    this.addToInstanceCache();
+    return {
+      list: async (): Promise<Record<string, Resource[]>> => {
+        const allResources: Record<string, Resource[]> = {};
+        for (const serverName of Object.keys(this.serverConfigs)) {
+          try {
+            const actions = await this._getResourceActions(serverName);
+            allResources[serverName] = await actions.list();
+          } catch (error) {
+            this.logger.error(`Failed to list resources from server ${serverName}`, { error });
+            throw error
+          }
+        }
+        return allResources;
+      },
+      templates: async (): Promise<Record<string, ResourceTemplate[]>> => {
+        const allTemplates: Record<string, ResourceTemplate[]> = {};
+        for (const serverName of Object.keys(this.serverConfigs)) {
+          try {
+            const actions = await this._getResourceActions(serverName);
+            allTemplates[serverName] = await actions.templates();
+          } catch (error) {
+            this.logger.error(`Failed to list resource templates from server ${serverName}`, { error });
+            throw error;
+          }
+        }
+        return allTemplates;
+      },
+      read: async (serverName: string, uri: string) => {
+        return (await this._getResourceActions(serverName)).read(uri);
+      },
+      subscribe: async (serverName: string, uri: string) => {
+        return (await this._getResourceActions(serverName)).subscribe(uri);
+      },
+      unsubscribe: async (serverName: string, uri: string) => {
+        return (await this._getResourceActions(serverName)).unsubscribe(uri);
+      },
+      onUpdated: async (serverName: string, handler: (params: { uri: string }) => void) => {
+        return (await this._getResourceActions(serverName)).onUpdated(handler);
+      },
+      onListChanged: async (serverName: string, handler: () => void) => {
+        return (await this._getResourceActions(serverName)).onListChanged(handler);
+      },
+    };
   }
 
   private addToInstanceCache() {
@@ -95,7 +157,8 @@ To fix this you have three different options:
     this.disconnectPromise = (async () => {
       try {
         mcpClientInstances.delete(this.id);
-
+        this.resourceActionsCache.clear();
+        
         // Disconnect all clients in the cache
         await Promise.all(Array.from(this.mcpClientsById.values()).map(client => client.disconnect()));
         this.mcpClientsById.clear();
@@ -131,6 +194,13 @@ To fix this you have three different options:
     });
 
     return connectedToolsets;
+  }
+
+  /**
+   * @deprecated all resource actions have been moved to the this.resources object. Use this.resources.list() instead.
+   */
+  public async getResources() {
+    return this.resources.list();
   }
 
   /**
