@@ -50,6 +50,8 @@ export type MCPServerResources = {
   getResourceContent: MCPServerResourceContentCallback;
   resourceTemplates?: () => Promise<ResourceTemplate[]>;
 };
+
+export type { Resource, ResourceTemplate };
 export class MCPServer extends MCPServerBase {
   private server: Server;
   private stdioTransport?: StdioServerTransport;
