@@ -1,69 +1,169 @@
 ---
 title: "Getting started with Mastra and Express | Mastra Guides"
-description: Guide on integrating Mastra with Express.
+description: A step-by-step guide to integrating Mastra with an Express backend.
 ---
 
 import { Callout, Steps, Tabs, FileTree } from "nextra/components";
 
 # Integrate Mastra in your Express project
 
-There are several reasons to use Mastra with an Express backend:
+Mastra integrates with Express, making it easy to:
 
-- Build a flexible API to serve AI-powered features
+- Build a flexible APIs to serve AI-powered features
 - Maintain full control over your server logic and routing
 - Scale your backend independently from your frontend
 
 This guide will help you set up and integrate Mastra agents in your Express app.
 
+<Callout type="warning">
+This setup is compatible with the following package versions:
+- `express`: 4.x
+- `@types/express`: 4.x
+
+TypeScript compatibility issues may occur with version 5.x of either package.
+</Callout>
+
+<Steps>
 ## Install Mastra
 
-There are several ways to get started with Mastra. Refer to the [Create a New Project](/docs/getting-started/installation#create-a-new-project) section in the Getting Started guide, where you can use the CLI in the following modes:
+Install the `mastra` CLI and `@mastra/core` packages:
 
-- [Interactive](/docs/getting-started/installation#interactive)
-- [Non-Interactive](/docs/getting-started/installation#non-interactive)
+<Tabs items={["npm", "yarn", "pnpm", "bun"]}>
+  <Tabs.Tab>
+  ```bash copy
+  npm install mastra@latest @mastra/core
+    ```
+   </Tabs.Tab>
+  <Tabs.Tab>
+  ```bash copy
+  yarn add mastra@latest @mastra/core
+    ```
+   </Tabs.Tab>
+  <Tabs.Tab>
+  ```bash copy
+  pnpm add mastra@latest @mastra/core
+  ```
+  </Tabs.Tab>
+<Tabs.Tab>
+  ```bash copy
+  bun add mastra@latest @mastra/core
+  ```
+  </Tabs.Tab>
+</Tabs>
 
-Alternatively, if you prefer more control, follow the [Manual Installation](/docs/getting-started/installation#manual-installation) instructions.
+## Initialize Mastra
 
-This guide builds upon the default [Weather Tool](/docs/getting-started/installation#create-a-tool) and [Weather Agent](/docs/getting-started/installation#create-an-agent) setups.
-
-
-## Installing Express
-
-Once you have a new Mastra project created, you can now install Express.
-
-### Install dependencies
-
-```bash copy
-npm install express
-```
-### Create API
-
-The following steps will create an `api` directory and set up an Express server that accepts a `city` query parameter, which is used by the Weather Agent. Upon a successful request, the server returns the agent's response.
-
-### Create Directory
-
-Create a directory for the Express server:
-
-```bash copy
-mkdir api
-```
-
-### Create Server
-
-Create an entry point for the Express server:
+Then run the initialization command:
 
 ```bash copy
-touch api/index.ts
+npx mastra@latest init
 ```
 
-Add the following code:
+When prompted, follow the example below to scaffold the default Weather agent.
 
-```typescript filename="/api/index.ts" showLineNumber copy
+```bash
+Where should we create the Mastra files? (default: src/)
+  src/
+Choose components to install:
+  ● Agents (recommended)
+  ◯ Tools
+  ◯ Workflows
+Add tools?
+  ● Yes / ◯ No
+Select default provider:
+  ● OpenAI (recommended)
+  ◯ Anthropic
+  ◯ Groq
+  ◯ Google
+  ○ Cerebra
+Enter your openai API key?
+  ● Skip for now (default)
+  ○ Enter API key
+Add example
+  ● Yes / ○ No
+Make your AI IDE into a Mastra expert? (installs Mastra docs MCP server)
+  ● Skip for now (default)
+  ○ Cursor (project only)
+  ○ Cursor (global, all projects)
+  ○ Windsurf
+```
+
+Add the `dev` and `build` scripts to `package.json`:
+
+```json filename="package.json"
+{
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "mastra dev",
+    "build": "mastra build"
+  }
+}
+```
+
+## Initialize TypeScript
+
+Create a `tsconfig.json` file in your project root with the following configuration:
+
+```json filename="tsconfig.json" copy
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", ".mastra"]
+}
+```
+
+> This TypeScript configuration is optimized for Mastra projects, using modern module resolution and strict type checking.
+
+## Set Up API Key
+
+```bash filename=".env" copy
+OPENAI_API_KEY=<your-api-key>
+```
+> Replace `your-api-key` with your API key.
+
+## Start the Mastra Dev Server
+
+Mastra provides commands to serve your agents via REST endpoints. To start the Mastra server, run:
+
+<Tabs items={["npm", "CLI"]}>
+  <Tabs.Tab>
+  ```bash copy
+  npm run dev
+   ```
+   </Tabs.Tab>
+  <Tabs.Tab>
+  ```bash copy
+  mastra dev
+   ```
+   </Tabs.Tab>
+</Tabs>
+
+This command creates REST API endpoints for your agents which are available on the following links:
+
+- Playground: [http://localhost:4111/](http://localhost:4111/)
+- Mastra API: [http://localhost:4111/api](http://localhost:4111/api)
+- OpenAPI Spec: [http://localhost:4111/openapi.json](http://localhost:4111/openapi.json)
+- Swagger UI – API explorer: [http://localhost:4111/swagger-ui](http://localhost:4111/swagger-ui)
+
+## Example Express App
+
+```typescript filename="src/server.ts" showLineNumbers copy
+import "dotenv/config";
 import express, { Request, Response } from "express";
-import { mastraClient } from "../lib/mastra";
+
+import { mastra } from "./mastra";
 
 const app = express();
-const port = 8080;
+const port = process.env.PORT ?? 3000;
 
 app.get("/api/weather", async (req: Request, res: Response) => {
   const { city } = req.query as { city?: string };
@@ -72,14 +172,10 @@ app.get("/api/weather", async (req: Request, res: Response) => {
     return res.status(400).send("Missing 'city' query parameter");
   }
 
-  const agent = mastraClient.getAgent("tAgent");
+  const agent = mastra.getAgent("weatherAgent");
 
   try {
-    const result = await agent.generate({
-      messages: [
-        { role: "user", content: `What's the weather like in ${city}?` }
-      ]
-    });
+    const result = await agent.generate(`What's the weather like in ${city}?`);
     res.send(result.text);
   } catch (error) {
     res.status(500).send(`Agent error: ${error}`);
@@ -87,122 +183,32 @@ app.get("/api/weather", async (req: Request, res: Response) => {
 });
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+  console.log(`Server listening on port ${port}`);
 });
 ```
 
-## Install the Mastra Client
-
-The following steps will install the MastraClient instance that can be used by the Express server:
-
-<Tabs items={["npm", "yarn", "pnpm", "bun"]}>
-  <Tabs.Tab>
-    ```bash copy
-    npm install @mastra/client-js@latest
-    ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-    ```bash copy
-    yarn add @mastra/client-js@latest
-    ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-    ```bash copy
-    pnpm add @mastra/client-js@latest
-    ```
-  </Tabs.Tab>
-  <Tabs.Tab>
-    ```bash copy
-    bun add @mastra/client-js@latest
-    ```
-  </Tabs.Tab>
-</Tabs>
-
-You may also need to install `dotenv` to load environment variables locally during development:
-
-```bash copy
-npm install dotenv --save-dev
-```
-
-Create a directory for the client:
-
-```bash copy
-mkdir lib
-```
-Create the client:
-
-```bash copy
-touch lib/mastra.ts
-```
-
-Add the following code:
-
-```typescript filename="/lib/mastra.ts" showLineNumbers copy
-import "dotenv/config";
-
-import { MastraClient } from "@mastra/client-js";
-
-export const mastraClient = new MastraClient({
-  baseUrl: process.env.PUBLIC_MASTRA_API_URL || "http://localhost:4111"
-});
-```
-
-## Project Structure
-
-Your project structure should now look similar to this:
-
-<FileTree>
-  <FileTree.Folder name="api" defaultOpen>
-    <FileTree.File name="index.ts" />
-  </FileTree.Folder>
-  <FileTree.Folder name="lib" defaultOpen>
-    <FileTree.File name="mastra.ts" />
-  </FileTree.Folder>
-  <FileTree.Folder name="src" defaultOpen>
-    <FileTree.Folder name="mastra" defaultOpen>
-      <FileTree.Folder name="agents" defaultOpen>
-        <FileTree.File name="agent-name.ts" />
-      </FileTree.Folder>
-      <FileTree.Folder name="tools" defaultOpen>
-        <FileTree.File name="tool-name.ts" />
-      </FileTree.Folder>
-      <FileTree.File name="index.ts" />
-    </FileTree.Folder>
-  </FileTree.Folder>
-  <FileTree.File name=".env" />
-  <FileTree.File name="package.json" />
-  <FileTree.File name="tsconfig.json" />
-</FileTree>
-
-## Developing
-
-There are two ways to test your Express server. Both will require the Mastra dev server to be running:
-
-### Start the Mastra Dev Server
-
-```bash copy
-npm run dev
-```
-
-### Start the Express Server
-
-To start the Express server in watch mode, run the following:
+With the Mastra dev server running, start your Express app. For example:
 
 ```bash
-npx tsx --watch api/index.ts --watch-dir api
+npx tsx --watch src/server.ts --watch-dir src
 ```
 
-You can now visit the following URL in your browser:
+You can now make a request to the endpoint using one of the following:
 
-- [http://localhost:3000/api/weather?city=London](http://localhost:3000/api/weather?city=London)
+<Tabs items={["http", "curl"]}>
+  <Tabs.Tab>
+  ```bash copy
+  http://localhost:3000/api/weather?city=London
+   ```
+   </Tabs.Tab>
+  <Tabs.Tab>
+  ```bash copy
+  curl "http://localhost:3000/api/weather?city=London"
+   ```
+   </Tabs.Tab>
+</Tabs>
 
-Or run the below command from the terminal:
-
-```bash copy
-curl "http://localhost:3000/api/weather?city=London"
-```
-
-In both cases, you should see output similar to the following:
+You should see output similar to the following:
 
 ```plaintext
 Agent response: The current weather in London is as follows:
@@ -215,10 +221,14 @@ Agent response: The current weather in London is as follows:
 
 Let me know if you need more information!
 ```
+</Steps>
 
+## Use Mastra on the Client
+
+To call your agents from the frontend, use our type-safe Mastra Client SDK.
+
+- [Mastra Client SDK](/docs/deployment/client)
 
 ## Next Steps
 
-- [Using Express.js with Vercel](https://vercel.com/guides/using-express-with-vercel)
-
-
+- [Deploy your Agent to Mastra Cloud](/docs/deployment/overview)
