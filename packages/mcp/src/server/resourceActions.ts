@@ -1,9 +1,9 @@
-import type { Logger } from '@mastra/core/logger';
+import type { IMastraLogger } from '@mastra/core/logger';
 import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
 
 interface ServerResourceActionsDependencies {
   getSubscriptions: () => Set<string>;
-  getLogger: () => Logger;
+  getLogger: () => IMastraLogger;
   getSdkServer: () => Server;
   clearDefinedResources: () => void;
   clearDefinedResourceTemplates: () => void;
@@ -11,7 +11,7 @@ interface ServerResourceActionsDependencies {
 
 export class ServerResourceActions {
   private readonly getSubscriptions: () => Set<string>;
-  private readonly getLogger: () => Logger;
+  private readonly getLogger: () => IMastraLogger;
   private readonly getSdkServer: () => Server;
   private readonly clearDefinedResources: () => void;
   private readonly clearDefinedResourceTemplates: () => void;
@@ -47,7 +47,9 @@ export class ServerResourceActions {
    * This will clear the internal cache of defined resources and send a list_changed notification to clients.
    */
   public async notifyListChanged(): Promise<void> {
-    this.getLogger().info('Resource list change externally notified. Clearing definedResources and sending notification.');
+    this.getLogger().info(
+      'Resource list change externally notified. Clearing definedResources and sending notification.',
+    );
     this.clearDefinedResources(); // Clear cached resources
     this.clearDefinedResourceTemplates(); // Clear cached resource templates
     try {

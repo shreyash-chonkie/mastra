@@ -1,4 +1,4 @@
-import type { Logger } from "@mastra/core/logger";
+import type { IMastraLogger } from "@mastra/core/logger";
 import type { Resource, ResourceTemplate } from "@modelcontextprotocol/sdk/types.js";
 import type { InternalMastraMCPClient, MastraMCPServerDefinition } from "./client";
 
@@ -7,7 +7,7 @@ interface ResourceClientActionsDependencies {
   getConnectedClient: (name: string, config: MastraMCPServerDefinition) => Promise<InternalMastraMCPClient>;
   getConnectedClientForServer: (serverName: string) => Promise<InternalMastraMCPClient>;
   addToInstanceCache: () => void;
-  getLogger: () => Logger;
+  getLogger: () => IMastraLogger;
 }
 
 export class ResourceClientActions {
@@ -15,7 +15,7 @@ export class ResourceClientActions {
   private readonly getConnectedClient: (name: string, config: MastraMCPServerDefinition) => Promise<InternalMastraMCPClient>;
   private readonly getConnectedClientForServer: (serverName: string) => Promise<InternalMastraMCPClient>;
   private readonly addToInstanceCache: () => void;
-  private readonly getLogger: () => Logger;
+  private readonly getLogger: () => IMastraLogger;
 
   constructor(dependencies: ResourceClientActionsDependencies) {
     this.getServerConfigs = dependencies.getServerConfigs;
