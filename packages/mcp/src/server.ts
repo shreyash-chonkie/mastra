@@ -1,8 +1,8 @@
 import { randomUUID } from 'crypto';
 import type * as http from 'node:http';
 import type { InternalCoreTool } from '@mastra/core';
-import { makeCoreTool } from '@mastra/core';
-import type { ToolsInput } from '@mastra/core/agent';
+import { createTool, makeCoreTool } from '@mastra/core';
+import type { ToolsInput, Agent } from '@mastra/core/agent';
 import { MCPServerBase } from '@mastra/core/mcp';
 import type {
   MCPServerConfig,
@@ -82,13 +82,84 @@ export class MCPServer extends MCPServerBase {
     this.registerCallToolHandler();
   }
 
+  private _convertAgentsToTools(
+    agentsConfig?: Record<string, Agent<any>>,
+    existingToolNames?: Set<string>,
+  ): Record<string, ConvertedTool> {
+    const agentTools: Record<string, ConvertedTool> = {};
+    if (!agentsConfig) {
+      return agentTools;
+    }
+
+    for (const agentKey in agentsConfig) {
+      const agent = agentsConfig[agentKey];
+      if (!agent || typeof agent.generate !== 'function') {
+        this.logger.warn(
+          `Agent instance for '${agentKey}' (name: ${agent?.name}) is invalid or missing a generate function. Skipping.`,
+        );
+        continue;
+      }
+
+      const agentToolName = `ask_${agentKey}`;
+      if (existingToolNames?.has(agentToolName) || agentTools[agentToolName]) {
+        this.logger.warn(
+          `Tool with name '${agentToolName}' already exists. Agent '${agentKey}' will not be added as a duplicate tool.`,
+        );
+        continue;
+      }
+
+      const agentToolDefinition = createTool({
+        id: agentToolName,
+        description: `Ask agent '${agent.name}' a question. Original agent instructions: ${agent.getInstructions ? (typeof agent.getInstructions === 'function' ? agent.getInstructions({}).toString().substring(0, 500) + '...' : agent.getInstructions.toString().substring(0, 500) + '...') : 'Not available'}`,
+        inputSchema: z.object({
+          query: z.string().describe('The question or input for the agent.'),
+        }),
+        execute: async ({ context, runtimeContext }) => {
+          this.logger.debug(
+            `Executing agent tool '${agentToolName}' for agent '${agent.name}' with query: "${context.query}"`,
+          );
+          try {
+            const response = await agent.generate(context.query, { runtimeContext });
+            return response;
+          } catch (error) {
+            this.logger.error(`Error executing agent tool '${agentToolName}' for agent '${agent.name}':`, error);
+            throw error;
+          }
+        },
+      });
+
+      const options = {
+        name: agentToolName,
+        logger: this.logger,
+        mastra: this.mastra,
+        runtimeContext: new RuntimeContext(),
+        description: agentToolDefinition.description,
+      };
+      const coreTool = makeCoreTool(agentToolDefinition, options) as InternalCoreTool;
+
+      agentTools[agentToolName] = {
+        name: agentToolName,
+        description: coreTool.description,
+        parameters: coreTool.parameters,
+        execute: coreTool.execute!,
+      };
+      this.logger.info(`Registered agent '${agent.name}' (key: '${agentKey}') as tool: '${agentToolName}'`);
+    }
+    return agentTools;
+  }
+
   /**
    * Convert and validate all provided tools, logging registration status.
+   * Also converts agents into tools.
    * @param tools Tool definitions
+   * @param agentsConfig Agent definitions to be converted to tools, expected from MCPServerConfig
    * @returns Converted tools registry
    */
-  convertTools(tools: ToolsInput): Record<string, ConvertedTool> {
-    const convertedTools: Record<string, ConvertedTool> = {};
+  convertTools(tools: ToolsInput, agentsConfig?: Record<string, Agent<any>>): Record<string, ConvertedTool> {
+    const explicitConvertedTools: Record<string, ConvertedTool> = {};
+    const processedToolNames = new Set<string>();
+
+    // Process explicitly defined tools
     for (const toolName of Object.keys(tools)) {
       const toolInstance = tools[toolName];
       if (!toolInstance) {
@@ -111,16 +182,28 @@ export class MCPServer extends MCPServerBase {
 
       const coreTool = makeCoreTool(toolInstance, options) as InternalCoreTool;
 
-      convertedTools[toolName] = {
+      explicitConvertedTools[toolName] = {
         name: toolName,
         description: coreTool.description,
         parameters: coreTool.parameters,
         execute: coreTool.execute!,
       };
-      this.logger.info(`Registered tool: '${toolName}' [${toolInstance?.description || 'No description'}]`);
+      processedToolNames.add(toolName);
+      this.logger.info(`Registered explicit tool: '${toolName}'`);
     }
-    this.logger.info(`Total tools registered: ${Object.keys(convertedTools).length}`);
-    return convertedTools;
+    this.logger.info(`Total explicit tools registered: ${Object.keys(explicitConvertedTools).length}`);
+
+    // Process agents and convert them to tools
+    const agentDerivedTools = this._convertAgentsToTools(agentsConfig, processedToolNames);
+
+    // Merge explicit tools and agent-derived tools
+    // Agent-derived tools already check against processedToolNames, so direct merge is safe.
+    const allConvertedTools = { ...explicitConvertedTools, ...agentDerivedTools };
+
+    const finalToolCount = Object.keys(allConvertedTools).length;
+    this.logger.info(`Total tools registered (explicit + from agents): ${finalToolCount}`);
+
+    return allConvertedTools;
   }
 
   /**
