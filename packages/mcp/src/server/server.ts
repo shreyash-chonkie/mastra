@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import type * as http from 'node:http';
 import type { InternalCoreTool } from '@mastra/core';
 import { makeCoreTool } from '@mastra/core';
@@ -27,11 +27,12 @@ import {
   SubscribeRequestSchema,
   UnsubscribeRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
-import type { ResourceContents, Resource, ResourceTemplate } from '@modelcontextprotocol/sdk/types.js';
+import type { ResourceContents, Resource, ResourceTemplate, ServerCapabilities } from '@modelcontextprotocol/sdk/types.js';
 import type { SSEStreamingApi } from 'hono/streaming';
 import { streamSSE } from 'hono/streaming';
 import { SSETransport } from 'hono-mcp-server-sse-transport';
 import { z } from 'zod';
+import { ServerResourceActions } from './resourceActions';
 
 export type MCPServerResourceContentCallback = ({
   uri,
@@ -62,6 +63,7 @@ export class MCPServer extends MCPServerBase {
   private definedResourceTemplates?: ResourceTemplate[];
   private resourceOptions?: MCPServerResources;
   private subscriptions: Set<string> = new Set();
+  public readonly resources: ServerResourceActions;
 
   /**
    * Get the current stdio transport.
@@ -99,7 +101,7 @@ export class MCPServer extends MCPServerBase {
     super(opts);
     this.resourceOptions = opts.resources;
 
-    const capabilities: any = {
+    const capabilities: ServerCapabilities = {
       tools: {},
       logging: { enabled: true },
     };
@@ -111,7 +113,7 @@ export class MCPServer extends MCPServerBase {
     this.server = new Server({ name: this.name, version: this.version }, { capabilities });
 
     this.logger.info(
-      `Initialized MCPServer '${this.name}' v${this.version} (ID: ${this.id}) with tools: ${Object.keys(this.convertedTools).join(', ')} and resources. Capabilities: ${JSON.stringify(capabilities.resources)}`,
+      `Initialized MCPServer '${this.name}' v${this.version} (ID: ${this.id}) with tools: ${Object.keys(this.convertedTools).join(', ')} and resources. Capabilities: ${JSON.stringify(capabilities)}`,
     );
 
     this.sseHonoTransports = new Map();
@@ -127,6 +129,13 @@ export class MCPServer extends MCPServerBase {
         this.registerListResourceTemplatesHandler();
       }
     }
+    this.resources = new ServerResourceActions({
+      getSubscriptions: () => this.subscriptions,
+      getLogger: () => this.logger,
+      getSdkServer: () => this.server,
+      clearDefinedResources: () => { this.definedResources = undefined; },
+      clearDefinedResourceTemplates: () => { this.definedResourceTemplates = undefined; },
+    });
   }
 
   /**
@@ -322,7 +331,9 @@ export class MCPServer extends MCPServerBase {
       this.logger.debug(`Handling ReadResource request for URI: ${uri}`);
 
       if (!this.definedResources) {
-        this.definedResources = await this.resourceOptions?.listResources?.();
+        const resources = await this.resourceOptions?.listResources?.();
+        if (!resources) throw new Error('Failed to load resources');
+        this.definedResources = resources;
       }
 
       const resource = this.definedResources?.find(r => r.uri === uri);
@@ -795,29 +806,5 @@ export class MCPServer extends MCPServerBase {
       this.logger.error(`ExecuteTool: Tool execution failed for '${toolId}':`, { error });
       throw error instanceof Error ? error : new Error(`Execution of tool '${toolId}' failed: ${String(error)}`);
     }
-  }
-
-  /**
-   * Checks if any resources have been updated.
-   * If the resource is subscribed to by clients, an update notification will be sent.
-   */
-  public async notifyResourcesUpdated({ uri }: { uri: string }): Promise<void> {
-    if (this.subscriptions.has(uri)) {
-      this.logger.info(`Sending notifications/resources/updated for externally notified resource: ${uri}`);
-      await this.server.sendResourceUpdated({ uri });
-    } else {
-      this.logger.debug(`Resource ${uri} was updated, but no active subscriptions for it.`);
-    }
-  }
-
-  /**
-   * Notifies the server that the overall list of available resources has changed.
-   * This will clear the internal cache of defined resources and send a list_changed notification to clients.
-   */
-  public async notifyResourceListChanged(): Promise<void> {
-    this.logger.info('Resource list change externally notified. Clearing definedResources and sending notification.');
-    this.definedResources = undefined; // Clear cached resources
-    this.definedResourceTemplates = undefined; // Clear cached resource templates
-    await this.server.sendResourceListChanged();
   }
 }

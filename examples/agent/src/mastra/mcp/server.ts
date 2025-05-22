@@ -2,23 +2,6 @@ import { createTool } from '@mastra/core/tools';
 import { MCPServer, MCPServerResources } from '@mastra/mcp';
 import { z } from 'zod';
 
-// Example Resource Templates
-const weatherResourceTemplatesDefinitions: MCPServerResources['resourceTemplates'] = () =>
-  Promise.resolve([
-    {
-      uriTemplate: 'weather://custom/{city}/{days}',
-      name: 'Custom Weather Forecast',
-      description: 'Generates a custom weather forecast for a city and number of days.',
-      mimeType: 'application/json',
-    },
-    {
-      uriTemplate: 'weather://alerts?region={region}&level={level}',
-      name: 'Weather Alerts',
-      description: 'Get weather alerts for a specific region and severity level.',
-      mimeType: 'application/json',
-    },
-  ]);
-
 // Resources implementation
 const weatherResources: MCPServerResources = {
   listResources: async () => {
@@ -191,7 +174,7 @@ export const simulateCurrentWeatherUpdate = async () => {
   console.log('[Example] Simulating update for weather://current');
   // If you have access to the server instance that uses these resources (e.g., myMcpServerTwo)
   // you would call its notification method.
-  await myMcpServerTwo.notifyResourcesUpdated({ uri: 'weather://current' });
+  await myMcpServerTwo.resources.notifyUpdated({ uri: 'weather://current' });
   console.log('[Example] Notification sent for weather://current update.');
 };
 
@@ -204,6 +187,6 @@ export const simulateResourceListChange = async () => {
   // This would typically involve updating the actual list returned by `listResources`
   // and then notifying the server.
   // For this example, we'll just show the notification part.
-  await myMcpServerTwo.notifyResourceListChanged();
+  await myMcpServerTwo.resources.notifyListChanged();
   console.log('[Example] Notification sent for resource list change.');
 };

@@ -1,8 +1,8 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
-import type { LogMessage } from './client';
-import { MCPClient } from './configuration';
+import type { LogMessage } from '../client/client';
+import { MCPClient } from '../client/configuration';
 
 // Increase test timeout for server operations
 vi.setConfig({ testTimeout: 80000, hookTimeout: 80000 });

@@ -15,9 +15,9 @@ import type {
 import { Hono } from 'hono';
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi, beforeEach } from 'vitest';
 import { z } from 'zod';
-import { weatherTool } from './__fixtures__/tools';
-import { InternalMastraMCPClient } from './client';
-import { MCPClient } from './configuration';
+import { weatherTool } from '../__fixtures__/tools';
+import { InternalMastraMCPClient } from '../client/client';
+import { MCPClient } from '../client/configuration';
 import { MCPServer } from './server';
 import type { MCPServerResources, MCPServerResourceContent } from './server';
 
@@ -545,7 +545,7 @@ describe('MCPServer', () => {
 
       mockCurrentResourceContents[uriToSubscribe] = { text: newContent };
 
-      await notificationTestServer.notifyResourcesUpdated({ uri: uriToSubscribe });
+      await notificationTestServer.resources.notifyUpdated({ uri: uriToSubscribe });
 
       await expect(resourceUpdatedPromise).resolves.toBeUndefined(); // Wait for the notification
       await notificationTestInternalClient.unsubscribeResource(uriToSubscribe);
@@ -558,7 +558,7 @@ describe('MCPServer', () => {
         });
       });
 
-      await notificationTestServer.notifyResourceListChanged();
+      await notificationTestServer.resources.notifyListChanged();
 
       await expect(listChangedPromise).resolves.toBeUndefined(); // Wait for the notification
     });

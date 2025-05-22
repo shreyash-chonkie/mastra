@@ -1,10 +1,10 @@
 import { MastraBase } from '@mastra/core/base';
 import { DEFAULT_REQUEST_TIMEOUT_MSEC } from '@modelcontextprotocol/sdk/shared/protocol.js';
-import type { Resource, ResourceTemplate } from '@modelcontextprotocol/sdk/types.js';
 import equal from 'fast-deep-equal';
 import { v5 as uuidv5 } from 'uuid';
 import { InternalMastraMCPClient } from './client';
 import type { MastraMCPServerDefinition } from './client';
+import { ResourceClientActions } from './resourceActions';
 
 const mcpClientInstances = new Map<string, InstanceType<typeof MCPClient>>();
 
@@ -20,6 +20,7 @@ export class MCPClient extends MastraBase {
   private defaultTimeout: number;
   private mcpClientsById = new Map<string, InternalMastraMCPClient>();
   private disconnectPromise: Promise<void> | null = null;
+  public readonly resources: ResourceClientActions;
 
   constructor(args: MCPClientOptions) {
     super({ name: 'MCPClient' });
@@ -55,11 +56,19 @@ To fix this you have three different options:
 3. If you only need one instance of MCPClient in your app, refactor your code so it's only created one time (ex. move it out of a loop into a higher scope code block)
 `);
       }
+      this.resources = existingInstance.resources; // Reuse resources object
       return existingInstance;
     }
 
     mcpClientInstances.set(this.id, this);
     this.addToInstanceCache();
+    this.resources = new ResourceClientActions({
+      getServerConfigs: () => this.serverConfigs,
+      getConnectedClient: (name, config) => this.getConnectedClient(name, config),
+      getConnectedClientForServer: (serverName) => this.getConnectedClientForServer(serverName),
+      addToInstanceCache: () => this.addToInstanceCache(),
+      getLogger: () => this.logger,
+    });
     return this;
   }
 
@@ -125,101 +134,6 @@ To fix this you have three different options:
   }
 
   /**
-   * Get all resources from connected MCP servers
-   * @returns A record of server names to their resources
-   */
-  public async getResources() {
-    this.addToInstanceCache();
-    const connectedResources: Record<string, Resource[]> = {};
-
-    await this.eachClientResources(async ({ serverName, resources }) => {
-      if (resources && Array.isArray(resources)) {
-        connectedResources[serverName] = resources;
-      }
-    });
-
-    return connectedResources;
-  }
-
-  /**
-   * Get all resource templates from connected MCP servers
-   * @returns A record of server names to their resource templates
-   */
-  public async listResourceTemplates(): Promise<Record<string, ResourceTemplate[]>> {
-    this.addToInstanceCache();
-    const connectedTemplates: Record<string, ResourceTemplate[]> = {};
-
-    await this.eachClientResourceTemplates(async ({ serverName, resourceTemplates }) => {
-      if (resourceTemplates && Array.isArray(resourceTemplates)) {
-        connectedTemplates[serverName] = resourceTemplates;
-      }
-    });
-
-    return connectedTemplates;
-  }
-
-  /**
-   * Read a specific resource from a named server.
-   * @param serverName The name of the server config.
-   * @param uri The URI of the resource to read.
-   * @returns The resource content.
-   */
-  public async readResource(serverName: string, uri: string): Promise<any> {
-    this.addToInstanceCache();
-    const client = await this.getConnectedClientForServer(serverName);
-    return client.readResource(uri);
-  }
-
-  /**
-   * Subscribe to a specific resource on a named server.
-   * @param serverName The name of the server config.
-   * @param uri The URI of the resource to subscribe to.
-   */
-  public async subscribeResource(serverName: string, uri: string): Promise<any> {
-    this.addToInstanceCache();
-    const client = await this.getConnectedClientForServer(serverName);
-    console.log('resource subscribe', uri);
-    return client.subscribeResource(uri);
-  }
-
-  /**
-   * Unsubscribe from a specific resource on a named server.
-   * @param serverName The name of the server config.
-   * @param uri The URI of the resource to unsubscribe from.
-   */
-  public async unsubscribeResource(serverName: string, uri: string): Promise<any> {
-    this.addToInstanceCache();
-    const client = await this.getConnectedClientForServer(serverName);
-    return client.unsubscribeResource(uri);
-  }
-
-  /**
-   * Set a notification handler for when a specific resource is updated on a named server.
-   * @param serverName The name of the server config.
-   * @param handler The callback function to handle the notification.
-   */
-  public async setResourceUpdatedNotificationHandler(
-    serverName: string,
-    handler: (params: { uri: string }) => void,
-  ): Promise<void> {
-    this.addToInstanceCache();
-    const client = await this.getConnectedClientForServer(serverName);
-    console.log('client', client);
-    client.setResourceUpdatedNotificationHandler(handler);
-  }
-
-  /**
-   * Set a notification handler for when the list of available resources changes on a named server.
-   * @param serverName The name of the server config.
-   * @param handler The callback function to handle the notification.
-   */
-  public async setResourceListChangedNotificationHandler(serverName: string, handler: () => void): Promise<void> {
-    this.addToInstanceCache();
-    const client = await this.getConnectedClientForServer(serverName);
-    client.setResourceListChangedNotificationHandler(handler);
-  }
-
-  /**
    * Get the current session IDs for all connected MCP clients using the Streamable HTTP transport.
    * Returns an object mapping server names to their session IDs.
    */
@@ -233,9 +147,7 @@ To fix this you have three different options:
     return sessionIds;
   }
 
-  private async getConnectedClient(name: string, config: MastraMCPServerDefinition) {
-    // Helps to prevent race condition.
-    // If we want to call connect() we need to wait for the disconnect to complete first if any is ongoing.
+  private async getConnectedClient(name: string, config: MastraMCPServerDefinition): Promise<InternalMastraMCPClient> {
     if (this.disconnectPromise) {
       await this.disconnectPromise;
     }
@@ -275,9 +187,7 @@ To fix this you have three different options:
         `Failed to connect to MCP server ${name}: ${e instanceof Error ? e.stack || e.message : String(e)}`,
       );
     }
-
     this.logger.debug(`Connected to ${name} MCP server`);
-
     return mcpClient;
   }
 
@@ -301,71 +211,6 @@ To fix this you have three different options:
         const client = await this.getConnectedClient(serverName, serverConfig);
         const tools = await client.tools();
         await cb({ serverName, tools, client });
-      }),
-    );
-  }
-
-  /**
-   * Helper method to iterate through each connected MCP client and retrieve resources
-   * @param cb Callback function to process resources from each server
-   */
-  private async eachClientResources(
-    cb: (args: {
-      serverName: string;
-      resources: Resource[];
-      client: InstanceType<typeof InternalMastraMCPClient>;
-    }) => Promise<void>,
-  ) {
-    await Promise.all(
-      Object.entries(this.serverConfigs).map(async ([serverName, serverConfig]) => {
-        try {
-          const client = await this.getConnectedClient(serverName, serverConfig);
-          const response = await client.listResources();
-          // Ensure response has the expected structure
-          if (response && response.resources && Array.isArray(response.resources)) {
-            await cb({ serverName, resources: response.resources, client });
-          } else {
-            this.logger.warn(`Resources response from server ${serverName} did not have expected structure.`, {
-              response,
-            });
-          }
-        } catch (e) {
-          this.logger.error(`Error getting resources from server ${serverName}`, {
-            error: e instanceof Error ? e.message : String(e),
-          });
-        }
-      }),
-    );
-  }
-
-  /**
-   * Helper method to iterate through each connected MCP client and retrieve resource templates
-   * @param cb Callback function to process resource templates from each server
-   */
-  private async eachClientResourceTemplates(
-    cb: (args: {
-      serverName: string;
-      resourceTemplates: ResourceTemplate[];
-      client: InstanceType<typeof InternalMastraMCPClient>;
-    }) => Promise<void>,
-  ) {
-    await Promise.all(
-      Object.entries(this.serverConfigs).map(async ([serverName, serverConfig]) => {
-        try {
-          const client = await this.getConnectedClient(serverName, serverConfig);
-          const response = (await client.listResourceTemplates()) as any; // Cast for now
-          if (response && response.resourceTemplates && Array.isArray(response.resourceTemplates)) {
-            await cb({ serverName, resourceTemplates: response.resourceTemplates, client });
-          } else {
-            this.logger.warn(`Resource templates response from server ${serverName} did not have expected structure.`, {
-              response,
-            });
-          }
-        } catch (e) {
-          this.logger.error(`Error getting resource templates from server ${serverName}`, {
-            error: e instanceof Error ? e.message : String(e),
-          });
-        }
       }),
     );
   }

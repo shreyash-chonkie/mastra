@@ -3,8 +3,8 @@ import { createServer } from 'http';
 import { createTool } from '@mastra/core';
 import type { Resource, ResourceTemplate } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { MCPServer } from '../server';
-import type { MCPServerResources, MCPServerResourceContent } from '../server';
+import { MCPServer } from '../server/server';
+import type { MCPServerResources, MCPServerResourceContent } from '../server/server';
 
 const getWeather = async (location: string) => {
   // Return mock data for testing
@@ -178,9 +178,7 @@ const notificationInterval = setInterval(async () => {
 
   const updatePrefix = `[${serverId}] IntervalUpdate`;
   try {
-    // console.log(`${updatePrefix} - Attempting to send resourceUpdated for weather://current via MCPServer`);
-    await mcpServer.notifyResourcesUpdated({ uri: 'weather://current' });
-    // console.log(`${updatePrefix} - MCPServer.notifyResourcesUpdated called for weather://current`);
+    await mcpServer.resources.notifyUpdated({ uri: 'weather://current' });
   } catch (e: any) {
     console.error(`${updatePrefix} - Error sending resourceUpdated for weather://current via MCPServer: ${e.message}`);
   }
@@ -189,9 +187,7 @@ const notificationInterval = setInterval(async () => {
   if (resourceUpdateCounter % 3 === 0) {
     const listChangePrefix = `[${serverId}] IntervalListChange`;
     try {
-      // console.log(`${listChangePrefix} - Attempting to send resourceListChanged via MCPServer`);
-      await mcpServer.notifyResourceListChanged();
-      // console.log(`${listChangePrefix} - MCPServer.notifyResourceListChanged called`);
+      await mcpServer.resources.notifyListChanged();
     } catch (e: any) {
       console.error(`${listChangePrefix} - Error sending resourceListChanged via MCPServer: ${e.message}`);
     }

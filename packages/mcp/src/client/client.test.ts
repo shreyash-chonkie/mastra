@@ -111,7 +111,7 @@ describe('MastraMCPClient with Streamable HTTP', () => {
       const resourcesResult = await client.listResources();
       const resources = resourcesResult.resources;
       expect(resources).toBeInstanceOf(Array);
-      const testResource = resources.find((r: any) => r.uri === 'resource://test');
+      const testResource = resources.find((r) => r.uri === 'resource://test');
       expect(testResource).toBeDefined();
       expect(testResource!.name).toBe('test-resource');
       expect(testResource!.uri).toBe('resource://test');
