@@ -10,11 +10,13 @@ vi.setConfig({ testTimeout: 80000, hookTimeout: 80000 });
 describe('MCP Server Logging', () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
   let weatherProcess: ReturnType<typeof spawn>;
-
+  let weatherServerPort: number;
   beforeAll(async () => {
+    weatherServerPort = 60000 + Math.floor(Math.random() * 1000); // Generate a random port
+
     // Start the weather SSE server
     weatherProcess = spawn('npx', ['-y', 'tsx', path.join(__dirname, '..', '__fixtures__/weather.ts')], {
-      env: { ...process.env, PORT: '60809' },
+      env: { ...process.env, WEATHER_SERVER_PORT: String(weatherServerPort) },
     });
 
     // Wait for SSE server to be ready
@@ -62,7 +64,7 @@ describe('MCP Server Logging', () => {
       id: 'server-log-test',
       servers: {
         weather: {
-          url: new URL('http://localhost:60809/sse'),
+          url: new URL(`http://localhost:${weatherServerPort}/sse`),
           logger: weatherLogHandler,
         },
         stock: {

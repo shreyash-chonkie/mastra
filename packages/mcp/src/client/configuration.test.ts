@@ -37,7 +37,6 @@ describe('MCPClient', () => {
       }
       if (weatherProcess.stdout) {
         weatherProcess.stdout.on('data', chunk => {
-          console.log('weatherProcess.stdout.on', chunk.toString());
           if (chunk.toString().includes('server is running on SSE')) {
             resolve();
             resolved = true;
@@ -79,7 +78,7 @@ describe('MCPClient', () => {
 
   afterAll(async () => {
     // Kill the weather SSE server
-    weatherProcess.kill('SIGKILL');
+    weatherProcess.kill('SIGINT');
   });
 
   it('should initialize with server configurations', () => {
