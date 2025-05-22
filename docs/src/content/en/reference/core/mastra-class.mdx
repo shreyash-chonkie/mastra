@@ -18,7 +18,7 @@ import { Mastra } from "@mastra/core";
 Creates a new `Mastra` instance with the specified configuration.
 
 ```typescript
-constructor(config?: Config<...customize generics...>);
+constructor(config?: Config);
 ```
 
 ### Configuration (`Config` object)
@@ -260,7 +260,7 @@ You can think of the `Mastra` class as a top-level registry. When you register t
       name: "getMCPServers()",
       type: "Record<string, MCPServerBase> | undefined",
       description: "Retrieves all registered MCP server instances.",
-      example: 'const mcpServers = await mastra.getMCPServers();'
+      example: 'const mcpServers = mastra.getMCPServers();'
     },
   ]}
 />
