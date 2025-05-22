@@ -13,7 +13,7 @@ describe('MCP Server Logging', () => {
 
   beforeAll(async () => {
     // Start the weather SSE server
-    weatherProcess = spawn('npx', ['-y', 'tsx', path.join(__dirname, '__fixtures__/weather.ts')], {
+    weatherProcess = spawn('npx', ['-y', 'tsx', path.join(__dirname, '..', '__fixtures__/weather.ts')], {
       env: { ...process.env, PORT: '60809' },
     });
 
@@ -67,7 +67,7 @@ describe('MCP Server Logging', () => {
         },
         stock: {
           command: 'npx',
-          args: ['-y', 'tsx', path.join(__dirname, '__fixtures__/stock-price.ts')],
+          args: ['-y', 'tsx', path.join(__dirname, '..', '__fixtures__/stock-price.ts')],
           env: {
             FAKE_CREDS: 'test',
           },
