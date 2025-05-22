@@ -23,6 +23,19 @@ If you haven't already, install the Mastra MCP package:
 npm install @mastra/mcp@latest
 ```
 
+### Registering the MCPServer
+
+Register your MCP server with Mastra to enable logging and access to configured tools and integrations:
+
+```ts showLineNumbers filename="src/mastra/index.ts" copy
+import { Mastra } from "@mastra/core";
+import { myMcpServer } from "./mcpServers";
+
+export const mastra = new Mastra({
+  mcpServers: { myMcpServer },
+});
+```
+
 ### Configuring `MCPClient`
 
 You configure `MCPClient` with a map of servers you want to connect to. It supports connections via subprocess (Stdio) or HTTP (Streamable HTTP with SSE fallback).
