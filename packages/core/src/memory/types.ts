@@ -45,7 +45,8 @@ export type MemoryConfig = {
   workingMemory?: {
     enabled: boolean;
     template?: string;
-    use?: 'text-stream' | 'tool-call';
+    /** @deprecated The `use` option has been removed. Working memory always uses tool-call mode. */
+    use?: never;
   };
   threads?: {
     generateTitle?: boolean;

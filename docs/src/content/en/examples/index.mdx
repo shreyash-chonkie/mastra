@@ -3,15 +3,16 @@ title: "Examples List: Workflows, Agents, RAG | Mastra Docs"
 description: "Explore practical examples of AI development with Mastra, including text generation, RAG implementations, structured outputs, and multi-modal interactions. Learn how to build AI applications using OpenAI, Anthropic, and Google Gemini."
 ---
 
-import { CardItems, CardItem, CardTitle } from "@/components/example-cards";
+import { CardItems } from "@/components/cards/card-items";
 import { Tabs } from "nextra/components";
 
 # Examples
 
 The Examples section is a short list of example projects demonstrating basic AI engineering with Mastra, including text generation, structured output, streaming responses, retrieval‐augmented generation (RAG), and voice.
 
-<CardItems titles={["Agent", "Workflow", "Memory", "RAG", "Evals", "Voice"]} items={
-  {Agent: [
+<CardItems titles={["Agent", "Workflow", "vNextWorkflow", "Memory", "RAG", "Evals", "Voice"]} items={
+  {
+    Agent: [
       {
         title: "Agent with System Prompt",
         href: "/examples/agents/system-prompt",
@@ -36,6 +37,10 @@ The Examples section is a short list of example projects demonstrating basic AI 
         title: "Bird Checker",
         href: "/examples/agents/bird-checker",
       },
+      {
+        title: "Dynamic Agents",
+        href: "/examples/agents/dynamic-agents"
+      }
     ],
     Workflow: [
       {
@@ -61,6 +66,36 @@ The Examples section is a short list of example projects demonstrating basic AI 
         href: "/examples/workflows/suspend-and-resume",
       },
       { title: "Calling an Agent", href: "/examples/workflows/calling-agent" },
+    ],
+    vNextWorkflow: [
+      {
+        title: "Conditional Branching",
+        href: "/examples/workflows_vNext/conditional-branching",
+      },
+      {
+        title: "Parallel Steps",
+        href: "/examples/workflows_vNext/parallel-steps",
+      },
+      {
+        title: "Calling an Agent",
+        href: "/examples/workflows_vNext/calling-agent",
+      },
+      {
+        title: "Tool & Agent as a Step",
+        href: "/examples/workflows_vNext/agent-and-tool-interop",
+      },
+      {
+        title: "Human in the loop",
+        href: "/examples/workflows_vNext/human-in-the-loop",
+      },
+      {
+        title: "Control Flow",
+        href: "/examples/workflows_vNext/control-flow",
+      },
+      {
+        title: "Array as Input",
+        href: "/examples/workflows_vNext/array-as-input",
+      }
     ],
     Memory:[
       {
@@ -216,7 +251,15 @@ The Examples section is a short list of example projects demonstrating basic AI 
     {
       title: "Speech to Text",
       href: "/examples/voice/speech-to-text",
-    }
+    },
+    {
+      title: "Turn Taking",
+      href: "/examples/voice/turn-taking",
+    },
+    {
+      title: "Speech to Speech",
+      href: "/examples/voice/speech-to-speech",
+    },
   ],
 }}>
 

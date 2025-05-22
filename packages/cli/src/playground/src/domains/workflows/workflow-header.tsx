@@ -2,23 +2,31 @@ import { Link } from 'react-router';
 
 import { Crumb, Header, HeaderGroup, Button, Breadcrumb } from '@mastra/playground-ui';
 
-export function WorkflowHeader({ workflowName, workflowId }: { workflowName: string; workflowId: string }) {
+export function WorkflowHeader({
+  workflowName,
+  workflowId,
+  isLegacy,
+}: {
+  workflowName: string;
+  workflowId: string;
+  isLegacy?: boolean;
+}) {
   return (
     <Header>
       <Breadcrumb>
         <Crumb as={Link} to={`/workflows`}>
           Workflows
         </Crumb>
-        <Crumb as={Link} to={`/workflows/${workflowId}`} isCurrent>
+        <Crumb as={Link} to={`/workflows${isLegacy ? '/legacy' : ''}/${workflowId}`} isCurrent>
           {workflowName}
         </Crumb>
       </Breadcrumb>
 
       <HeaderGroup>
-        <Button as={Link} to={`/workflows/${workflowId}/graph`}>
+        <Button as="a" href={`/workflows${isLegacy ? '/legacy' : ''}/${workflowId}/graph`}>
           Graph
         </Button>
-        <Button as={Link} to={`/workflows/${workflowId}/traces`}>
+        <Button as="a" href={`/workflows${isLegacy ? '/legacy' : ''}/${workflowId}/traces`}>
           Traces
         </Button>
       </HeaderGroup>

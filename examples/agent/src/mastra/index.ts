@@ -1,11 +1,16 @@
 import { Mastra } from '@mastra/core';
-import { createLogger } from '@mastra/core/logger';
+import { PinoLogger } from '@mastra/loggers';
 
-import { chefAgent, chefAgentResponses } from './agents/index';
+import { chefAgent, chefAgentResponses, dynamicAgent } from './agents/index';
+import { myMcpServer, myMcpServerTwo } from './mcp/server';
 
 export const mastra = new Mastra({
-  agents: { chefAgent, chefAgentResponses },
-  logger: createLogger({ name: 'Chef', level: 'info' }),
+  agents: { chefAgent, chefAgentResponses, dynamicAgent },
+  logger: new PinoLogger({ name: 'Chef', level: 'debug' }),
+  mcpServers: {
+    myMcpServer,
+    myMcpServerTwo,
+  },
   serverMiddleware: [
     {
       handler: (c, next) => {

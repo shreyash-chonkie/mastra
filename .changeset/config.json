@@ -7,12 +7,14 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
+  "bumpVersionsWithWorkspaceProtocolOnly": true,
   "ignore": [
     "*",
     "!mastra",
     "!create-mastra",
     "!@mastra/*",
     "!docs",
+    "@internal/*",
     "@mastra/memory-integration-tests",
     "@mastra/playground"
   ]

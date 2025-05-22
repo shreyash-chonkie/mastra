@@ -4,6 +4,7 @@ import { MastraMemory } from '@mastra/core/memory';
 import type { MessageType, MemoryConfig, SharedMemoryConfig, StorageThreadType } from '@mastra/core/memory';
 import type { StorageGetMessagesArg } from '@mastra/core/storage';
 import { embedMany } from 'ai';
+import type { TextPart } from 'ai';
 
 import xxhash from 'xxhash-wasm';
 import { updateWorkingMemoryTool } from './tools/working-memory';
@@ -11,6 +12,9 @@ import { reorderToolCallsAndResults } from './utils';
 
 // Average characters per token based on OpenAI's tokenization
 const CHARS_PER_TOKEN = 4;
+
+const DEFAULT_MESSAGE_RANGE = { before: 2, after: 2 } as const;
+const DEFAULT_TOP_K = 2;
 
 /**
  * Concrete implementation of MastraMemory that adds support for thread configuration
@@ -22,6 +26,9 @@ export class Memory extends MastraMemory {
 
     const mergedConfig = this.getMergedThreadConfig({
       workingMemory: config.options?.workingMemory || {
+        // these defaults are now set inside @mastra/core/memory in getMergedThreadConfig.
+        // In a future release we can remove it from this block - for now if we remove it
+        // and someone bumps @mastra/memory without bumping @mastra/core the defaults wouldn't exist yet
         enabled: false,
         template: this.defaultWorkingMemoryTemplate,
       },
@@ -30,6 +37,7 @@ export class Memory extends MastraMemory {
   }
 
   private async validateThreadIsOwnedByResource(threadId: string, resourceId: string) {
+    await this.storage.init();
     const thread = await this.storage.getThreadById({ threadId });
     if (!thread) {
       throw new Error(`No thread found with id ${threadId}`);
@@ -66,15 +74,18 @@ export class Memory extends MastraMemory {
 
     const config = this.getMergedThreadConfig(threadConfig || {});
 
+    const defaultRange = DEFAULT_MESSAGE_RANGE;
+    const defaultTopK = DEFAULT_TOP_K;
+
     const vectorConfig =
       typeof config?.semanticRecall === `boolean`
         ? {
-            topK: 2,
-            messageRange: { before: 2, after: 2 },
+            topK: defaultTopK,
+            messageRange: defaultRange,
           }
         : {
-            topK: config?.semanticRecall?.topK ?? 2,
-            messageRange: config?.semanticRecall?.messageRange ?? { before: 2, after: 2 },
+            topK: config?.semanticRecall?.topK ?? defaultTopK,
+            messageRange: config?.semanticRecall?.messageRange ?? defaultRange,
           };
 
     if (config?.semanticRecall && selectBy?.vectorSearchString && this.vector && !!selectBy.vectorSearchString) {
@@ -103,6 +114,7 @@ export class Memory extends MastraMemory {
       );
     }
 
+    await this.storage.init();
     // Get raw messages from storage
     const rawMessages = await this.storage.getMessages({
       threadId,
@@ -183,10 +195,12 @@ export class Memory extends MastraMemory {
   }
 
   async getThreadById({ threadId }: { threadId: string }): Promise<StorageThreadType | null> {
+    await this.storage.init();
     return this.storage.getThreadById({ threadId });
   }
 
   async getThreadsByResourceId({ resourceId }: { resourceId: string }): Promise<StorageThreadType[]> {
+    await this.storage.init();
     return this.storage.getThreadsByResourceId({ resourceId });
   }
 
@@ -197,6 +211,7 @@ export class Memory extends MastraMemory {
     thread: StorageThreadType;
     memoryConfig?: MemoryConfig;
   }): Promise<StorageThreadType> {
+    await this.storage.init();
     const config = this.getMergedThreadConfig(memoryConfig || {});
 
     if (config.workingMemory?.enabled && !thread?.metadata?.workingMemory) {
@@ -222,6 +237,7 @@ export class Memory extends MastraMemory {
     title: string;
     metadata: Record<string, unknown>;
   }): Promise<StorageThreadType> {
+    await this.storage.init();
     return this.storage.updateThread({
       id,
       title,
@@ -230,6 +246,7 @@ export class Memory extends MastraMemory {
   }
 
   async deleteThread(threadId: string): Promise<void> {
+    await this.storage.init();
     await this.storage.deleteThread({ threadId });
   }
 
@@ -317,6 +334,7 @@ export class Memory extends MastraMemory {
     messages: MessageType[];
     memoryConfig?: MemoryConfig;
   }): Promise<MessageType[]> {
+    await this.storage.init();
     // First save working memory from any messages
     await this.saveWorkingMemory(messages);
 
@@ -331,9 +349,23 @@ export class Memory extends MastraMemory {
       let indexName: Promise<string>;
       await Promise.all(
         updatedMessages.map(async message => {
-          if (typeof message.content !== `string` || message.content === '') return;
+          let textForEmbedding: string | null = null;
 
-          const { embeddings, chunks, dimension } = await this.embedMessageContent(message.content);
+          if (typeof message.content === 'string' && message.content.trim() !== '') {
+            textForEmbedding = message.content;
+          } else if (Array.isArray(message.content)) {
+            // Extract text from all text parts, concatenate
+            const joined = message.content
+              .filter(part => part && part.type === 'text' && typeof part.text === 'string')
+              .map(part => (part as TextPart).text)
+              .join(' ')
+              .trim();
+            if (joined) textForEmbedding = joined;
+          }
+
+          if (!textForEmbedding) return;
+
+          const { embeddings, chunks, dimension } = await this.embedMessageContent(textForEmbedding);
 
           if (typeof indexName === `undefined`) {
             indexName = this.createEmbeddingIndex(dimension).then(result => result.indexName);
@@ -373,15 +405,19 @@ export class Memory extends MastraMemory {
           content: message.content.replace(workingMemoryRegex, ``).trim(),
         });
       } else if (Array.isArray(message?.content)) {
-        const contentIsWorkingMemory = message.content.some(
+        // Filter out updateWorkingMemory tool-call/result content items
+        const filteredContent = message.content.filter(
           content =>
-            (content.type === `tool-call` || content.type === `tool-result`) &&
-            content.toolName === `updateWorkingMemory`,
+            !(
+              (content.type === 'tool-call' || content.type === 'tool-result') &&
+              content.toolName === 'updateWorkingMemory'
+            ),
         );
-        if (contentIsWorkingMemory) {
+        if (filteredContent.length === 0) {
+          // If nothing left, skip this message
           continue;
         }
-        const newContent = message.content.map(content => {
+        const newContent = filteredContent.map(content => {
           if (content.type === 'text') {
             return {
               ...content,
@@ -416,6 +452,7 @@ export class Memory extends MastraMemory {
   public async getWorkingMemory({ threadId }: { threadId: string }): Promise<string | null> {
     if (!this.threadConfig.workingMemory?.enabled) return null;
 
+    await this.storage.init();
     // Get thread from storage
     const thread = await this.storage.getThreadById({ threadId });
     if (!thread) return this.threadConfig?.workingMemory?.template || this.defaultWorkingMemoryTemplate;
@@ -455,6 +492,7 @@ export class Memory extends MastraMemory {
       return;
     }
 
+    await this.storage.init();
     const thread = await this.storage.getThreadById({ threadId });
     if (!thread) return;
 
@@ -486,11 +524,7 @@ export class Memory extends MastraMemory {
       return null;
     }
 
-    if (config.workingMemory.use === 'tool-call') {
-      return this.getWorkingMemoryToolInstruction(workingMemory);
-    }
-
-    return this.getWorkingMemoryWithInstruction(workingMemory);
+    return this.getWorkingMemoryToolInstruction(workingMemory);
   }
 
   public defaultWorkingMemoryTemplate = `
@@ -555,7 +589,7 @@ Notes:
 
   public getTools(config?: MemoryConfig): Record<string, CoreTool> {
     const mergedConfig = this.getMergedThreadConfig(config);
-    if (mergedConfig.workingMemory?.enabled && mergedConfig.workingMemory.use === 'tool-call') {
+    if (mergedConfig.workingMemory?.enabled) {
       return {
         updateWorkingMemory: updateWorkingMemoryTool,
       };

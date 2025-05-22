@@ -11,7 +11,14 @@ import {
   TABLE_TRACES,
   TABLE_WORKFLOW_SNAPSHOT,
 } from '@mastra/core/storage';
-import type { EvalRow, StorageColumn, StorageGetMessagesArg, TABLE_NAMES } from '@mastra/core/storage';
+import type {
+  EvalRow,
+  StorageColumn,
+  StorageGetMessagesArg,
+  TABLE_NAMES,
+  WorkflowRun,
+  WorkflowRuns,
+} from '@mastra/core/storage';
 import type { WorkflowRunState } from '@mastra/core/workflows';
 
 function safelyParseJSON(jsonString: string): any {
@@ -203,6 +210,8 @@ export class ClickhouseStore extends MastraStorage {
     perPage,
     attributes,
     filters,
+    fromDate,
+    toDate,
   }: {
     name?: string;
     scope?: string;
@@ -210,6 +219,8 @@ export class ClickhouseStore extends MastraStorage {
     perPage: number;
     attributes?: Record<string, string>;
     filters?: Record<string, any>;
+    fromDate?: Date;
+    toDate?: Date;
   }): Promise<any[]> {
     const limit = perPage;
     const offset = page * perPage;
@@ -239,6 +250,16 @@ export class ClickhouseStore extends MastraStorage {
         );
         args[`var_col_${key}`] = value;
       });
+    }
+
+    if (fromDate) {
+      conditions.push(`createdAt >= {var_from_date:DateTime64(3)}`);
+      args.var_from_date = fromDate.getTime() / 1000; // Convert to Unix timestamp
+    }
+
+    if (toDate) {
+      conditions.push(`createdAt <= {var_to_date:DateTime64(3)}`);
+      args.var_to_date = toDate.getTime() / 1000; // Convert to Unix timestamp
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -316,7 +337,6 @@ export class ClickhouseStore extends MastraStorage {
           ${['id String'].concat(columns)}
         )
         ENGINE = ${TABLE_ENGINES[tableName]}
-        PARTITION BY "createdAt"
         PRIMARY KEY (createdAt, run_id, workflow_name)
         ORDER BY (createdAt, run_id, workflow_name)
         ${rowTtl ? `TTL toDateTime(${rowTtl.ttlKey ?? 'createdAt'}) + INTERVAL ${rowTtl.interval} ${rowTtl.unit}` : ''}
@@ -327,7 +347,6 @@ export class ClickhouseStore extends MastraStorage {
           ${columns}
         )
         ENGINE = ${TABLE_ENGINES[tableName]}
-        PARTITION BY "createdAt"
         PRIMARY KEY (createdAt, ${tableName === TABLE_EVALS ? 'run_id' : 'id'})
         ORDER BY (createdAt, ${tableName === TABLE_EVALS ? 'run_id' : 'id'})
         ${this.ttl?.[tableName]?.row ? `TTL toDateTime(createdAt) + INTERVAL ${this.ttl[tableName].row.interval} ${this.ttl[tableName].row.unit}` : ''}
@@ -606,7 +625,7 @@ export class ClickhouseStore extends MastraStorage {
     try {
       // First delete all messages associated with this thread
       await this.db.command({
-        query: `DELETE FROM "${TABLE_MESSAGES}" WHERE thread_id = '${threadId}';`,
+        query: `DELETE FROM "${TABLE_MESSAGES}" WHERE thread_id = {var_thread_id:String};`,
         query_params: { var_thread_id: threadId },
         clickhouse_settings: {
           output_format_json_quote_64bit_integers: 0,
@@ -627,7 +646,7 @@ export class ClickhouseStore extends MastraStorage {
     }
   }
 
-  async getMessages<T = unknown>({ threadId, selectBy }: StorageGetMessagesArg): Promise<T> {
+  async getMessages<T = unknown>({ threadId, selectBy }: StorageGetMessagesArg): Promise<T[]> {
     try {
       const messages: any[] = [];
       const limit = typeof selectBy?.last === `number` ? selectBy.last : 40;
@@ -734,7 +753,7 @@ export class ClickhouseStore extends MastraStorage {
         }
       });
 
-      return messages as T;
+      return messages as T[];
     } catch (error) {
       console.error('Error getting messages:', error);
       throw error;
@@ -856,28 +875,42 @@ export class ClickhouseStore extends MastraStorage {
     }
   }
 
+  private parseWorkflowRun(row: any): WorkflowRun {
+    let parsedSnapshot: WorkflowRunState | string = row.snapshot as string;
+    if (typeof parsedSnapshot === 'string') {
+      try {
+        parsedSnapshot = JSON.parse(row.snapshot as string) as WorkflowRunState;
+      } catch (e) {
+        // If parsing fails, return the raw snapshot string
+        console.warn(`Failed to parse snapshot for workflow ${row.workflow_name}: ${e}`);
+      }
+    }
+
+    return {
+      workflowName: row.workflow_name,
+      runId: row.run_id,
+      snapshot: parsedSnapshot,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+      resourceId: row.resourceId,
+    };
+  }
+
   async getWorkflowRuns({
     workflowName,
     fromDate,
     toDate,
     limit,
     offset,
+    resourceId,
   }: {
     workflowName?: string;
     fromDate?: Date;
     toDate?: Date;
     limit?: number;
     offset?: number;
-  } = {}): Promise<{
-    runs: Array<{
-      workflowName: string;
-      runId: string;
-      snapshot: WorkflowRunState | string;
-      createdAt: Date;
-      updatedAt: Date;
-    }>;
-    total: number;
-  }> {
+    resourceId?: string;
+  } = {}): Promise<WorkflowRuns> {
     try {
       const conditions: string[] = [];
       const values: Record<string, any> = {};
@@ -885,6 +918,16 @@ export class ClickhouseStore extends MastraStorage {
       if (workflowName) {
         conditions.push(`workflow_name = {var_workflow_name:String}`);
         values.var_workflow_name = workflowName;
+      }
+
+      if (resourceId) {
+        const hasResourceId = await this.hasColumn(TABLE_WORKFLOW_SNAPSHOT, 'resourceId');
+        if (hasResourceId) {
+          conditions.push(`resourceId = {var_resourceId:String}`);
+          values.var_resourceId = resourceId;
+        } else {
+          console.warn(`[${TABLE_WORKFLOW_SNAPSHOT}] resourceId column not found. Skipping resourceId filter.`);
+        }
       }
 
       if (fromDate) {
@@ -921,7 +964,8 @@ export class ClickhouseStore extends MastraStorage {
             run_id,
             snapshot,
             toDateTime64(createdAt, 3) as createdAt,
-            toDateTime64(updatedAt, 3) as updatedAt
+            toDateTime64(updatedAt, 3) as updatedAt,
+            resourceId
           FROM ${TABLE_WORKFLOW_SNAPSHOT} ${TABLE_ENGINES[TABLE_WORKFLOW_SNAPSHOT].startsWith('ReplacingMergeTree') ? 'FINAL' : ''}
           ${whereClause}
           ORDER BY createdAt DESC
@@ -935,23 +979,7 @@ export class ClickhouseStore extends MastraStorage {
       const resultJson = await result.json();
       const rows = resultJson as any[];
       const runs = rows.map(row => {
-        let parsedSnapshot: WorkflowRunState | string = row.snapshot;
-        if (typeof parsedSnapshot === 'string') {
-          try {
-            parsedSnapshot = JSON.parse(row.snapshot) as WorkflowRunState;
-          } catch (e) {
-            // If parsing fails, return the raw snapshot string
-            console.warn(`Failed to parse snapshot for workflow ${row.workflow_name}: ${e}`);
-          }
-        }
-
-        return {
-          workflowName: row.workflow_name,
-          runId: row.run_id,
-          snapshot: parsedSnapshot,
-          createdAt: new Date(row.createdAt),
-          updatedAt: new Date(row.updatedAt),
-        };
+        return this.parseWorkflowRun(row);
       });
 
       // Use runs.length as total when not paginating
@@ -960,6 +988,66 @@ export class ClickhouseStore extends MastraStorage {
       console.error('Error getting workflow runs:', error);
       throw error;
     }
+  }
+
+  async getWorkflowRunById({
+    runId,
+    workflowName,
+  }: {
+    runId: string;
+    workflowName?: string;
+  }): Promise<WorkflowRun | null> {
+    try {
+      const conditions: string[] = [];
+      const values: Record<string, any> = {};
+
+      if (runId) {
+        conditions.push(`run_id = {var_runId:String}`);
+        values.var_runId = runId;
+      }
+
+      if (workflowName) {
+        conditions.push(`workflow_name = {var_workflow_name:String}`);
+        values.var_workflow_name = workflowName;
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+      // Get results
+      const result = await this.db.query({
+        query: `
+          SELECT 
+            workflow_name,
+            run_id,
+            snapshot,
+            toDateTime64(createdAt, 3) as createdAt,
+            toDateTime64(updatedAt, 3) as updatedAt,
+            resourceId
+          FROM ${TABLE_WORKFLOW_SNAPSHOT} ${TABLE_ENGINES[TABLE_WORKFLOW_SNAPSHOT].startsWith('ReplacingMergeTree') ? 'FINAL' : ''}
+          ${whereClause}
+        `,
+        query_params: values,
+        format: 'JSONEachRow',
+      });
+
+      const resultJson = await result.json();
+      if (!Array.isArray(resultJson) || resultJson.length === 0) {
+        return null;
+      }
+      return this.parseWorkflowRun(resultJson[0]);
+    } catch (error) {
+      console.error('Error getting workflow run by ID:', error);
+      throw error;
+    }
+  }
+
+  private async hasColumn(table: string, column: string): Promise<boolean> {
+    const result = await this.db.query({
+      query: `DESCRIBE TABLE ${table}`,
+      format: 'JSONEachRow',
+    });
+    const columns = (await result.json()) as { name: string }[];
+    return columns.some(c => c.name === column);
   }
 
   async close(): Promise<void> {

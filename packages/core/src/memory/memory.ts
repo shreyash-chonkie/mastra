@@ -1,5 +1,3 @@
-import { existsSync } from 'fs';
-import { join } from 'path';
 import type {
   AssistantContent,
   ToolResultPart,
@@ -12,13 +10,10 @@ import type {
 
 import { MastraBase } from '../base';
 import type { MastraStorage, StorageGetMessagesArg } from '../storage';
-import { DefaultProxyStorage } from '../storage/default-proxy-storage';
 import { augmentWithInit } from '../storage/storageWithInit';
 import type { CoreTool } from '../tools';
 import { deepMerge } from '../utils';
 import type { MastraVector } from '../vector';
-import { defaultEmbedder } from '../vector/fastembed';
-import { DefaultVectorDB } from '../vector/libsql';
 
 import type { MessageType, SharedMemoryConfig, StorageThreadType, MemoryConfig, AiMessageType } from './types';
 
@@ -42,6 +37,29 @@ export abstract class MemoryProcessor extends MastraBase {
   }
 }
 
+export const memoryDefaultOptions = {
+  lastMessages: 10,
+  semanticRecall: false,
+  threads: {
+    generateTitle: false,
+  },
+  workingMemory: {
+    enabled: false,
+    template: `
+# User Information
+- **First Name**: 
+- **Last Name**: 
+- **Location**: 
+- **Occupation**: 
+- **Interests**: 
+- **Goals**: 
+- **Events**: 
+- **Facts**: 
+- **Projects**: 
+`,
+  },
+} satisfies MemoryConfig;
+
 /**
  * Abstract Memory class that defines the interface for storing and retrieving
  * conversation threads and messages.
@@ -49,90 +67,55 @@ export abstract class MemoryProcessor extends MastraBase {
 export abstract class MastraMemory extends MastraBase {
   MAX_CONTEXT_TOKENS?: number;
 
-  storage: MastraStorage;
+  _storage?: MastraStorage;
   vector?: MastraVector;
   embedder?: EmbeddingModel<string>;
   private processors: MemoryProcessor[] = [];
-
-  protected threadConfig: MemoryConfig = {
-    lastMessages: 40,
-    semanticRecall: true,
-    threads: {
-      generateTitle: true, // TODO: should we disable this by default to reduce latency?
-    },
-  };
+  protected threadConfig: MemoryConfig = { ...memoryDefaultOptions };
 
   constructor(config: { name: string } & SharedMemoryConfig) {
     super({ component: 'MEMORY', name: config.name });
 
-    if (config.options) {
-      this.threadConfig = this.getMergedThreadConfig(config.options);
-    }
-
+    if (config.options) this.threadConfig = this.getMergedThreadConfig(config.options);
+    if (config.processors) this.processors = config.processors;
     if (config.storage) {
-      this.storage = config.storage;
-    } else {
-      this.storage = new DefaultProxyStorage({
-        config: {
-          url: 'file:memory.db',
-        },
-      });
+      this._storage = augmentWithInit(config.storage);
+      this._hasOwnStorage = true;
     }
 
-    this.storage = augmentWithInit(this.storage);
-
-    const semanticRecallIsEnabled = this.threadConfig.semanticRecall !== false; // default is to have it enabled, so any value except false means it's on
-
-    if (config.vector && semanticRecallIsEnabled) {
-      this.vector = config.vector;
-    } else if (
-      // if there's no configured vector store
-      // and the vector store hasn't been explicitly disabled with vector: false
-      config.vector !== false &&
-      // and semanticRecall is enabled
-      semanticRecallIsEnabled
-      // add the default vector store
-    ) {
-      // for backwards compat reasons, check if there's a memory-vector.db in cwd or in cwd/.mastra
-      // if it's there we need to use it, otherwise use the same file:memory.db
-      // We used to need two separate DBs because we would get schema errors
-      // Creating a new index for each vector dimension size fixed that, so we no longer need a separate sqlite db
-      const oldDb = 'memory-vector.db';
-      const hasOldDb = existsSync(join(process.cwd(), oldDb)) || existsSync(join(process.cwd(), '.mastra', oldDb));
-      const newDb = 'memory.db';
-
-      if (hasOldDb) {
-        this.logger.warn(
-          `Found deprecated Memory vector db file ${oldDb} this db is now merged with the default ${newDb} file. Delete the old one to use the new one. You will need to migrate any data if that's important to you. For now the deprecated path will be used but in a future breaking change we will only use the new db file path.`,
+    if (this.threadConfig.semanticRecall) {
+      if (!config.vector) {
+        throw new Error(
+          `Semantic recall requires a vector store to be configured.\n\nhttps://mastra.ai/en/docs/memory/semantic-recall`,
         );
       }
+      this.vector = config.vector;
 
-      this.vector = new DefaultVectorDB({
-        connectionUrl: hasOldDb ? `file:${oldDb}` : `file:${newDb}`,
-      });
-    }
-
-    if (config.embedder) {
+      if (!config.embedder) {
+        throw new Error(
+          `Semantic recall requires an embedder to be configured.\n\nhttps://mastra.ai/en/docs/memory/semantic-recall`,
+        );
+      }
       this.embedder = config.embedder;
-    } else if (
-      // if there's no configured embedder
-      // and there's a vector store
-      typeof this.vector !== `undefined` &&
-      // and semanticRecall is enabled
-      semanticRecallIsEnabled
-    ) {
-      // add the default embedder
-      this.embedder = defaultEmbedder('bge-small-en-v1.5'); // https://huggingface.co/BAAI/bge-small-en-v1.5#model-list we're using small 1.5 because it's much faster than base 1.5 and only scores slightly worse despite being roughly 100MB smaller - small is ~130MB while base is ~220MB
-    }
-
-    // Initialize processors if provided
-    if (config.processors) {
-      this.processors = config.processors;
     }
   }
 
+  protected _hasOwnStorage = false;
+  get hasOwnStorage() {
+    return this._hasOwnStorage;
+  }
+
+  get storage() {
+    if (!this._storage) {
+      throw new Error(
+        `Memory requires a storage provider to function. Add a storage configuration to Memory or to your Mastra instance.\n\nhttps://mastra.ai/en/docs/memory/overview`,
+      );
+    }
+    return this._storage;
+  }
+
   public setStorage(storage: MastraStorage) {
-    this.storage = storage;
+    this._storage = storage;
   }
 
   public setVector(vector: MastraVector) {
@@ -165,7 +148,10 @@ export abstract class MastraMemory extends MastraBase {
     const defaultDimensions = 1536;
     const isDefault = dimensions === defaultDimensions;
     const usedDimensions = dimensions ?? defaultDimensions;
-    const indexName = isDefault ? 'memory_messages' : `memory_messages_${usedDimensions}`;
+    const separator = this.vector?.indexSeparator ?? '_';
+    const indexName = isDefault
+      ? `memory${separator}messages`
+      : `memory${separator}messages${separator}${usedDimensions}`;
 
     if (typeof this.vector === `undefined`) {
       throw new Error(`Tried to create embedding index but no vector db is attached to this Memory instance.`);
@@ -178,6 +164,9 @@ export abstract class MastraMemory extends MastraBase {
   }
 
   public getMergedThreadConfig(config?: MemoryConfig): MemoryConfig {
+    if (config?.workingMemory && 'use' in config.workingMemory) {
+      throw new Error('The workingMemory.use option has been removed. Working memory always uses tool-call mode.');
+    }
     return deepMerge(this.threadConfig, config || {});
   }
 
@@ -418,6 +407,7 @@ export abstract class MastraMemory extends MastraBase {
     metadata?: Record<string, unknown>;
     memoryConfig?: MemoryConfig;
   }): Promise<StorageThreadType> {
+    await this.storage.init();
     const thread: StorageThreadType = {
       id: threadId || this.generateId(),
       title: title || `New Thread ${new Date().toISOString()}`,
