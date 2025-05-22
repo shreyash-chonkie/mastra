@@ -31,35 +31,54 @@ Install the `mastra` CLI and `@mastra/core` packages:
 <Tabs items={["npm", "yarn", "pnpm", "bun"]}>
   <Tabs.Tab>
   ```bash copy
-npm install mastra@latest @mastra/core@latest
+npm install mastra@latest @mastra/core@latest @mastra/libsql@latest
     ```
    </Tabs.Tab>
   <Tabs.Tab>
   ```bash copy
-yarn add mastra@latest @mastra/core@latest
+yarn add mastra@latest @mastra/core@latest @mastra/libsql@latest
     ```
    </Tabs.Tab>
   <Tabs.Tab>
   ```bash copy
-pnpm add mastra@latest @mastra/core@latest
+pnpm add mastra@latest @mastra/core@latest @mastra/libsql@latest
   ```
   </Tabs.Tab>
 <Tabs.Tab>
   ```bash copy
-bun add mastra@latest @mastra/core@latest
+bun add mastra@latest @mastra/core@latest @mastra/libsql@latest
   ```
   </Tabs.Tab>
 </Tabs>
 
 ## Initialize Mastra
 
-Then run the initialization command:
+To initialize Mastra in your project, you have two options:
+
+### Option 1: Use the One-Liner
+
+Run the following command to quickly scaffold the default Weather agent with sensible defaults:
+
+```bash
+npx mastra@latest init --dir src --components agents,tools --llm openai --example
+```
+This sets up:
+
+- A default agent (`weatherAgent`)
+- Tooling support
+- OpenAI as the provider
+- An example prompt
+- All files generated under the `src/` directory
+
+### Option 2: Use the Interactive CLI
+
+If you prefer to customize the setup, run the `init` command without flags:
 
 ```bash copy
 npx mastra@latest init
 ```
 
-When prompted, follow the example below to scaffold the default Weather agent.
+Follow the interactive prompts to configure your Mastra project:
 
 ```bash
 Where should we create the Mastra files? (default: src/)
